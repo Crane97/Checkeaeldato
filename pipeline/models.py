@@ -1,22 +1,17 @@
 """Modelos pydantic compartidos por todos los pasos del pipeline."""
 
 import datetime as dt
-import re
 from typing import Literal, Self
 
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+
+from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
 VerdictLabel = Literal["verdadero", "enganoso", "falso", "no_verificable"]
 SourceKind = Literal["factcheck", "oficial", "web"]
 
 VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "enganoso", "falso", "no_verificable")
-
-# Vocabulary that judges intent instead of facts; banned from outputs, prompts and UI.
-FORBIDDEN_WORDS_RE = re.compile(
-    r"\b(mentira|mentiras|miente|mienten|mintió|mintieron|mentiroso|mentirosa|mentirosos|mentirosas)\b",
-    re.IGNORECASE,
-)
 
 
 def _check_time_range(start: float, end: float) -> None:
