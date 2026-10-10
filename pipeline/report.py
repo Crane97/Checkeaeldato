@@ -18,6 +18,7 @@ VERDICT_NAMES = {
     "falso": "falso",
     "no_verificable": "no verificable",
 }
+CLAUDE_PROVIDERS = ("anthropic", "claude-code")
 BASIS_NAMES = {
     "factcheck": "desmentido publicado",
     "oficial": "oficial",
@@ -125,13 +126,18 @@ def format_summary(report: Report, report_path: str) -> str:
     if report.warnings:
         lines += ["", "Avisos:"] + [f"  - {w}" for w in report.warnings]
 
-    llm = sum(e.usd for e in report.cost.entries if e.provider == "anthropic")
-    calls = sum(1 for e in report.cost.entries if e.provider == "anthropic")
-    audio = sum(e.usd for e in report.cost.entries if e.provider != "anthropic")
+    claude = [e for e in report.cost.entries if e.provider in CLAUDE_PROVIDERS]
+    llm = sum(e.usd for e in claude)
+    calls = len(claude)
+    audio = sum(e.usd for e in report.cost.entries if e.provider not in CLAUDE_PROVIDERS)
     lines += [
         "",
         f"Coste estimado: {report.cost.total_usd:.4f} $ "
         f"(Claude: {llm:.4f} $ en {_plural(calls, 'llamada', 'llamadas')}; "
         f"transcripción: {audio:.4f} $)",
     ]
+    if any(e.provider == "claude-code" for e in claude):
+        lines.append(
+            "  (Claude vía Claude Code: coste equivalente orientativo, cubierto por tu plan)"
+        )
     return "\n".join(lines)

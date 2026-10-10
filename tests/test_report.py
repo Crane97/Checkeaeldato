@@ -136,3 +136,12 @@ def test_warnings_for_search_errors_and_unpriced_models():
     text = " | ".join(report.warnings)
     assert "1 afirmación con búsquedas de evidencia fallidas" in text
     assert "sin precio" in text and "x" in text
+
+
+def test_summary_counts_claude_code_as_claude_and_says_it_is_covered_by_the_plan():
+    cost = RunCost(entries=[CostEntry(step="claims", provider="claude-code", model="m", usd=0.01)])
+    report = build(ClaimDetection(), [], cost=cost)
+    text = format_summary(report, report_path="r.json")
+    assert "Claude: 0.0100 $ en 1 llamada" in text
+    assert "transcripción: 0.0000 $" in text
+    assert "cubierto por tu plan" in text

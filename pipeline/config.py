@@ -22,6 +22,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # "api": Anthropic API (needed for the public beta). "claude-code": the local Claude
+    # Code subscription via `claude -p`, for local testing without prepaid credits.
+    llm_backend: Literal["api", "claude-code"] = "api"
+
     # Optional: the Anthropic SDK can also resolve credentials on its own.
     anthropic_api_key: SecretStr | None = None
     anthropic_model: str | None = None

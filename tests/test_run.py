@@ -198,3 +198,12 @@ def test_author_is_rejected_for_video(tmp_path):
     video.write_bytes(b"x")
     with pytest.raises(ValueError, match="--autor"):
         run(video, tmp_path / "data", FakeDeps(), author="X")
+
+
+def test_live_deps_pick_the_configured_llm_backend(tmp_path):
+    from pipeline.config import Settings
+    from pipeline.llm_claude_code import ClaudeCodeLLM
+    from pipeline.run import LiveDeps
+
+    settings = Settings(_env_file=None, llm_backend="claude-code")
+    assert isinstance(LiveDeps(settings).llm, ClaudeCodeLLM)

@@ -59,6 +59,10 @@ class LiveDeps:
 
     @cached_property
     def llm(self) -> Any:
+        if self.settings.llm_backend == "claude-code":
+            from pipeline.llm_claude_code import ClaudeCodeLLM
+
+            return ClaudeCodeLLM(self.prompts_dir)
         from pipeline.llm import LLMClient, make_anthropic_client
 
         return LLMClient(make_anthropic_client(self.settings), self.prompts_dir)

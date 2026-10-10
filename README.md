@@ -14,8 +14,9 @@ Las reglas del proyecto (neutralidad, categorías, principios) están en
 
    | Variable | Para qué | Dónde conseguirla |
    |---|---|---|
-   | `ANTHROPIC_API_KEY` | Detección y veredicto (Claude) | console.anthropic.com → API Keys |
+   | `LLM_BACKEND` | `claude-code` usa tu suscripción de Claude Code (pruebas en local, sin pagar aparte); `api` usa la API de Anthropic (créditos prepago; necesaria para la beta) | — |
    | `ANTHROPIC_MODEL` | Modelo de Claude; para la demo, `claude-haiku-5-5` | — |
+   | `ANTHROPIC_API_KEY` | Solo con `LLM_BACKEND=api` | console.anthropic.com → API Keys |
    | `GOOGLE_FACTCHECK_API_KEY` | Desmentidos publicados (gratis) | Google Cloud Console: crea una clave y habilita *Fact Check Tools API* |
    | `TAVILY_API_KEY` | Búsqueda en webs oficiales y en internet (gratis, 1.000 créditos/mes) | app.tavily.com |
    | `TRANSCRIPTION_API_KEY` | Solo para vídeo (ElevenLabs Scribe v2) | elevenlabs.io → API Keys |

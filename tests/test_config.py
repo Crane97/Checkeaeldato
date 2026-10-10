@@ -3,6 +3,7 @@ import pytest
 from pipeline.config import ConfigError, Settings
 
 ENV_VARS = [
+    "LLM_BACKEND",
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_MODEL",
     "ANTHROPIC_MODEL_DETECTION",
@@ -64,3 +65,9 @@ def test_secret_returns_value_or_raises(monkeypatch):
 def test_secrets_are_not_printed():
     settings = make_settings(transcription_api_key="xi-123")
     assert "xi-123" not in repr(settings)
+
+
+def test_llm_backend_defaults_to_api_and_accepts_claude_code(monkeypatch):
+    assert make_settings().llm_backend == "api"
+    monkeypatch.setenv("LLM_BACKEND", "claude-code")
+    assert make_settings().llm_backend == "claude-code"

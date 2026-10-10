@@ -50,7 +50,9 @@ que no haya que reescribir al pasar de fase.
 
 - **Pipeline / worker:** Python 3.11+, `uv` para dependencias, `pydantic` para modelos,
   `httpx` para HTTP, `ruff` para lint/format, `pytest` para tests.
-- **LLM:** API de Anthropic (Claude). Modelo configurable con `ANTHROPIC_MODEL` y, por
+- **LLM:** Claude. `LLM_BACKEND=api` (API de Anthropic; obligatorio para la beta pública) o
+  `LLM_BACKEND=claude-code` (suscripción local vía `claude -p`, solo para pruebas en local:
+  sin herramientas, sin MCP, desde una carpeta vacía y sin `ANTHROPIC_API_KEY`). Modelo configurable con `ANTHROPIC_MODEL` y, por
   paso, `ANTHROPIC_MODEL_DETECTION` / `ANTHROPIC_MODEL_VERDICT`; nunca hardcodeado. Para
   la demo local: `claude-haiku-5-5` (mínimo coste); subir de modelo solo si la evaluación
   lo justifica.
@@ -72,7 +74,8 @@ pipeline/
   run.py              # monta los pasos (texto o vídeo) y los ejecuta; clientes perezosos
   config.py           # carga de variables de entorno
   http.py             # peticiones HTTP con reintentos (evidencia y transcripción)
-  llm.py              # llamadas a Claude con JSON validado y registro de coste
+  llm.py              # llamadas a Claude (API) con JSON validado y registro de coste
+  llm_claude_code.py  # misma interfaz vía `claude -p` (suscripción local, solo pruebas)
   costs.py            # estimación de coste; precios en pricing.toml
   jobs.py             # data/<job_id>/, manifest y pasos reanudables
   models.py           # modelos pydantic (Segment, Claim, Evidence, Verdict, Report)
@@ -199,7 +202,8 @@ cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay l
 ## Variables de entorno
 
 ```
-ANTHROPIC_API_KEY=
+LLM_BACKEND=claude-code         # api | claude-code
+ANTHROPIC_API_KEY=              # solo con LLM_BACKEND=api
 ANTHROPIC_MODEL=
 ANTHROPIC_MODEL_DETECTION=      # opcional; por defecto ANTHROPIC_MODEL
 ANTHROPIC_MODEL_VERDICT=        # opcional; por defecto ANTHROPIC_MODEL
