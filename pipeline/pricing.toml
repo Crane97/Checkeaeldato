@@ -1,0 +1,35 @@
+# Precios en USD usados solo para ESTIMAR el coste de cada ejecución.
+# Revisar cuando cambien las tarifas; un modelo que no esté aquí se registra con coste 0
+# y un aviso.
+#
+# Anthropic: tabla oficial de modelos (consultada 2026-10-10). Escritura en caché estimada
+# como 1,25 × entrada (TTL 5 min). Haiku 5.5: precio para prompts de hasta 100K tokens;
+# su lectura de caché es una estimación (0,1 × entrada).
+
+[anthropic."claude-fable-5-1"]
+input_per_mtok = 10.00
+output_per_mtok = 50.00
+cache_write_per_mtok = 12.50
+cache_read_per_mtok = 0.25
+
+[anthropic."claude-opus-5-5"]
+input_per_mtok = 4.00
+output_per_mtok = 20.00
+cache_write_per_mtok = 5.00
+cache_read_per_mtok = 0.20
+
+[anthropic."claude-sonnet-5-5"]
+input_per_mtok = 2.00
+output_per_mtok = 10.00
+cache_write_per_mtok = 2.50
+cache_read_per_mtok = 0.20
+
+[anthropic."claude-haiku-5-5"]
+input_per_mtok = 0.10
+output_per_mtok = 0.50
+cache_write_per_mtok = 0.125
+cache_read_per_mtok = 0.01
+
+# Transcripción: elevenlabs.io/pricing/api (consultada 2026-10-10), Scribe v2 por lotes.
+[transcription.elevenlabs]
+usd_per_hour = 0.22

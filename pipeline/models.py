@@ -171,6 +171,8 @@ class CostEntry(BaseModel):
     model: str | None = None
     input_tokens: int = 0
     output_tokens: int = 0
+    cache_write_tokens: int = 0
+    cache_read_tokens: int = 0
     audio_seconds: float = 0
     usd: float = Field(ge=0)
 
