@@ -169,6 +169,15 @@ class VerdictFields(BaseModel):
     explanation: str
     sources: list[Source] = Field(default_factory=list)
     matched_factcheck: str | None = None
+    # Set when the analysis itself failed, so it is not mistaken for "no evidence".
+    analysis_error: str | None = None
+
+    @computed_field
+    @property
+    def basis(self) -> SourceKind | None:
+        """Strongest kind of source the verdict rests on: factcheck > oficial > web."""
+        kinds = {s.kind for s in self.sources}
+        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
 
     @field_validator("explanation")
     @classmethod

@@ -146,3 +146,12 @@ def test_claim_times_go_together(start, end):
 def test_text_segment_has_no_times():
     segment = Segment(speaker="autor", text="El paro bajó.")
     assert segment.start is None
+
+
+def test_basis_is_the_strongest_cited_source_kind():
+    web = Source(url="https://periodico.es/n", title="t", organization="o", kind="web")
+    assert make_claim(sources=[web, OFFICIAL]).basis == "oficial"
+    assert make_claim(sources=[web]).basis == "web"
+    assert make_claim(verdict="falso", sources=[web, FACTCHECK]).basis == "factcheck"
+    assert make_claim(verdict="no_verificable", sources=[]).basis is None
+    assert make_claim().model_dump(mode="json")["basis"] == "oficial"
