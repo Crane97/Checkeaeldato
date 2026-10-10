@@ -50,11 +50,15 @@ que no haya que reescribir al pasar de fase.
 
 - **Pipeline / worker:** Python 3.11+, `uv` para dependencias, `pydantic` para modelos,
   `httpx` para HTTP, `ruff` para lint/format, `pytest` para tests.
-- **LLM:** API de Anthropic (Claude). Modelo configurable con `ANTHROPIC_MODEL`; nunca
-  hardcodeado.
-- **Transcripción:** proveedor en la nube detrás de una interfaz `Transcriber`
-  (candidatos: ElevenLabs Scribe, Deepgram, AssemblyAI, Whisper API). Requisitos: español,
+- **LLM:** API de Anthropic (Claude). Modelo configurable con `ANTHROPIC_MODEL` y, por
+  paso, `ANTHROPIC_MODEL_DETECTION` / `ANTHROPIC_MODEL_VERDICT`; nunca hardcodeado. Para
+  la demo local: `claude-haiku-5-5` (mínimo coste); subir de modelo solo si la evaluación
+  lo justifica.
+- **Transcripción:** proveedor en la nube detrás de una interfaz `Transcriber`. Elegido:
+  **ElevenLabs Scribe v2** (por lotes, diarización incluida). Requisitos: español,
   diarización, timestamps por palabra o segmento.
+- **Búsqueda web:** **Tavily** (plan gratuito, 1.000 créditos/mes) detrás de una interfaz,
+  para fuentes oficiales y web general.
 - **Audio:** `ffmpeg` (instalado con Homebrew).
 - **Web (fase 4):** Next.js + TypeScript, Tailwind, desplegado en Vercel.
 - **Datos (fase 3):** Supabase (Postgres, pgvector, Storage, Auth).
@@ -64,10 +68,14 @@ que no haya que reescribir al pasar de fase.
 ```
 pipeline/
   __init__.py
-  cli.py              # entrada: `uv run verificar <video>`
+  cli.py              # entrada: `uv run verificar <video|texto>`
   config.py           # carga de variables de entorno
+  costs.py            # estimación de coste; precios en pricing.toml
+  jobs.py             # data/<job_id>/, manifest y pasos reanudables
   models.py           # modelos pydantic (Segment, Claim, Evidence, Verdict, Report)
+  neutrality.py       # palabras prohibidas y nombres de partidos (prompts y salidas)
   audio.py            # extracción con ffmpeg
+  text_input.py       # entrada .txt/.md: un segmento por párrafo, sin tiempos
   transcribe/         # interfaz Transcriber + proveedores
   claims.py           # detección y normalización de afirmaciones
   evidence/           # fuentes: factcheck_api.py, oficiales.py, web.py
@@ -86,10 +94,10 @@ data/                 # vídeos y salidas locales (en .gitignore)
 ```python
 class Claim:
     id: str
-    speaker: str                 # orador diarizado; mapeable a nombre real
-    start: float                 # segundos
-    end: float
-    text_original: str           # literal de la transcripción
+    speaker: str                 # orador diarizado; mapeable a nombre real ("autor" en texto)
+    text_original: str           # cita literal; debe poder encontrarse en el original
+    start: float | None          # segundos en el vídeo; None si la entrada es texto
+    end: float | None            # (los dos o ninguno)
     text_normalized: str         # autocontenida: quién, qué, cifra, periodo
     claim_type: Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
     verdict: Literal["verdadero", "enganoso", "falso", "no_verificable"]
@@ -125,15 +133,34 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 4. **Opiniones y promesas no se verifican.** La detección debe descartarlas.
 5. **Contexto temporal.** Cada veredicto considera la fecha del discurso; las fuentes
    llevan fecha.
-6. **Trazabilidad.** Cada Claim enlaza a su timestamp en el vídeo y a sus fuentes.
+6. **Trazabilidad.** Cada Claim cita literalmente la frase original y enlaza a sus
+   fuentes; en vídeo, además, a su timestamp.
 7. **Privacidad y derechos.** Los vídeos subidos se borran tras procesarlos; se conserva
    la transcripción y el informe.
 
-## Fuentes de evidencia (por orden de prioridad)
+## Entradas
+
+- **Vídeo** (`.mp4`, etc.): audio → transcripción con oradores → afirmaciones con
+  timestamp.
+- **Texto** (`.txt` / `.md`): sin audio ni transcripción; un segmento por párrafo y orador
+  `autor` (nombre real con `--autor`). Sirve para probar sin coste de transcripción.
+- `--fecha AAAA-MM-DD` es obligatoria (contexto temporal). `--oradores` es opcional; si
+  solo cambian los nombres, se regenera el informe sin coste.
+- `job_id` = primeros 12 caracteres del SHA-256 del archivo de entrada.
+
+## Fuentes de evidencia (cascada, por orden de prioridad)
 
 1. Google Fact Check Tools API (ClaimReview): Maldita, Newtral, EFE Verifica, Verificat…
-2. Fuentes oficiales: INE, Eurostat, SEPE, Banco de España, BOE, Ministerio de Hacienda.
-3. Búsqueda web general (último recurso; priorizar medios y organismos reconocidos).
+   → fuentes de tipo `factcheck`.
+2. Fuentes oficiales: búsqueda (Tavily) restringida a la lista editable de dominios
+   oficiales (INE, Eurostat, SEPE, Banco de España, BOE, Hacienda, Seguridad Social,
+   AIReF, CIS, Congreso, OCDE…) → tipo `oficial`.
+3. Búsqueda web general, solo si lo oficial no da resultados relevantes → tipo `web`
+   (un resultado de dominio oficial se marca `oficial`).
+
+El informe indica en qué se apoya cada veredicto (desmentido, oficial o solo web); un
+veredicto apoyado solo en web lleva menos confianza. Por ahora **no hay lista de medios
+"reconocidos"**: es una decisión de neutralidad pendiente del responsable del proyecto.
 
 ## Convenciones
 
@@ -152,16 +179,21 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 ```
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
-TRANSCRIPTION_PROVIDER=
+ANTHROPIC_MODEL_DETECTION=      # opcional; por defecto ANTHROPIC_MODEL
+ANTHROPIC_MODEL_VERDICT=        # opcional; por defecto ANTHROPIC_MODEL
+TRANSCRIPTION_PROVIDER=elevenlabs
 TRANSCRIPTION_API_KEY=
 GOOGLE_FACTCHECK_API_KEY=
+TAVILY_API_KEY=
 ```
 
 ## Comandos
 
 ```
 uv sync                         # instalar dependencias
-uv run verificar data/x.mp4     # ejecutar pipeline completo
+uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
+uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
+uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
 uv run pytest                   # tests
 uv run python eval/run_eval.py  # evaluación contra el gold set
 uv run ruff check . && uv run ruff format .
@@ -175,3 +207,13 @@ uv run ruff check . && uv run ruff format .
   métricas antes/después.
 - Si una decisión de diseño no está cubierta aquí, preguntar en vez de suponer, y
   actualizar este archivo cuando se decida.
+- Desarrollo guiado por tests (skill `tdd` en `.claude/skills/`): test que falla primero,
+  APIs siempre simuladas en tests.
+
+## Harness de Claude Code (`.claude/`)
+
+- **Hooks** (`settings.json`): bloquean el acceso a `.env`; pasan `ruff` a cada `.py`
+  editado; revisan la neutralidad de `prompts/*.md` y recuerdan ejecutar la evaluación.
+- **Agentes** (bajo demanda): `refactor-cleaner` (código muerto),
+  `silent-failure-hunter` (errores silenciados; tras los pasos de evidencia y veredicto),
+  `type-design-analyzer` (modelos pydantic). Adaptados de Everything Claude Code (MIT).
