@@ -104,6 +104,28 @@ class DetectedClaim(ClaimBase):
     search_queries: list[str] = Field(default_factory=list)
 
 
+class RejectedClaim(BaseModel):
+    """A claim proposed by the model but discarded, kept for traceability."""
+
+    quote: str
+    segment: int
+    reason: str
+
+
+class BlockFailure(BaseModel):
+    block: int
+    segments: list[int]
+    error: str
+
+
+class ClaimDetection(BaseModel):
+    """Output of the claims step (claims.json)."""
+
+    claims: list[DetectedClaim] = Field(default_factory=list)
+    rejected: list[RejectedClaim] = Field(default_factory=list)
+    failed_blocks: list[BlockFailure] = Field(default_factory=list)
+
+
 # --- Evidence ---------------------------------------------------------------
 
 
