@@ -33,6 +33,10 @@ class LLMTruncated(LLMError):
     """The answer hit max_tokens and is incomplete."""
 
 
+class LLMConfigError(LLMError):
+    """Invalid credentials or permissions: every call will fail, so the job must stop."""
+
+
 def make_anthropic_client(settings: Settings) -> "anthropic.Anthropic":
     import anthropic  # deferred: importing the SDK takes seconds on slow machines
 
@@ -103,7 +107,7 @@ class LLMClient:
         }
 
         for attempt in range(self._validation_retries + 1):
-            response = self._client.messages.create(**request)
+            response = self._create(request)
             self._record_cost(step, model, response)
             text = self._checked_text(response, prompt)
             try:
@@ -118,6 +122,24 @@ class LLMClient:
                     exc,
                 )
         raise AssertionError("unreachable")
+
+    def _create(self, request: dict[str, Any]) -> Any:
+        """Call the API, mapping SDK errors (already retried by the SDK) to LLMError."""
+        import anthropic
+
+        try:
+            return self._client.messages.create(**request)
+        except (
+            anthropic.AuthenticationError,
+            anthropic.PermissionDeniedError,
+            anthropic.NotFoundError,
+        ) as exc:
+            raise LLMConfigError(
+                f"Credenciales o modelo de Anthropic inválidos ({exc.status_code}); "
+                "revisa ANTHROPIC_API_KEY y ANTHROPIC_MODEL"
+            ) from exc
+        except anthropic.APIError as exc:
+            raise LLMError(f"Error de la API de Anthropic: {exc}") from exc
 
     def _record_cost(self, step: str, model: str, response: Any) -> None:
         usage = response.usage

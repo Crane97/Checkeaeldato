@@ -165,3 +165,46 @@ def test_missing_prompt_file_raises(prompts_dir):
     llm = LLMClient(FakeAnthropic(), prompts_dir)
     with pytest.raises(LLMError, match="no_existe.md"):
         call(llm, prompt="no_existe.md")
+
+
+def _api_error(cls_name: str, status: int):
+    import anthropic
+    import httpx2
+
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx2.Response(status, request=request)
+    return getattr(anthropic, cls_name)("boom", response=response, body=None)
+
+
+class RaisingMessages:
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+
+    def create(self, **kwargs: Any) -> Message:
+        raise self.exc
+
+
+class RaisingAnthropic:
+    def __init__(self, exc: Exception) -> None:
+        self.messages = RaisingMessages(exc)
+
+
+@pytest.mark.parametrize(
+    ("cls_name", "status"),
+    [("AuthenticationError", 401), ("PermissionDeniedError", 403), ("NotFoundError", 404)],
+)
+def test_auth_errors_become_config_errors(prompts_dir, cls_name, status):
+    from pipeline.llm import LLMConfigError
+
+    llm = LLMClient(RaisingAnthropic(_api_error(cls_name, status)), prompts_dir)
+    with pytest.raises(LLMConfigError, match="ANTHROPIC_API_KEY"):
+        call(llm)
+
+
+def test_other_api_errors_become_llm_errors(prompts_dir):
+    from pipeline.llm import LLMConfigError
+
+    llm = LLMClient(RaisingAnthropic(_api_error("InternalServerError", 500)), prompts_dir)
+    with pytest.raises(LLMError) as info:
+        call(llm)
+    assert not isinstance(info.value, LLMConfigError)
