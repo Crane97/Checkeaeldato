@@ -160,6 +160,15 @@ class ClaimEvidence(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+class EvidenceRun(BaseModel):
+    """Output of the evidence step (evidence.json)."""
+
+    sources_used: list[str]
+    # Sources skipped because their API key is missing, reported as a warning.
+    sources_disabled: list[str] = Field(default_factory=list)
+    claims: list[ClaimEvidence] = Field(default_factory=list)
+
+
 # --- Verdicts ---------------------------------------------------------------
 
 

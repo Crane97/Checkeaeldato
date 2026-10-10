@@ -75,6 +75,7 @@ def build_report(
     verdicts: list[Verdict],
     cost: RunCost,
     generated_at: dt.datetime,
+    extra_warnings: list[str] | None = None,
 ) -> Report:
     by_claim = {v.claim_id: v for v in verdicts}
     claims: list[Claim] = []
@@ -97,7 +98,7 @@ def build_report(
         speakers=speakers,
         claims=claims,
         cost=cost,
-        warnings=_warnings(detection, verdicts, cost),
+        warnings=[*(extra_warnings or []), *_warnings(detection, verdicts, cost)],
     )
 
 

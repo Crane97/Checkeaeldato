@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     transcription_api_key: SecretStr | None = None
 
     google_factcheck_api_key: SecretStr | None = None
+    tavily_api_key: SecretStr | None = None
 
     data_dir: Path = Path("data")
 

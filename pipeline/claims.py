@@ -184,6 +184,7 @@ def detect_claims(
     failures: list[BlockFailure] = []
 
     for block in blocks:
+        logger.info("Detectando afirmaciones: bloque %d/%d", block.index + 1, len(blocks))
         try:
             result = llm.structured(
                 step="claims",

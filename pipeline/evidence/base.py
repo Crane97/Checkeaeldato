@@ -51,7 +51,8 @@ def collect_evidence(
     runs = {source.name: 0 for source in sources}
     failures = {source.name: 0 for source in sources}
 
-    for claim in claims:
+    for n, claim in enumerate(claims, start=1):
+        logger.info("Buscando evidencia de %s (%d/%d)", claim.id, n, len(claims))
         items: list[EvidenceItem] = []
         errors: list[str] = []
         seen: set[str] = set()

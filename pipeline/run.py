@@ -1,0 +1,257 @@
+"""Montaje y ejecución del pipeline completo para una entrada (vídeo o texto)."""
+
+import datetime as dt
+import logging
+from collections.abc import Callable
+from dataclasses import dataclass
+from functools import cached_property
+from pathlib import Path
+from typing import Any, Protocol
+
+from pipeline.audio import extract_audio, purge_audio
+from pipeline.claims import PROMPT as CLAIMS_PROMPT
+from pipeline.claims import detect_claims
+from pipeline.config import ConfigError, LlmStep, Settings
+from pipeline.costs import transcription_cost
+from pipeline.evidence.base import EvidenceSource, collect_evidence
+from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
+from pipeline.models import (
+    AudioInfo,
+    ClaimDetection,
+    EvidenceRun,
+    InputKind,
+    Report,
+    StepName,
+    Transcript,
+    Verdict,
+)
+from pipeline.report import build_report, format_summary
+from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
+from pipeline.transcribe import Transcriber
+from pipeline.verdict import PROMPT as VERDICT_PROMPT
+from pipeline.verdict import decide_verdicts
+
+logger = logging.getLogger(__name__)
+
+PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+
+
+class Deps(Protocol):
+    """External services used by the steps; created lazily so resuming is free."""
+
+    llm: Any
+    transcriber: Transcriber
+    evidence_sources: list[EvidenceSource]
+    disabled_sources: list[str]
+
+    def model_for(self, step: LlmStep) -> str: ...
+
+
+class LiveDeps:
+    """Real clients built from settings, only when a step needs them."""
+
+    def __init__(self, settings: Settings, prompts_dir: Path = PROMPTS_DIR) -> None:
+        self.settings = settings
+        self.prompts_dir = prompts_dir
+
+    def model_for(self, step: LlmStep) -> str:
+        return self.settings.model_for(step)
+
+    @cached_property
+    def llm(self) -> Any:
+        from pipeline.llm import LLMClient, make_anthropic_client
+
+        return LLMClient(make_anthropic_client(self.settings), self.prompts_dir)
+
+    @cached_property
+    def transcriber(self) -> Transcriber:
+        from pipeline.transcribe import make_transcriber
+
+        return make_transcriber(self.settings)
+
+    @cached_property
+    def _sources(self) -> tuple[list[EvidenceSource], list[str]]:
+        from pipeline.evidence.factcheck_api import FactCheckSource
+        from pipeline.evidence.oficiales import OfficialSearchSource
+        from pipeline.evidence.tavily import TavilyClient
+        from pipeline.evidence.web import WebSearchSource
+
+        sources: list[EvidenceSource] = []
+        disabled: list[str] = []
+        if self.settings.google_factcheck_api_key:
+            sources.append(FactCheckSource(self.settings.secret("google_factcheck_api_key")))
+        else:
+            disabled.append("factcheck")
+        if self.settings.tavily_api_key:
+            tavily = TavilyClient(self.settings.secret("tavily_api_key"))
+            sources += [OfficialSearchSource(tavily), WebSearchSource(tavily)]
+        else:
+            disabled += ["oficial", "web"]
+        if not sources:
+            raise ConfigError(
+                "No hay ninguna fuente de evidencia configurada: define "
+                "GOOGLE_FACTCHECK_API_KEY y/o TAVILY_API_KEY en .env"
+            )
+        return sources, disabled
+
+    @property
+    def evidence_sources(self) -> list[EvidenceSource]:
+        return self._sources[0]
+
+    @property
+    def disabled_sources(self) -> list[str]:
+        return self._sources[1]
+
+
+@dataclass(frozen=True)
+class JobResult:
+    report: Report
+    report_path: Path
+    summary: str
+    steps_run: list[StepName]
+
+
+def input_kind_for(path: Path) -> InputKind:
+    return "texto" if path.suffix.lower() in SUPPORTED_SUFFIXES else "video"
+
+
+def _with_llm_costs(deps: Deps, work: Callable[[], None]) -> StepOutcome:
+    """Run an LLM step and return its cost, attaching it to the error if it fails."""
+    try:
+        work()
+    except Exception as exc:
+        exc.step_costs = deps.llm.take_costs()  # type: ignore[attr-defined]
+        raise
+    return StepOutcome(cost=deps.llm.take_costs())
+
+
+def build_steps(
+    store: JobStore, input_path: Path, deps: Deps, *, purge_audio_after: bool = False
+) -> list[Step]:
+    manifest = store.manifest
+    kind = manifest.input_kind
+
+    def audio_step(store: JobStore) -> StepOutcome:
+        store.write("audio.json", extract_audio(input_path, store.root), AudioInfo)
+        return StepOutcome()
+
+    def transcript_step(store: JobStore) -> StepOutcome:
+        if kind == "texto":
+            store.write("transcript.json", load_text(input_path), Transcript)
+            return StepOutcome()
+        audio = store.read("audio.json", AudioInfo)
+        if not Path(audio.path).exists():
+            raise FileNotFoundError(
+                f"Falta {audio.path} (¿se usó --purge-audio?); repite desde --from-step audio"
+            )
+        transcript = deps.transcriber.transcribe(audio)
+        store.write("transcript.json", transcript, Transcript)
+        if purge_audio_after:
+            purge_audio(audio)
+        seconds = transcript.duration or audio.duration
+        return StepOutcome(cost=[transcription_cost("transcript", transcript.provider, seconds)])
+
+    def claims_step(store: JobStore) -> StepOutcome:
+        def work() -> None:
+            detection = detect_claims(
+                store.read("transcript.json", Transcript),
+                speech_date=store.manifest.speech_date,
+                input_kind=kind,
+                llm=deps.llm,
+                model=deps.model_for("detection"),
+            )
+            store.write("claims.json", detection, ClaimDetection)
+
+        return _with_llm_costs(deps, work)
+
+    def evidence_step(store: JobStore) -> StepOutcome:
+        claims = store.read("claims.json", ClaimDetection).claims
+        sources = deps.evidence_sources
+        run = EvidenceRun(
+            sources_used=[s.name for s in sources],
+            sources_disabled=deps.disabled_sources,
+            claims=collect_evidence(claims, sources, store.manifest.speech_date),
+        )
+        store.write("evidence.json", run, EvidenceRun)
+        return StepOutcome()
+
+    def verdicts_step(store: JobStore) -> StepOutcome:
+        def work() -> None:
+            verdicts = decide_verdicts(
+                store.read("claims.json", ClaimDetection).claims,
+                store.read("evidence.json", EvidenceRun).claims,
+                speech_date=store.manifest.speech_date,
+                llm=deps.llm,
+                model=deps.model_for("verdict"),
+            )
+            store.write("verdicts.json", verdicts, list[Verdict])
+
+        return _with_llm_costs(deps, work)
+
+    def report_step(store: JobStore) -> StepOutcome:
+        evidence = store.read("evidence.json", EvidenceRun)
+        report = build_report(
+            job_id=store.job_id,
+            source=input_path.name,
+            input_kind=kind,
+            speech_date=store.manifest.speech_date,
+            speakers=store.manifest.speakers,
+            detection=store.read("claims.json", ClaimDetection),
+            verdicts=store.read("verdicts.json", list[Verdict]),
+            cost=store.manifest.run_cost(),
+            generated_at=dt.datetime.now(dt.UTC),
+            extra_warnings=[
+                f"Fuente «{name}» desactivada: falta su clave en .env"
+                for name in evidence.sources_disabled
+            ],
+        )
+        store.write("report.json", report, Report)
+        return StepOutcome()
+
+    steps = [
+        Step("transcript", transcript_step),
+        Step("claims", claims_step, (CLAIMS_PROMPT,)),
+        Step("evidence", evidence_step),
+        Step("verdicts", verdicts_step, (VERDICT_PROMPT,)),
+        Step("report", report_step),
+    ]
+    if kind == "video":
+        steps.insert(0, Step("audio", audio_step))
+    return steps
+
+
+def run_job(
+    input_path: Path,
+    *,
+    speech_date: dt.date,
+    data_dir: Path,
+    deps: Deps,
+    prompts_dir: Path = PROMPTS_DIR,
+    speakers: dict[str, str] | None = None,
+    author: str | None = None,
+    from_step: StepName | None = None,
+    purge_audio: bool = False,
+) -> JobResult:
+    if not input_path.is_file():
+        raise FileNotFoundError(f"No existe el archivo {input_path}")
+    kind = input_kind_for(input_path)
+    if author is not None:
+        if kind != "texto":
+            raise ValueError("--autor solo se usa con texto; en vídeo usa --oradores")
+        speakers = {**(speakers or {}), TEXT_SPEAKER: author}
+
+    store, invalidated = JobStore.open_or_create(data_dir, input_path, kind, speech_date, speakers)
+    start = earliest_step(from_step, invalidated)
+    if invalidated:
+        logger.info("Parámetros cambiados: se recalcula desde %s", invalidated)
+    steps = build_steps(store, input_path, deps, purge_audio_after=purge_audio)
+    steps_run = run_steps(store, steps, prompts_dir, start)
+
+    report = store.read("report.json", Report)
+    report_path = store.path("report.json")
+    return JobResult(
+        report=report,
+        report_path=report_path,
+        summary=format_summary(report, report_path=str(report_path)),
+        steps_run=steps_run,
+    )

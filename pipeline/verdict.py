@@ -169,6 +169,7 @@ def decide_verdicts(
             continue
 
         attempted += 1
+        logger.info("Veredicto de %s (%d/%d)", claim.id, len(verdicts) + 1, len(claims))
         try:
             answer = llm.structured(
                 step="verdicts",
