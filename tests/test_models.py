@@ -103,7 +103,8 @@ def test_verdict_model_applies_same_rules():
 def test_report_counts_by_verdict_and_mapped_speaker():
     report = Report(
         job_id="abc123",
-        video="debate.mp4",
+        source="debate.mp4",
+        input_kind="video",
         speech_date=dt.date(2026, 11, 20),
         generated_at=dt.datetime(2026, 11, 20, 22, 0),
         speakers={"speaker_0": "Candidata A"},
@@ -129,3 +130,19 @@ def test_report_counts_by_verdict_and_mapped_speaker():
     dumped = report.model_dump(mode="json")
     assert dumped["by_verdict"]["verdadero"] == 1
     assert Report.model_validate(dumped).claims == report.claims
+
+
+def test_text_claim_has_no_times():
+    claim = make_claim(start=None, end=None)
+    assert claim.start is None and claim.end is None
+
+
+@pytest.mark.parametrize(("start", "end"), [(10.0, None), (None, 15.0)])
+def test_claim_times_go_together(start, end):
+    with pytest.raises(ValidationError, match="both"):
+        make_claim(start=start, end=end)
+
+
+def test_text_segment_has_no_times():
+    segment = Segment(speaker="autor", text="El paro bajó.")
+    assert segment.start is None

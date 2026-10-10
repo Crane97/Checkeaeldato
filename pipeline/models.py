@@ -10,11 +10,17 @@ from pipeline.neutrality import FORBIDDEN_WORDS_RE
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
 VerdictLabel = Literal["verdadero", "enganoso", "falso", "no_verificable"]
 SourceKind = Literal["factcheck", "oficial", "web"]
+InputKind = Literal["video", "texto"]
 
 VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "enganoso", "falso", "no_verificable")
 
 
-def _check_time_range(start: float, end: float) -> None:
+def _check_time_range(start: float | None, end: float | None) -> None:
+    """Seconds in the video; both absent for text input, never only one."""
+    if start is None or end is None:
+        if start is not None or end is not None:
+            raise ValueError("start and end must be both set (video) or both empty (text)")
+        return
     if start < 0:
         raise ValueError("start must be >= 0")
     if end < start:
@@ -46,12 +52,12 @@ class Word(BaseModel):
 
 
 class Segment(BaseModel):
-    """A contiguous stretch of speech by a single diarized speaker."""
+    """A stretch of speech by one diarized speaker, or a paragraph of text input."""
 
     speaker: str
-    start: float
-    end: float
     text: str
+    start: float | None = None
+    end: float | None = None
     words: list[Word] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -61,9 +67,9 @@ class Segment(BaseModel):
 
 
 class Transcript(BaseModel):
-    provider: str
+    provider: str  # transcription provider, or "texto" for text input
     language: str
-    duration: float = Field(ge=0)
+    duration: float | None = Field(default=None, ge=0)  # seconds; None for text
     segments: list[Segment]
 
     @property
@@ -77,11 +83,13 @@ class Transcript(BaseModel):
 class ClaimBase(BaseModel):
     id: str
     speaker: str
-    start: float
-    end: float
+    # Literal quote from the transcript or text; must be findable in the source.
     text_original: str = Field(min_length=1)
     text_normalized: str = Field(min_length=1)
     claim_type: ClaimType
+    # Seconds in the video; None for text input.
+    start: float | None = None
+    end: float | None = None
 
     @model_validator(mode="after")
     def _valid_range(self) -> Self:
@@ -192,7 +200,8 @@ class RunCost(BaseModel):
 
 class Report(BaseModel):
     job_id: str
-    video: str
+    source: str  # input file name
+    input_kind: InputKind
     speech_date: dt.date
     generated_at: dt.datetime
     # Diarized label -> real name; labels without a mapping are shown as-is.
@@ -240,8 +249,9 @@ class StepRecord(BaseModel):
 
 class JobManifest(BaseModel):
     job_id: str
-    video_path: str
-    video_sha256: str
+    input_path: str
+    input_sha256: str
+    input_kind: InputKind
     speech_date: dt.date
     speakers: dict[str, str] = Field(default_factory=dict)
     created_at: dt.datetime

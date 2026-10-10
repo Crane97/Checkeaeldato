@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import TypeAdapter
 
-from pipeline.models import STEPS, CostEntry, JobManifest, StepName, StepRecord
+from pipeline.models import STEPS, CostEntry, InputKind, JobManifest, StepName, StepRecord
 
 logger = logging.getLogger(__name__)
 
@@ -64,17 +64,18 @@ class JobStore:
     def open_or_create(
         cls,
         data_dir: Path,
-        video: Path,
+        input_path: Path,
+        input_kind: InputKind,
         speech_date: dt.date,
         speakers: dict[str, str] | None = None,
     ) -> tuple["JobStore", StepName | None]:
-        """Open the job for this video, creating it if needed.
+        """Open the job for this input file (video or text), creating it if needed.
 
         Also returns the earliest step invalidated by changed parameters: a new
         speech date affects claim detection onwards, new speaker names only the report.
         `speakers=None` keeps the names already stored.
         """
-        sha = file_sha256(video)
+        sha = file_sha256(input_path)
         job_id = sha[:JOB_ID_LENGTH]
         root = data_dir / job_id
         manifest_path = root / MANIFEST_FILE
@@ -83,8 +84,9 @@ class JobStore:
             root.mkdir(parents=True, exist_ok=True)
             manifest = JobManifest(
                 job_id=job_id,
-                video_path=str(video),
-                video_sha256=sha,
+                input_path=str(input_path),
+                input_sha256=sha,
+                input_kind=input_kind,
                 speech_date=speech_date,
                 speakers=speakers or {},
                 created_at=_now(),
@@ -100,7 +102,7 @@ class JobStore:
         elif speakers is not None and speakers != manifest.speakers:
             invalidated = "report"
 
-        manifest.video_path = str(video)
+        manifest.input_path = str(input_path)
         manifest.speech_date = speech_date
         if speakers is not None:
             manifest.speakers = speakers

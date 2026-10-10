@@ -35,7 +35,7 @@ def prompts_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def store(tmp_path: Path, video: Path) -> JobStore:
-    store, _ = JobStore.open_or_create(tmp_path / "data", video, DATE)
+    store, _ = JobStore.open_or_create(tmp_path / "data", video, "video", DATE)
     return store
 
 
@@ -63,32 +63,32 @@ class Recorder:
 
 
 def test_job_id_depends_only_on_video_content(tmp_path: Path, video: Path):
-    store1, _ = JobStore.open_or_create(tmp_path / "data", video, DATE)
+    store1, _ = JobStore.open_or_create(tmp_path / "data", video, "video", DATE)
     copy = tmp_path / "copia.mp4"
     copy.write_bytes(video.read_bytes())
-    store2, _ = JobStore.open_or_create(tmp_path / "data", copy, DATE)
+    store2, _ = JobStore.open_or_create(tmp_path / "data", copy, "video", DATE)
     assert store1.job_id == store2.job_id
     assert len(store1.job_id) == JOB_ID_LENGTH
-    assert store2.manifest.video_path == str(copy)
+    assert store2.manifest.input_path == str(copy)
 
     other = tmp_path / "otro.mp4"
     other.write_bytes(b"different")
-    store3, _ = JobStore.open_or_create(tmp_path / "data", other, DATE)
+    store3, _ = JobStore.open_or_create(tmp_path / "data", other, "video", DATE)
     assert store3.job_id != store1.job_id
 
 
 def test_reopening_detects_changed_parameters(tmp_path: Path, video: Path):
     data = tmp_path / "data"
-    JobStore.open_or_create(data, video, DATE, {"speaker_0": "A"})
+    JobStore.open_or_create(data, video, "video", DATE, {"speaker_0": "A"})
 
-    _, invalidated = JobStore.open_or_create(data, video, DATE)
+    _, invalidated = JobStore.open_or_create(data, video, "video", DATE)
     assert invalidated is None
 
-    store, invalidated = JobStore.open_or_create(data, video, DATE, {"speaker_0": "B"})
+    store, invalidated = JobStore.open_or_create(data, video, "video", DATE, {"speaker_0": "B"})
     assert invalidated == "report"
     assert store.manifest.speakers == {"speaker_0": "B"}
 
-    store, invalidated = JobStore.open_or_create(data, video, dt.date(2026, 11, 21))
+    store, invalidated = JobStore.open_or_create(data, video, "video", dt.date(2026, 11, 21))
     assert invalidated == "claims"
     # speakers=None keeps the stored names
     assert store.manifest.speakers == {"speaker_0": "B"}
@@ -146,7 +146,9 @@ def test_failure_is_recorded_and_resume_starts_at_failed_step(store, prompts_dir
     with pytest.raises(RuntimeError, match="boom"):
         run_steps(store, rec.steps(), prompts_dir, from_step="claims")
 
-    reloaded, _ = JobStore.open_or_create(store.root.parent, Path(store.manifest.video_path), DATE)
+    reloaded, _ = JobStore.open_or_create(
+        store.root.parent, Path(store.manifest.input_path), "video", DATE
+    )
     steps = reloaded.manifest.steps
     assert steps["evidence"].status == "failed"
     assert "boom" in (steps["evidence"].error or "")
