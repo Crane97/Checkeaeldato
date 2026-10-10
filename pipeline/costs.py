@@ -49,9 +49,10 @@ def llm_cost(
     pricing: Pricing | None = None,
 ) -> CostEntry:
     price = (pricing or default_pricing()).anthropic.get(model)
+    priced = True
     if price is None:
         logger.warning("Sin precio para el modelo %s; se registra coste 0", model)
-        usd = 0.0
+        usd, priced = 0.0, False
     else:
         usd = (
             input_tokens * price.input_per_mtok
@@ -68,6 +69,7 @@ def llm_cost(
         cache_write_tokens=cache_write_tokens,
         cache_read_tokens=cache_read_tokens,
         usd=usd,
+        priced=priced,
     )
 
 
@@ -75,9 +77,12 @@ def transcription_cost(
     step: str, provider: str, audio_seconds: float, pricing: Pricing | None = None
 ) -> CostEntry:
     price = (pricing or default_pricing()).transcription.get(provider)
+    priced = True
     if price is None:
         logger.warning("Sin precio para el proveedor %s; se registra coste 0", provider)
-        usd = 0.0
+        usd, priced = 0.0, False
     else:
         usd = audio_seconds / 3600 * price.usd_per_hour
-    return CostEntry(step=step, provider=provider, audio_seconds=audio_seconds, usd=usd)
+    return CostEntry(
+        step=step, provider=provider, audio_seconds=audio_seconds, usd=usd, priced=priced
+    )

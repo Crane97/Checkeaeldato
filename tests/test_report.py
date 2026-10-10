@@ -124,3 +124,15 @@ def test_summary_shows_totals_speakers_basis_warnings_and_cost():
 def test_summary_without_claims():
     report = build(ClaimDetection(), [], speakers={})
     assert "Afirmaciones verificables: 0" in format_summary(report, report_path="r.json")
+
+
+def test_warnings_for_search_errors_and_unpriced_models():
+    detection = ClaimDetection(claims=[detected("c001", "speaker_0")])
+    v = verdict("c001", "no_verificable").model_copy(update={"evidence_errors": ["web: 500"]})
+    cost = RunCost(
+        entries=[CostEntry(step="claims", provider="anthropic", model="x", usd=0, priced=False)]
+    )
+    report = build(detection, [v], cost=cost)
+    text = " | ".join(report.warnings)
+    assert "1 afirmación con búsquedas de evidencia fallidas" in text
+    assert "sin precio" in text and "x" in text

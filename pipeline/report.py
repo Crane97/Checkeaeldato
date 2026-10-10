@@ -34,7 +34,7 @@ def _plural(n: int, singular: str, plural: str) -> str:
     return f"{n} {singular if n == 1 else plural}"
 
 
-def _warnings(detection: ClaimDetection, verdicts: list[Verdict]) -> list[str]:
+def _warnings(detection: ClaimDetection, verdicts: list[Verdict], cost: RunCost) -> list[str]:
     warnings = [
         f"{_plural(1, 'bloque', 'bloques')} del texto sin analizar "
         f"(segmentos {f.segments[0]}-{f.segments[-1]}): {f.error}"
@@ -52,6 +52,15 @@ def _warnings(detection: ClaimDetection, verdicts: list[Verdict]) -> list[str]:
             f"{_plural(failed, 'afirmación sin analizar', 'afirmaciones sin analizar')} "
             "por un error del análisis (marcadas con analysis_error)"
         )
+    searches = sum(1 for v in verdicts if v.evidence_errors)
+    if searches:
+        warnings.append(
+            f"{_plural(searches, 'afirmación', 'afirmaciones')} con búsquedas de evidencia "
+            "fallidas: su evidencia puede estar incompleta (ver evidence_errors)"
+        )
+    unpriced = sorted({e.model or e.provider for e in cost.entries if not e.priced})
+    if unpriced:
+        warnings.append(f"Coste incompleto: sin precio en pricing.toml para {', '.join(unpriced)}")
     return warnings
 
 
@@ -88,7 +97,7 @@ def build_report(
         speakers=speakers,
         claims=claims,
         cost=cost,
-        warnings=_warnings(detection, verdicts),
+        warnings=_warnings(detection, verdicts, cost),
     )
 
 

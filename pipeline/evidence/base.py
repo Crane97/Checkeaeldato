@@ -9,6 +9,9 @@ from pipeline.models import ClaimEvidence, DetectedClaim, EvidenceItem
 
 logger = logging.getLogger(__name__)
 
+# Below this many searches, failing every time is not proof that a source is down.
+MIN_RUNS_TO_ABORT = 3
+
 
 class EvidenceError(RuntimeError):
     """A source could not be searched."""
@@ -82,7 +85,7 @@ def collect_evidence(
         results.append(ClaimEvidence(claim_id=claim.id, items=items, errors=errors))
 
     for name, count in failures.items():
-        if runs[name] and count == runs[name]:
+        if runs[name] >= MIN_RUNS_TO_ABORT and count == runs[name]:
             first = next(e for r in results for e in r.errors if e.startswith(f"{name}: "))
             raise EvidenceError(f"La fuente {name} falló en todas las afirmaciones: {first}")
     return results

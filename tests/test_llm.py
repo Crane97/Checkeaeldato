@@ -208,3 +208,27 @@ def test_other_api_errors_become_llm_errors(prompts_dir):
     with pytest.raises(LLMError) as info:
         call(llm)
     assert not isinstance(info.value, LLMConfigError)
+
+
+@pytest.mark.parametrize("stop_reason", ["pause_turn", "tool_use", "stop_sequence"])
+def test_unexpected_stop_reasons_are_errors(prompts_dir, stop_reason):
+    llm = LLMClient(FakeAnthropic(message(VALID, stop_reason=stop_reason)), prompts_dir)
+    with pytest.raises(LLMError, match=stop_reason):
+        call(llm)
+    assert len(llm.take_costs()) == 1
+
+
+def test_low_credit_balance_is_a_config_error(prompts_dir):
+    import anthropic
+    import httpx2
+
+    from pipeline.llm import LLMConfigError
+
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    exc = anthropic.BadRequestError(
+        "Your credit balance is too low to access the Anthropic API.",
+        response=httpx2.Response(400, request=request),
+        body=None,
+    )
+    with pytest.raises(LLMConfigError, match="saldo"):
+        call(LLMClient(RaisingAnthropic(exc), prompts_dir))

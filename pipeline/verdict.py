@@ -18,7 +18,9 @@ PROMPT = "veredicto.md"
 WEB_ONLY_MAX_CONFIDENCE = 0.6
 
 NO_EVIDENCE = "No se ha encontrado evidencia sobre esta afirmación en las fuentes consultadas."
-SEARCH_FAILED = " Algunas búsquedas fallaron, así que la búsqueda no fue completa."
+SEARCH_FAILED = (
+    "La búsqueda de evidencia falló para esta afirmación, así que no se ha podido verificar."
+)
 NO_VALID_CITATION = (
     " (Se ha clasificado como no verificable porque el análisis concluyó sin citar evidencia "
     "válida.)"
@@ -87,19 +89,23 @@ def format_claim(claim: DetectedClaim, evidence: ClaimEvidence, speech_date: dt.
 
 
 def _no_evidence(claim: DetectedClaim, evidence: ClaimEvidence) -> Verdict:
-    explanation = NO_EVIDENCE + (SEARCH_FAILED if evidence.errors else "")
     return Verdict(
-        claim_id=claim.id, verdict="no_verificable", confidence=0.0, explanation=explanation
+        claim_id=claim.id,
+        verdict="no_verificable",
+        confidence=0.0,
+        explanation=SEARCH_FAILED if evidence.errors else NO_EVIDENCE,
+        evidence_errors=evidence.errors,
     )
 
 
-def _failed(claim: DetectedClaim, error: str) -> Verdict:
+def _failed(claim: DetectedClaim, evidence: ClaimEvidence, error: str) -> Verdict:
     return Verdict(
         claim_id=claim.id,
         verdict="no_verificable",
         confidence=0.0,
         explanation="No se pudo completar el análisis de esta afirmación.",
         analysis_error=error,
+        evidence_errors=evidence.errors,
     )
 
 
@@ -132,6 +138,7 @@ def _apply_rules(claim: DetectedClaim, evidence: ClaimEvidence, answer: VerdictA
         explanation=explanation,
         sources=[item.source for item in cited],
         matched_factcheck=matched,
+        evidence_errors=evidence.errors,
     )
 
 
@@ -176,7 +183,7 @@ def decide_verdicts(
         except (LLMError, ValidationError) as exc:
             logger.warning("Veredicto de %s falló: %s", claim.id, exc)
             failed += 1
-            verdicts.append(_failed(claim, str(exc)))
+            verdicts.append(_failed(claim, evidence, str(exc)))
 
     if attempted and failed == attempted:
         first = next(v.analysis_error for v in verdicts if v.analysis_error)

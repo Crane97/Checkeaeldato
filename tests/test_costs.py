@@ -27,6 +27,8 @@ def test_llm_cost_combines_all_token_kinds():
 def test_unknown_model_costs_zero_and_warns(caplog):
     entry = llm_cost("claims", "modelo-inexistente", input_tokens=1000, output_tokens=10)
     assert entry.usd == 0
+    assert entry.priced is False
+    assert llm_cost("claims", "claude-opus-5-5", input_tokens=1, output_tokens=1).priced
     assert "modelo-inexistente" in caplog.text
 
 

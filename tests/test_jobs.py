@@ -184,3 +184,17 @@ def test_unknown_from_step_and_missing_prompt_raise(store, prompts_dir):
 def test_earliest_step():
     assert earliest_step(None, "report", "claims") == "claims"
     assert earliest_step(None, None) is None
+
+
+def test_failed_step_keeps_the_cost_it_already_spent(store, prompts_dir):
+    def failing(store: JobStore) -> StepOutcome:
+        exc = RuntimeError("todos los bloques fallaron")
+        exc.step_costs = [CostEntry(step="claims", provider="anthropic", usd=0.05)]
+        raise exc
+
+    steps = [Step("claims", failing, ("deteccion.md",))]
+    with pytest.raises(RuntimeError):
+        run_steps(store, steps, prompts_dir)
+    record = store.manifest.steps["claims"]
+    assert record.status == "failed"
+    assert [c.usd for c in record.cost] == [0.05]

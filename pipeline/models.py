@@ -171,6 +171,8 @@ class VerdictFields(BaseModel):
     matched_factcheck: str | None = None
     # Set when the analysis itself failed, so it is not mistaken for "no evidence".
     analysis_error: str | None = None
+    # Evidence searches that failed for this claim (the evidence may be incomplete).
+    evidence_errors: list[str] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -218,6 +220,8 @@ class CostEntry(BaseModel):
     cache_read_tokens: int = 0
     audio_seconds: float = 0
     usd: float = Field(ge=0)
+    # False when the model/provider is missing from pricing.toml (usd is then 0).
+    priced: bool = True
 
 
 class RunCost(BaseModel):

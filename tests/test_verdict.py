@@ -94,9 +94,18 @@ def test_no_evidence_is_no_verificable_without_calling_claude():
     assert v.analysis_error is None
 
 
-def test_no_evidence_with_failed_searches_says_so():
+def test_failed_search_is_not_reported_as_no_evidence():
     [v] = run([claim()], [evidence(errors=["factcheck: HTTP 500"])], FakeLLM())
-    assert "búsquedas fallaron" in v.explanation
+    assert v.verdict == "no_verificable"
+    assert "No se ha encontrado evidencia" not in v.explanation
+    assert "búsqueda de evidencia falló" in v.explanation
+    assert v.evidence_errors == ["factcheck: HTTP 500"]
+
+
+def test_partial_search_errors_travel_with_the_verdict():
+    [v] = run([claim()], [evidence(OF, errors=["web: HTTP 500"])], FakeLLM(answer()))
+    assert v.verdict == "falso"
+    assert v.evidence_errors == ["web: HTTP 500"]
 
 
 def test_verdict_maps_cited_ids_to_sources():

@@ -106,10 +106,22 @@ def test_config_error_stops_collection():
 
 def test_source_failing_on_every_claim_stops_collection():
     source = FakeSource(
-        "factcheck", {"c1": EvidenceError("caída"), "c2": SourceResult(errors=["500"])}
+        "factcheck",
+        {
+            "c1": EvidenceError("caída"),
+            "c2": SourceResult(errors=["500"]),
+            "c3": EvidenceError("caída"),
+        },
     )
     with pytest.raises(EvidenceError, match="factcheck falló en todas"):
-        collect_evidence([claim("c1"), claim("c2")], [source], DATE)
+        collect_evidence([claim("c1"), claim("c2"), claim("c3")], [source], DATE)
+
+
+def test_few_failures_are_recorded_without_stopping():
+    # With fewer than 3 searches a transient error is not proof the source is down.
+    source = FakeSource("factcheck", {"c1": EvidenceError("HTTP 500")})
+    [ev] = collect_evidence([claim("c1")], [source], DATE)
+    assert ev.errors == ["factcheck: HTTP 500"]
 
 
 def test_no_claims_means_no_evidence():

@@ -223,6 +223,8 @@ def run_steps(
                 status="failed",
                 finished_at=_now(),
                 prompt_hashes=hashes,
+                # Steps attach what they already spent before failing.
+                cost=list(getattr(exc, "step_costs", [])),
                 error=f"{type(exc).__name__}: {exc}",
             )
             store.save_manifest()

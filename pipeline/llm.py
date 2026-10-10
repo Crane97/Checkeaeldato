@@ -138,6 +138,12 @@ class LLMClient:
                 f"Credenciales o modelo de Anthropic inválidos ({exc.status_code}); "
                 "revisa ANTHROPIC_API_KEY y ANTHROPIC_MODEL"
             ) from exc
+        except anthropic.BadRequestError as exc:
+            if "credit balance" in str(exc).lower():
+                raise LLMConfigError(
+                    "El saldo de créditos de la cuenta de Anthropic está agotado"
+                ) from exc
+            raise LLMError(f"Error de la API de Anthropic: {exc}") from exc
         except anthropic.APIError as exc:
             raise LLMError(f"Error de la API de Anthropic: {exc}") from exc
 
@@ -161,6 +167,10 @@ class LLMClient:
             raise LLMRefusal(f"Claude rechazó la petición ({prompt}, request {request_id})")
         if response.stop_reason == "max_tokens":
             raise LLMTruncated(f"Respuesta cortada por max_tokens ({prompt}, request {request_id})")
+        if response.stop_reason != "end_turn":
+            raise LLMError(
+                f"stop_reason inesperado: {response.stop_reason} ({prompt}, request {request_id})"
+            )
         text = next((b.text for b in response.content if b.type == "text"), None)
         if text is None:
             raise LLMError(f"Respuesta sin texto ({prompt}, request {request_id})")
