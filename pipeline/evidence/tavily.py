@@ -22,8 +22,21 @@ class TavilyResult:
     title: str
     url: str
     content: str
-    score: float
+    score: float | None  # None when Tavily sent no usable score
     published_date: str | None = None
+
+
+@dataclass(frozen=True)
+class TavilySearch:
+    results: list[TavilyResult]
+    malformed: int = 0  # entries that were not result objects
+
+
+def _score(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 class TavilyClient:
@@ -46,7 +59,7 @@ class TavilyClient:
         include_domains: list[str] | None = None,
         country: str | None = None,
         max_results: int = 5,
-    ) -> list[TavilyResult]:
+    ) -> TavilySearch:
         """One basic search (1 credit)."""
         body: dict[str, Any] = {
             "query": query,
@@ -80,16 +93,24 @@ class TavilyClient:
             data = response.json()
         except ValueError as exc:
             raise EvidenceError("respuesta no es JSON") from exc
-        return [
+        if not isinstance(data, dict) or "error" in data or "detail" in data:
+            raise EvidenceError("respuesta inesperada de Tavily")
+        raw = data.get("results")
+        if not isinstance(raw, list):
+            raise EvidenceError("respuesta inesperada de Tavily: sin lista de resultados")
+
+        results = [
             TavilyResult(
-                title=r.get("title") or "",
-                url=r.get("url") or "",
-                content=r.get("content") or "",
-                score=float(r.get("score") or 0),
+                title=str(r.get("title") or ""),
+                url=str(r.get("url") or ""),
+                content=str(r.get("content") or ""),
+                score=_score(r.get("score")),
                 published_date=r.get("published_date"),
             )
-            for r in data.get("results", [])
+            for r in raw
+            if isinstance(r, dict)
         ]
+        return TavilySearch(results=results, malformed=len(raw) - len(results))
 
 
 def parse_published_date(value: str | None) -> dt.date | None:

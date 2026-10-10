@@ -54,8 +54,12 @@ class FactCheckSource:
             except EvidenceError as exc:
                 result.errors.append(f"consulta «{query}»: {exc}")
                 continue
-            for entry in data.get("claims", []):
-                for review in entry.get("claimReview", []):
+            entries = [e for e in data.get("claims", []) if isinstance(e, dict)]
+            for entry in entries:
+                reviews = entry.get("claimReview")
+                for review in reviews if isinstance(reviews, list) else []:
+                    if not isinstance(review, dict):
+                        continue
                     item = self._to_item(entry, review)
                     if item is not None and item.source.url not in seen:
                         seen.add(item.source.url)
@@ -81,7 +85,10 @@ class FactCheckSource:
             backoff=self._backoff,
             params={**params, "key": self._api_key},
         )
-        if response.status_code in (401, 403):
+        if response.status_code in (401, 403) or (
+            # Google reports an invalid key as 400 API_KEY_INVALID.
+            response.status_code == 400 and "API_KEY_INVALID" in response.text
+        ):
             raise EvidenceConfigError(
                 f"Google Fact Check respondió {response.status_code}: revisa "
                 "GOOGLE_FACTCHECK_API_KEY y que la Fact Check Tools API esté habilitada"
@@ -89,9 +96,17 @@ class FactCheckSource:
         if response.status_code != 200:
             raise EvidenceError(f"HTTP {response.status_code}")
         try:
-            return response.json()
+            data = response.json()
         except ValueError as exc:
             raise EvidenceError("respuesta no es JSON") from exc
+        # "claims" may be absent (no matches) but must be a list when present.
+        if (
+            not isinstance(data, dict)
+            or "error" in data
+            or not isinstance(data.get("claims", []), list)
+        ):
+            raise EvidenceError("respuesta inesperada de Google Fact Check")
+        return data
 
     @staticmethod
     def _to_item(entry: dict[str, Any], review: dict[str, Any]) -> EvidenceItem | None:

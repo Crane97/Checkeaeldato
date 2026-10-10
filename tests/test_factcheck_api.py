@@ -161,3 +161,42 @@ def test_errors_never_include_the_api_key():
     respx.get(API_URL).mock(side_effect=httpx.ConnectError("https://x?key=KEY failed"))
     result = source(max_attempts=1).search(claim([]), DATE)
     assert result.errors and all("KEY" not in e for e in result.errors)
+
+
+@pytest.mark.parametrize("payload", [{"error": {"code": 500}}, {"claims": None}, []])
+@respx.mock
+def test_malformed_200_is_recorded_as_error(payload):
+    respx.get(API_URL).mock(return_value=httpx.Response(200, json=payload))
+    result = source().search(claim([]), DATE)
+    assert result.items == []
+    assert "inesperada" in result.errors[0]
+
+
+@respx.mock
+def test_invalid_key_reported_as_400_stops_with_config_error():
+    body = {
+        "error": {
+            "code": 400,
+            "message": "API key not valid.",
+            "status": "INVALID_ARGUMENT",
+            "details": [{"reason": "API_KEY_INVALID"}],
+        }
+    }
+    respx.get(API_URL).mock(return_value=httpx.Response(400, json=body))
+    with pytest.raises(EvidenceConfigError, match="GOOGLE_FACTCHECK_API_KEY"):
+        source().search(claim(), DATE)
+
+
+@respx.mock
+def test_odd_entries_are_skipped():
+    payload = {
+        "claims": [
+            "x",
+            {"text": "t", "claimReview": None},
+            response(review("https://maldita.es/a"))["claims"][0],
+        ]
+    }
+    respx.get(API_URL).mock(return_value=httpx.Response(200, json=payload))
+    assert [i.source.url for i in source().search(claim([]), DATE).items] == [
+        "https://maldita.es/a"
+    ]

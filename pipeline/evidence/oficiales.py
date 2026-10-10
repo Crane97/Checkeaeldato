@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
-from pipeline.evidence.tavily import TavilyClient, TavilyResult, to_item
+from pipeline.evidence.tavily import TavilyClient, TavilySearch, to_item
 from pipeline.models import DetectedClaim
 
 # Tavily relevance below this is treated as "not found". To be tuned with the eval.
@@ -33,12 +33,17 @@ def official_organization(url: str, domains: dict[str, str]) -> str | None:
 
 
 def label_results(
-    results: list[TavilyResult], domains: dict[str, str], min_score: float, found: SourceResult
+    search: TavilySearch, domains: dict[str, str], min_score: float, found: SourceResult
 ) -> None:
-    """Add relevant results to `found`, as `oficial` if their domain is official."""
+    """Add relevant results to `found`, as `oficial` if their domain is official.
+
+    A result without a usable score is kept: dropping it would lose evidence silently.
+    """
+    if search.malformed:
+        found.errors.append(f"{search.malformed} resultado(s) malformado(s) descartado(s)")
     seen = {i.source.url for i in found.items}
-    for r in results:
-        if r.score < min_score or r.url in seen:
+    for r in search.results:
+        if (r.score is not None and r.score < min_score) or r.url in seen:
             continue
         organization = official_organization(r.url, domains)
         item = to_item(r, organization, "oficial" if organization else "web")

@@ -82,7 +82,7 @@ def test_tavily_sends_bearer_key_and_parses_results():
     route = respx.post(API_URL).mock(
         return_value=httpx.Response(200, json={"results": [result("https://www.ine.es/a")]})
     )
-    [r] = tavily().search("tasa de paro", include_domains=["ine.es"], max_results=4)
+    [r] = tavily().search("tasa de paro", include_domains=["ine.es"], max_results=4).results
 
     request = route.calls[0].request
     assert request.headers["Authorization"] == "Bearer tvly-KEY"
@@ -115,7 +115,7 @@ def test_tavily_retries_rate_limits():
     respx.post(API_URL).mock(
         side_effect=[httpx.Response(429), httpx.Response(200, json={"results": []})]
     )
-    assert tavily().search("x") == []
+    assert tavily().search("x").results == []
 
 
 # --- official source --------------------------------------------------------
@@ -229,3 +229,33 @@ def test_failure_check_only_counts_claims_where_the_source_ran():
     # Web never runs, so it cannot have "failed on every claim".
     collect_evidence([claim(), claim()], [official, broken_web], DATE)
     assert broken_web.calls == 0
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [{"detail": {"error": "Invalid"}}, {"results": None}, [], {"error": "x", "results": []}],
+)
+@respx.mock
+def test_tavily_malformed_200_is_an_error(payload):
+    respx.post(API_URL).mock(return_value=httpx.Response(200, json=payload))
+    with pytest.raises(EvidenceError, match="inesperada"):
+        tavily().search("x")
+
+
+@respx.mock
+def test_tavily_result_without_score_is_kept_and_bad_entries_are_skipped():
+    respx.post(API_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [
+                    result("https://www.ine.es/a", score=None),
+                    result("https://www.ine.es/b", score="n/a"),
+                    "no es un objeto",
+                ]
+            },
+        )
+    )
+    found = OfficialSearchSource(tavily(), DOMAINS).search(claim([]), DATE)
+    assert {i.source.url for i in found.items} == {"https://www.ine.es/a", "https://www.ine.es/b"}
+    assert any("malformado" in e for e in found.errors)
