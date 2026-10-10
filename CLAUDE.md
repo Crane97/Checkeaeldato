@@ -69,7 +69,10 @@ que no haya que reescribir al pasar de fase.
 pipeline/
   __init__.py
   cli.py              # entrada: `uv run verificar <video|texto>`
+  run.py              # monta los pasos (texto o vídeo) y los ejecuta; clientes perezosos
   config.py           # carga de variables de entorno
+  http.py             # peticiones HTTP con reintentos (evidencia y transcripción)
+  llm.py              # llamadas a Claude con JSON validado y registro de coste
   costs.py            # estimación de coste; precios en pricing.toml
   jobs.py             # data/<job_id>/, manifest y pasos reanudables
   models.py           # modelos pydantic (Segment, Claim, Evidence, Verdict, Report)
@@ -78,9 +81,11 @@ pipeline/
   text_input.py       # entrada .txt/.md: un segmento por párrafo, sin tiempos
   transcribe/         # interfaz Transcriber + proveedores
   claims.py           # detección y normalización de afirmaciones
-  evidence/           # fuentes: factcheck_api.py, oficiales.py, web.py
+  evidence/           # base.py (interfaz y recolector), factcheck_api.py, tavily.py,
+                      # oficiales.py (+ fuentes_oficiales.toml), web.py
   verdict.py          # veredicto basado solo en evidencia
   report.py           # agregación y salida JSON
+  evaluation.py       # formato gold, emparejamiento y métricas
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
   gold/               # casos de prueba (JSON) con veredicto esperado
@@ -158,9 +163,26 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 3. Búsqueda web general, solo si lo oficial no da resultados relevantes → tipo `web`
    (un resultado de dominio oficial se marca `oficial`).
 
-El informe indica en qué se apoya cada veredicto (desmentido, oficial o solo web); un
-veredicto apoyado solo en web lleva menos confianza. Por ahora **no hay lista de medios
+El informe indica en qué se apoya cada veredicto (`basis`: desmentido, oficial o solo web);
+un veredicto apoyado solo en web tiene confianza máxima 0,6. Límites por afirmación: hasta
+2 búsquedas oficiales y 1 web (≈30–45 créditos de Tavily por artículo de ~15 afirmaciones).
+Resultados de Tavily con relevancia < 0,4 se descartan (umbral provisional, ajustar con la
+evaluación). Pendiente: las fuentes aún no filtran por `--fecha`; el veredicto la tiene en
+cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay lista de medios
 "reconocidos"**: es una decisión de neutralidad pendiente del responsable del proyecto.
+
+## Fallos y trazabilidad
+
+- Errores de configuración (clave inválida, API sin habilitar, créditos agotados) **paran**
+  el trabajo con un mensaje claro.
+- Un fallo puntual se registra donde ocurre y el trabajo sigue: `claims.json`
+  (`failed_blocks`, `rejected`), `evidence.json` (`errors` por afirmación) y en el informe
+  (`analysis_error`, `evidence_errors`, `warnings`). Un fallo de búsqueda nunca se presenta
+  como "no hay evidencia".
+- Si un paso falla en todos sus elementos (o una fuente en ≥3 búsquedas seguidas de todas
+  las afirmaciones), se para: un informe vacío por un error sería un fallo silencioso.
+- Una fuente sin clave en `.env` se desactiva y el informe lo avisa.
+- El coste gastado por un paso que falla queda en el `manifest.json`.
 
 ## Convenciones
 
@@ -195,7 +217,8 @@ uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
 uv run pytest                   # tests
-uv run python eval/run_eval.py  # evaluación contra el gold set
+uv run python eval/run_eval.py                   # evaluación completa contra el gold set
+uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
 uv run ruff check . && uv run ruff format .
 ```
 
