@@ -89,6 +89,8 @@ pipeline/
   verdict.py          # veredicto basado solo en evidencia
   report.py           # agregación y salida JSON
   evaluation.py       # formato gold, emparejamiento y métricas
+  web/                # web LOCAL de pruebas (FastAPI + una página): `uv run verificar-web`.
+                      # No es la web de la fase 4; solo escucha en 127.0.0.1
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
   gold/               # casos de prueba (JSON) con veredicto esperado
@@ -220,6 +222,7 @@ uv sync                         # instalar dependencias
 uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
+uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold

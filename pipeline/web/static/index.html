@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkea el Dato · prueba local</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6676; --border: #dde1e8;
+    --accent: #2f5bd3; --accent-text: #ffffff;
+    --verdadero: #1f8a4c; --enganoso: #b7791f; --falso: #c53030; --no_verificable: #6b7280;
+    --tint-verdadero: #e6f4ec; --tint-enganoso: #fbf1e1; --tint-falso: #fbe7e7; --tint-no_verificable: #eef0f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b2; --border: #2c3340;
+      --accent: #6d8ff0; --accent-text: #0d1117;
+      --verdadero: #4cc38a; --enganoso: #e0a84a; --falso: #f07171; --no_verificable: #9aa3b2;
+      --tint-verdadero: #16291f; --tint-enganoso: #2d2414; --tint-falso: #2e1818; --tint-no_verificable: #232833;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+          padding: 20px; margin-bottom: 20px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea, input[type=text], input[type=date] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text); font: inherit; }
+  textarea { min-height: 280px; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-weight: 400; }
+  .actions { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
+  button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px;
+           padding: 10px 22px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { color: var(--muted); font-size: .9rem; }
+  .steps { list-style: none; padding: 0; margin: 0 0 12px; }
+  .steps li { display: flex; gap: 10px; align-items: center; padding: 4px 0; color: var(--muted); }
+  .steps li.done { color: var(--text); }
+  .steps li.running { color: var(--accent); font-weight: 600; }
+  .steps li.failed { color: var(--falso); font-weight: 600; }
+  .icon { width: 1.2em; text-align: center; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error { border-color: var(--falso); background: var(--tint-falso); }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile { border: 2px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+          text-align: left; background: var(--bg); color: var(--text); font: inherit; }
+  .tile .n { font-size: 1.6rem; font-weight: 700; display: block; line-height: 1.2; }
+  .tile.active { border-color: currentColor; }
+  .meta { color: var(--muted); font-size: .92rem; margin: 4px 0; }
+  .warnings { margin: 10px 0 0; padding-left: 20px; color: var(--enganoso); font-size: .92rem; }
+  .claim { border-left: 5px solid var(--border); }
+  .claim header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .badge { border-radius: 999px; padding: 2px 12px; font-weight: 700; font-size: .9rem; }
+  .pill { border: 1px solid var(--border); border-radius: 999px; padding: 1px 10px; font-size: .82rem; color: var(--muted); }
+  blockquote { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: var(--bg); font-style: italic; }
+  .normalized { margin: 0 0 10px; font-weight: 600; }
+  .explanation { margin: 0 0 10px; }
+  .sources { margin: 0; padding-left: 20px; font-size: .92rem; }
+  .sources a { color: var(--accent); word-break: break-word; }
+  .note { font-size: .88rem; color: var(--enganoso); margin: 8px 0 0; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Checkea el Dato</h1>
+  <p class="sub">Prueba local del verificador: pega un discurso o un artículo y analiza sus afirmaciones.</p>
+
+  <section class="card">
+    <form id="form">
+      <label for="texto">Texto del discurso</label>
+      <textarea id="texto" placeholder="Pega aquí el texto…" required></textarea>
+      <div class="row">
+        <div>
+          <label for="fecha">Fecha del discurso</label>
+          <input id="fecha" type="date" required>
+        </div>
+        <div>
+          <label for="autor">Orador o autor (opcional)</label>
+          <input id="autor" type="text" placeholder="Nombre">
+        </div>
+      </div>
+      <label class="check"><input id="recalcular" type="checkbox">
+        Volver a analizar aunque este texto ya se haya analizado</label>
+      <div class="actions">
+        <button id="enviar" type="submit">Analizar</button>
+        <span class="hint" id="chars"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card hidden" id="progreso">
+    <h2>Progreso</h2>
+    <ul class="steps" id="pasos"></ul>
+    <p class="meta" id="mensaje"></p>
+  </section>
+
+  <section class="card error hidden" id="error"></section>
+
+  <section class="hidden" id="resultado">
+    <div class="card">
+      <h2 id="titulo-resumen"></h2>
+      <div class="tiles" id="tiles"></div>
+      <p class="meta" id="base"></p>
+      <p class="meta" id="coste"></p>
+      <ul class="warnings" id="avisos"></ul>
+    </div>
+    <div id="afirmaciones"></div>
+  </section>
+</main>
+
+<script>
+const VERDICTS = {
+  verdadero: "Verdadero", enganoso: "Engañoso", falso: "Falso", no_verificable: "No verificable",
+};
+const STEP_NAMES = {
+  audio: "Extraer audio", transcript: "Preparar el texto", claims: "Detectar afirmaciones",
+  evidence: "Buscar evidencia", verdicts: "Decidir veredictos", report: "Generar informe",
+};
+const BASIS = {
+  factcheck: "desmentido publicado", oficial: "fuente oficial", web: "solo web", sin_fuente: "sin fuente",
+};
+const STEP_ICONS = { pending: "○", running: "◐", done: "✓", failed: "✗" };
+
+const $ = (id) => document.getElementById(id);
+let filter = null;
+let lastReport = null;
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (key === "class") node.className = value;
+    else if (key === "style") node.style.cssText = value;
+    else node.setAttribute(key, value);
+  }
+  for (const child of children) {
+    if (child === null || child === undefined) continue;
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+function safeLink(url, text) {
+  // Only http(s) links; text is always set as text, never as HTML.
+  if (!/^https?:\/\//i.test(url)) return el("span", {}, text);
+  return el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, text);
+}
+
+function formatTime(seconds) {
+  const s = Math.floor(seconds), m = Math.floor(s / 60);
+  return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
+
+function renderSteps(status) {
+  $("pasos").replaceChildren(...status.pasos.map((step) => {
+    const icon = el("span", { class: "icon" }, STEP_ICONS[step.estado] || "○");
+    if (step.estado === "running") icon.classList.add("spin");
+    return el("li", { class: step.estado }, icon, STEP_NAMES[step.paso] || step.paso);
+  }));
+  $("mensaje").textContent = status.estado === "en_curso" ? status.progreso : "";
+}
+
+function renderClaim(claim, speakers) {
+  const color = `var(--${claim.verdict})`;
+  const header = el("header", {},
+    el("span", { class: "badge", style: `background: var(--tint-${claim.verdict}); color: ${color}` },
+      VERDICTS[claim.verdict]),
+  );
+  if (claim.verdict === "falso" && claim.matched_factcheck) {
+    header.append(el("span", { class: "badge", style: `background: ${color}; color: var(--card)` }, "Bulo"));
+  }
+  if (claim.verdict !== "no_verificable") {
+    header.append(el("span", { class: "pill" }, `confianza ${Math.round(claim.confidence * 100)} %`));
+  }
+  if (claim.basis) header.append(el("span", { class: "pill" }, BASIS[claim.basis]));
+  header.append(el("span", { class: "pill" }, speakers[claim.speaker] || claim.speaker));
+  if (claim.start !== null && claim.start !== undefined) {
+    header.append(el("span", { class: "pill" }, formatTime(claim.start)));
+  }
+
+  const card = el("article", { class: "card claim", style: `border-left-color: ${color}` },
+    header,
+    el("blockquote", {}, `«${claim.text_original}»`),
+    el("p", { class: "normalized" }, claim.text_normalized),
+    el("p", { class: "explanation" }, claim.explanation),
+  );
+  if (claim.sources.length) {
+    card.append(el("ul", { class: "sources" }, ...claim.sources.map((s) => el("li", {},
+      `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));
+  }
+  if (claim.analysis_error) card.append(el("p", { class: "note" }, `El análisis falló: ${claim.analysis_error}`));
+  if (claim.evidence_errors.length) {
+    card.append(el("p", { class: "note" }, `Búsquedas con errores: ${claim.evidence_errors.join("; ")}`));
+  }
+  return card;
+}
+
+function renderReport(report) {
+  lastReport = report;
+  const total = report.claims.length;
+  $("titulo-resumen").textContent = `${total} afirmaci${total === 1 ? "ón verificable" : "ones verificables"}`;
+  $("tiles").replaceChildren(...Object.entries(VERDICTS).map(([key, name]) => {
+    const tile = el("button", { type: "button", class: "tile" + (filter === key ? " active" : ""),
+      style: `color: var(--${key}); background: var(--tint-${key})` },
+      el("span", { class: "n" }, report.by_verdict[key]), name);
+    tile.addEventListener("click", () => { filter = filter === key ? null : key; renderReport(lastReport); });
+    return tile;
+  }));
+  const basis = Object.entries(report.by_basis).filter(([, n]) => n).map(([k, n]) => `${BASIS[k]}: ${n}`);
+  $("base").textContent = basis.length ? `En qué se apoyan los veredictos — ${basis.join(", ")}` : "";
+  const plan = report.cost.entries.some((e) => e.provider === "claude-code");
+  $("coste").textContent = `Coste estimado: ${report.cost.total_usd.toFixed(4)} $` +
+    (plan ? " (equivalente orientativo, cubierto por tu plan de Claude)" : "");
+  $("avisos").replaceChildren(...report.warnings.map((w) => el("li", {}, w)));
+
+  const claims = report.claims.filter((c) => !filter || c.verdict === filter);
+  $("afirmaciones").replaceChildren(...claims.map((c) => renderClaim(c, report.speakers)));
+  if (!total) {
+    $("afirmaciones").append(el("p", { class: "meta" }, "No se han detectado afirmaciones verificables en el texto."));
+  }
+  show("resultado", true);
+}
+
+async function poll(jobId) {
+  const response = await fetch(`/api/analisis/${jobId}`);
+  if (!response.ok) throw new Error("No se pudo consultar el análisis");
+  const status = await response.json();
+  renderSteps(status);
+  if (status.estado === "en_curso") return setTimeout(() => poll(jobId).catch(fail), 1000);
+  $("enviar").disabled = false;
+  if (status.estado === "error") return fail(new Error(status.error));
+  try { localStorage.setItem("ultimoAnalisis", jobId); } catch (e) { /* storage unavailable */ }
+  renderReport(status.informe);
+}
+
+function fail(error) {
+  $("enviar").disabled = false;
+  $("error").replaceChildren(el("strong", {}, "No se pudo completar el análisis. "), error.message);
+  show("error", true);
+}
+
+$("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  show("error", false); show("resultado", false); filter = null;
+  $("enviar").disabled = true;
+  try {
+    const response = await fetch("/api/analisis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        texto: $("texto").value, fecha: $("fecha").value,
+        autor: $("autor").value, recalcular: $("recalcular").checked,
+      }),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Datos no válidos");
+    show("progreso", true);
+    await poll(body.job_id);
+  } catch (error) { fail(error); }
+});
+
+$("texto").addEventListener("input", () => {
+  const n = $("texto").value.length;
+  $("chars").textContent = n ? `${n.toLocaleString("es-ES")} caracteres` : "";
+});
+
+$("fecha").value = new Date().toISOString().slice(0, 10);
+try {
+  const last = localStorage.getItem("ultimoAnalisis");
+  if (last) poll(last).then(() => show("progreso", true)).catch(() => {});
+} catch (e) { /* storage unavailable */ }
+</script>
+</body>
+</html>

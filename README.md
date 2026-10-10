@@ -26,6 +26,18 @@ Las reglas del proyecto (neutralidad, categorías, principios) están en
 
 ## Uso
 
+### Web local (la forma más cómoda de probar)
+
+```bash
+uv run verificar-web
+```
+
+Se abre `http://localhost:8000`: pega el texto, pon la fecha y (opcional) el orador, y pulsa
+**Analizar**. Verás el progreso por pasos y el resultado con cada afirmación, su veredicto,
+la explicación y las fuentes. Solo es accesible desde tu ordenador. Para pararla: Ctrl+C.
+
+### Terminal
+
 ```bash
 # Texto (.txt o .md): no necesita transcripción
 uv run verificar data/articulo.txt --fecha 2026-11-20 --autor "Nombre"

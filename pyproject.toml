@@ -5,15 +5,18 @@ description = "Verificador de afirmaciones en discursos y debates políticos en 
 requires-python = ">=3.11"
 dependencies = [
     "anthropic",
+    "fastapi>=0.143.0",
     "httpx",
     "pydantic>=2",
     "pydantic-settings>=2",
     "tenacity",
     "typer",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]
 verificar = "pipeline.cli:app"
+verificar-web = "pipeline.web.app:main"
 
 [dependency-groups]
 dev = [
