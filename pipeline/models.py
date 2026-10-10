@@ -26,6 +26,15 @@ def _check_time_range(start: float, end: float) -> None:
         raise ValueError("end must be >= start")
 
 
+# --- Audio ------------------------------------------------------------------
+
+
+class AudioInfo(BaseModel):
+    path: str
+    duration: float = Field(ge=0)
+    sample_rate: int
+
+
 # --- Transcription -----------------------------------------------------------
 
 
