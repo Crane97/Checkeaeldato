@@ -1,0 +1,131 @@
+import datetime as dt
+
+import pytest
+from pydantic import ValidationError
+
+from pipeline.models import (
+    Claim,
+    CostEntry,
+    Report,
+    RunCost,
+    Segment,
+    Source,
+    Verdict,
+)
+
+FACTCHECK = Source(
+    url="https://maldita.es/malditobulo/ejemplo",
+    title="Ejemplo de desmentido",
+    organization="Maldita",
+    date=dt.date(2026, 9, 1),
+    kind="factcheck",
+)
+OFFICIAL = Source(
+    url="https://www.ine.es/ejemplo",
+    title="Encuesta de Población Activa",
+    organization="INE",
+    kind="oficial",
+)
+
+
+def make_claim(**overrides) -> Claim:
+    data = {
+        "id": "c001",
+        "speaker": "speaker_0",
+        "start": 10.0,
+        "end": 15.5,
+        "text_original": "el paro ha bajado un 20 %",
+        "text_normalized": "El paro en España bajó un 20 % entre 2024 y 2026.",
+        "claim_type": "estadistica",
+        "verdict": "verdadero",
+        "confidence": 0.8,
+        "explanation": "Los datos de la EPA muestran un descenso similar.",
+        "sources": [OFFICIAL],
+    }
+    return Claim(**data | overrides)
+
+
+def test_valid_claim_roundtrips_through_json():
+    claim = make_claim()
+    assert Claim.model_validate_json(claim.model_dump_json()) == claim
+
+
+def test_verdict_other_than_no_verificable_requires_source():
+    with pytest.raises(ValidationError, match="at least one source"):
+        make_claim(sources=[])
+
+
+def test_no_verificable_allows_no_sources():
+    claim = make_claim(verdict="no_verificable", sources=[], confidence=0.0)
+    assert claim.sources == []
+
+
+def test_matched_factcheck_must_be_a_cited_factcheck_source():
+    with pytest.raises(ValidationError, match="matched_factcheck"):
+        make_claim(verdict="falso", matched_factcheck=OFFICIAL.url)
+
+    claim = make_claim(verdict="falso", sources=[FACTCHECK], matched_factcheck=FACTCHECK.url)
+    assert claim.matched_factcheck == FACTCHECK.url
+
+
+@pytest.mark.parametrize("word", ["mentira", "Miente", "MIENTEN", "mintió"])
+def test_explanation_rejects_forbidden_wording(word):
+    with pytest.raises(ValidationError, match="forbidden wording"):
+        make_claim(explanation=f"Esta afirmación es una {word}.")
+
+
+def test_explanation_allows_words_containing_forbidden_substrings():
+    # "mientras" shares a prefix with "miente" but is not a forbidden word.
+    make_claim(explanation="El paro bajó mientras crecía la población activa.")
+
+
+@pytest.mark.parametrize(("start", "end"), [(-1.0, 2.0), (5.0, 4.0)])
+def test_invalid_time_ranges_are_rejected(start, end):
+    with pytest.raises(ValidationError):
+        Segment(speaker="speaker_0", start=start, end=end, text="hola")
+
+
+def test_confidence_must_be_between_0_and_1():
+    with pytest.raises(ValidationError):
+        make_claim(confidence=1.5)
+
+
+def test_source_url_must_be_http():
+    with pytest.raises(ValidationError):
+        Source(url="ftp://x", title="t", organization="o", kind="web")
+
+
+def test_verdict_model_applies_same_rules():
+    with pytest.raises(ValidationError):
+        Verdict(claim_id="c001", verdict="falso", confidence=0.9, explanation="x")
+
+
+def test_report_counts_by_verdict_and_mapped_speaker():
+    report = Report(
+        job_id="abc123",
+        video="debate.mp4",
+        speech_date=dt.date(2026, 11, 20),
+        generated_at=dt.datetime(2026, 11, 20, 22, 0),
+        speakers={"speaker_0": "Candidata A"},
+        claims=[
+            make_claim(id="c1"),
+            make_claim(id="c2", verdict="no_verificable", sources=[]),
+            make_claim(id="c3", speaker="speaker_1", verdict="enganoso"),
+        ],
+        cost=RunCost(
+            entries=[
+                CostEntry(step="transcript", provider="elevenlabs", audio_seconds=3600, usd=0.22),
+                CostEntry(step="claims", provider="anthropic", input_tokens=1000, usd=0.015),
+            ]
+        ),
+    )
+
+    assert report.by_verdict == {"verdadero": 1, "enganoso": 1, "falso": 0, "no_verificable": 1}
+    assert report.by_speaker["Candidata A"]["verdadero"] == 1
+    assert report.by_speaker["Candidata A"]["no_verificable"] == 1
+    assert report.by_speaker["speaker_1"]["enganoso"] == 1
+    assert report.cost.total_usd == pytest.approx(0.235)
+
+    dumped = report.model_dump(mode="json")
+    assert dumped["by_verdict"]["verdadero"] == 1
+    assert Report.model_validate(dumped).claims == report.claims
