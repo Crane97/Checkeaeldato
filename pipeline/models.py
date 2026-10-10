@@ -8,11 +8,29 @@ from pydantic import BaseModel, Field, computed_field, field_validator, model_va
 from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
-VerdictLabel = Literal["verdadero", "enganoso", "falso", "no_verificable"]
+VerdictLabel = Literal["verdadero", "falso", "no_verificable"]
 SourceKind = Literal["factcheck", "oficial", "web"]
 InputKind = Literal["video", "texto"]
 
-VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "enganoso", "falso", "no_verificable")
+VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "falso", "no_verificable")
+
+# What the user sees: the verdict plus whether a reliable source backs it.
+Category = Literal[
+    "verdadero",
+    "verdadero_sin_fuente_oficial",
+    "no_verificable",
+    "falso_sin_fuente_oficial",
+    "falso_con_fuente_oficial",
+]
+CATEGORIES: tuple[Category, ...] = (
+    "verdadero",
+    "verdadero_sin_fuente_oficial",
+    "no_verificable",
+    "falso_sin_fuente_oficial",
+    "falso_con_fuente_oficial",
+)
+# Public bodies and professional fact-checkers count as "fuente oficial".
+RELIABLE_KINDS: frozenset[str] = frozenset({"oficial", "factcheck"})
 
 
 def _check_time_range(start: float | None, end: float | None) -> None:
@@ -182,6 +200,8 @@ class VerdictFields(BaseModel):
     analysis_error: str | None = None
     # Evidence searches that failed for this claim (the evidence may be incomplete).
     evidence_errors: list[str] = Field(default_factory=list)
+    # Extra searches requested when the first evidence could not settle the claim.
+    follow_up_queries: list[str] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -189,6 +209,16 @@ class VerdictFields(BaseModel):
         """Strongest kind of source the verdict rests on: factcheck > oficial > web."""
         kinds = {s.kind for s in self.sources}
         return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+
+    @computed_field
+    @property
+    def category(self) -> Category:
+        if self.verdict == "no_verificable":
+            return "no_verificable"
+        reliable = any(s.kind in RELIABLE_KINDS for s in self.sources)
+        if self.verdict == "verdadero":
+            return "verdadero" if reliable else "verdadero_sin_fuente_oficial"
+        return "falso_con_fuente_oficial" if reliable else "falso_sin_fuente_oficial"
 
     @field_validator("explanation")
     @classmethod
@@ -276,13 +306,20 @@ class Report(BaseModel):
 
     @computed_field
     @property
+    def by_category(self) -> dict[str, int]:
+        counts = dict.fromkeys(CATEGORIES, 0)
+        for c in self.claims:
+            counts[c.category] += 1
+        return counts
+
+    @computed_field
+    @property
     def by_speaker(self) -> dict[str, dict[str, int]]:
+        """Counts per speaker and category."""
         result: dict[str, dict[str, int]] = {}
         for c in self.claims:
-            counts = result.setdefault(
-                self.speaker_name(c.speaker), dict.fromkeys(VERDICT_LABELS, 0)
-            )
-            counts[c.verdict] += 1
+            counts = result.setdefault(self.speaker_name(c.speaker), dict.fromkeys(CATEGORIES, 0))
+            counts[c.category] += 1
         return result
 
 

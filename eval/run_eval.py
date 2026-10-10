@@ -31,7 +31,7 @@ from pipeline.evidence.base import collect_evidence
 from pipeline.jobs import prompt_hash
 from pipeline.models import Claim, DetectedClaim, Report, RunCost
 from pipeline.report import format_summary
-from pipeline.run import PROMPTS_DIR, LiveDeps, run_job
+from pipeline.run import PROMPTS_DIR, LiveDeps, follow_up_search, run_job
 from pipeline.verdict import decide_verdicts
 
 EVAL_DIR = Path(__file__).resolve().parent.parent / "data" / "eval"
@@ -75,13 +75,18 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
     ]
     evidence = collect_evidence(detected, deps.evidence_sources, case.fecha)
     verdicts = decide_verdicts(
-        detected, evidence, speech_date=case.fecha, llm=deps.llm, model=deps.model_for("verdict")
+        detected,
+        evidence,
+        speech_date=case.fecha,
+        llm=deps.llm,
+        model=deps.model_for("verdict"),
+        follow_up=follow_up_search(deps, case.fecha),
     )
     by_id = {v.claim_id: v for v in verdicts}
     claims = [
         Claim(
             **d.model_dump(exclude={"search_queries"}),
-            **by_id[d.id].model_dump(exclude={"claim_id", "basis"}),
+            **by_id[d.id].model_dump(exclude={"claim_id", "basis", "category"}),
         )
         for d in detected
     ]

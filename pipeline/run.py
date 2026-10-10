@@ -18,6 +18,8 @@ from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
 from pipeline.models import (
     AudioInfo,
     ClaimDetection,
+    DetectedClaim,
+    EvidenceItem,
     EvidenceRun,
     InputKind,
     Report,
@@ -29,7 +31,7 @@ from pipeline.report import build_report, format_summary
 from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
 from pipeline.transcribe import Transcriber
 from pipeline.verdict import PROMPT as VERDICT_PROMPT
-from pipeline.verdict import decide_verdicts
+from pipeline.verdict import FollowUpSearch, decide_verdicts
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +131,26 @@ def _with_llm_costs(deps: Deps, work: Callable[[], None]) -> StepOutcome:
     return StepOutcome(cost=deps.llm.take_costs())
 
 
+def follow_up_search(deps: Deps, speech_date: dt.date) -> FollowUpSearch:
+    """Targeted second search with the queries Claude asks for when it cannot decide.
+    Fact-checks are left out: they match whole claims, not the missing data."""
+
+    def search(
+        claim: DetectedClaim, queries: list[str], first_id: int
+    ) -> tuple[list[EvidenceItem], list[str]]:
+        sources = [s for s in deps.evidence_sources if s.name != "factcheck"]
+        if not sources:
+            return [], []
+        probe = claim.model_copy(update={"search_queries": queries})
+        [found] = collect_evidence([probe], sources, speech_date)
+        items = [
+            item.model_copy(update={"id": f"E{first_id + n}"}) for n, item in enumerate(found.items)
+        ]
+        return items, [f"búsqueda adicional: {e}" for e in found.errors]
+
+    return search
+
+
 def build_steps(
     store: JobStore, input_path: Path, deps: Deps, *, purge_audio_after: bool = False
 ) -> list[Step]:
@@ -187,6 +209,7 @@ def build_steps(
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
+                follow_up=follow_up_search(deps, store.manifest.speech_date),
             )
             store.write("verdicts.json", verdicts, list[Verdict])
 

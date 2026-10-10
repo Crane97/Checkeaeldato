@@ -64,6 +64,7 @@ def answer(**overrides: Any) -> VerdictAnswer:
         "explanation": "La EPA muestra que el paro bajó un 8 % en ese periodo.",
         "cited_evidence": ["E2"],
         "matched_factcheck": None,
+        "follow_up_queries": [],
     }
     return VerdictAnswer(**data | overrides)
 
@@ -81,8 +82,25 @@ class FakeLLM:
         return result
 
 
-def run(claims, evidences, llm):
-    return decide_verdicts(claims, evidences, speech_date=DATE, llm=llm, model=MODEL)
+def run(claims, evidences, llm, follow_up=None):
+    return decide_verdicts(
+        claims, evidences, speech_date=DATE, llm=llm, model=MODEL, follow_up=follow_up
+    )
+
+
+class FollowUp:
+    """Fake second-round search returning prepared items."""
+
+    def __init__(self, items=(), errors=()) -> None:
+        self.items, self.errors = list(items), list(errors)
+        self.calls: list[tuple[str, list[str], int]] = []
+
+    def __call__(self, claim, queries, first_id):
+        self.calls.append((claim.id, queries, first_id))
+        renumbered = [
+            i.model_copy(update={"id": f"E{first_id + n}"}) for n, i in enumerate(self.items)
+        ]
+        return renumbered, self.errors
 
 
 def test_no_evidence_is_no_verificable_without_calling_claude():
@@ -192,3 +210,56 @@ def test_user_content_has_claim_date_and_evidence_but_not_the_speaker():
 def test_answer_rejects_forbidden_wording():
     with pytest.raises(ValidationError):
         answer(explanation="Es una mentira evidente.")
+
+
+POP = item("X", "oficial", "https://www.ine.es/pere")
+
+
+def test_undecided_claim_gets_one_targeted_follow_up_round():
+    first = answer(
+        verdict="no_verificable",
+        cited_evidence=[],
+        follow_up_queries=["PERE por edad", "población joven"],
+    )
+    final = answer(verdict="falso", cited_evidence=["E3"], confidence=0.9)
+    llm = FakeLLM(first, final)
+    follow_up = FollowUp(items=[POP])
+
+    [v] = run([claim()], [evidence(FC, OF)], llm, follow_up)
+
+    assert follow_up.calls == [("c001", ["PERE por edad", "población joven"], 3)]
+    assert len(llm.calls) == 2
+    second_content = llm.calls[1]["user_content"]
+    assert 'id="E3"' in second_content and "<ronda_final>" in second_content
+    assert "<ronda_final>" not in llm.calls[0]["user_content"]
+    assert v.verdict == "falso"
+    assert [s.url for s in v.sources] == ["https://www.ine.es/pere"]
+    assert v.follow_up_queries == ["PERE por edad", "población joven"]
+
+
+def test_decided_claims_do_not_search_again():
+    follow_up = FollowUp(items=[POP])
+    run([claim()], [evidence(OF)], FakeLLM(answer(follow_up_queries=["x"])), follow_up)
+    assert follow_up.calls == []
+
+
+def test_follow_up_without_new_evidence_keeps_the_first_answer():
+    first = answer(verdict="no_verificable", cited_evidence=[], follow_up_queries=["x"])
+    llm = FakeLLM(first)
+    follow_up = FollowUp(errors=["oficial: HTTP 500"])
+    [v] = run([claim()], [evidence(OF)], llm, follow_up)
+    assert len(llm.calls) == 1
+    assert v.verdict == "no_verificable"
+    assert v.evidence_errors == ["oficial: HTTP 500"]
+
+
+def test_follow_up_queries_are_capped_and_need_a_searcher():
+    first = answer(
+        verdict="no_verificable", cited_evidence=[], follow_up_queries=["a", "b", "c", "d"]
+    )
+    follow_up = FollowUp()
+    run([claim()], [evidence(OF)], FakeLLM(first), follow_up)
+    assert follow_up.calls[0][1] == ["a", "b", "c"]
+
+    [v] = run([claim()], [evidence(OF)], FakeLLM(first))  # no searcher: single round
+    assert v.verdict == "no_verificable"

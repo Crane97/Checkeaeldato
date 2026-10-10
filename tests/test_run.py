@@ -34,11 +34,12 @@ class FakeLLM:
                 ]
             )
         return VerdictAnswer(
-            verdict="enganoso",
+            verdict="falso",
             confidence=0.8,
             explanation="Según la EPA, el paro bajó un 15 %, no un 20 %.",
             cited_evidence=["E1"],
             matched_factcheck=None,
+            follow_up_queries=[],
         )
 
     def take_costs(self) -> list[CostEntry]:
@@ -132,13 +133,12 @@ def test_text_article_end_to_end(article: Path, tmp_path: Path):
     assert claim["speaker"] == "autor"
     assert claim["text_original"] == "El paro ha bajado un 20 % este año"
     assert (claim["start"], claim["end"]) == (None, None)
-    assert claim["verdict"] == "enganoso"
+    assert claim["verdict"] == "falso"
+    assert claim["category"] == "falso_con_fuente_oficial"
     assert claim["basis"] == "oficial"
     assert report["speakers"] == {"autor": "Ana Autora"}
     assert report["input_kind"] == "texto"
-    assert report["by_speaker"] == {
-        "Ana Autora": {"verdadero": 0, "enganoso": 1, "falso": 0, "no_verificable": 0}
-    }
+    assert report["by_speaker"]["Ana Autora"]["falso_con_fuente_oficial"] == 1
     assert any("factcheck" in w and "desactivada" in w for w in report["warnings"])
     assert report["cost"]["total_usd"] == pytest.approx(0.02)
     assert deps.llm.calls == ["claims", "verdicts"]

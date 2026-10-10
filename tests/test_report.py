@@ -107,13 +107,16 @@ def test_summary_shows_totals_speakers_basis_warnings_and_cost():
         claims=[detected("c001", "speaker_0"), detected("c002", "speaker_1")],
         rejected=[RejectedClaim(quote="x", segment=0, reason="r")],
     )
-    report = build(detection, [verdict("c001", "enganoso", [WEB]), verdict("c002", "falso", [INE])])
+    report = build(
+        detection, [verdict("c001", "verdadero", [WEB]), verdict("c002", "falso", [INE])]
+    )
 
     text = format_summary(report, report_path="data/abc123def456/report.json")
 
     assert "data/abc123def456/report.json" in text
     assert "Afirmaciones verificables: 2" in text
-    assert "engañoso" in text and "no verificable" in text
+    assert "Verdadero sin fuente oficial" in text and "Falso con fuente oficial" in text
+    assert "No verificable" in text
     assert "Candidata A" in text and "speaker_1" in text
     assert "solo web: 1" in text and "oficial: 1" in text
     assert "1 cita descartada" in text

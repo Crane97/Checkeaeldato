@@ -1,0 +1,41 @@
+{
+  "id": "real-002-datos-basicos",
+  "descripcion": "Artículo de prueba con cuatro datos públicos comprobados contra fuentes oficiales (INE, BOE, La Moncloa, Hacienda, Banco de España) y tres frases que no deben detectarse.",
+  "sintetico": false,
+  "fecha": "2026-10-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Buenas tardes a todos y gracias por venir.\n\nEspaña supera ya los 48 millones de habitantes, según los últimos datos del INE. Es un país que no deja de crecer.\n\nLa Constitución española fue aprobada en referéndum en diciembre de 1978.\n\nEl salario mínimo interprofesional quedó fijado en 2025 en 1.184 euros al mes en catorce pagas.\n\nLa deuda pública española superó el 100 % del PIB al cierre de 2024.\n\nEsto demuestra que vamos en la buena dirección. Vamos a crear un millón de empleos en la próxima legislatura.\n\n¿De verdad alguien se cree que la sanidad pública está mejor que nunca?"
+  },
+  "afirmaciones": [
+    {
+      "cita": "España supera ya los 48 millones de habitantes, según los últimos datos del INE",
+      "texto_normalizado": "La población de España supera los 48 millones de habitantes según el INE.",
+      "veredicto_esperado": "verdadero",
+      "notas": "INE, Estadística Continua de Población: 49,8 millones a 1 de julio de 2026."
+    },
+    {
+      "cita": "La Constitución española fue aprobada en referéndum en diciembre de 1978",
+      "texto_normalizado": "La Constitución española fue aprobada en referéndum en diciembre de 1978.",
+      "veredicto_esperado": "verdadero",
+      "notas": "Referéndum del 6 de diciembre de 1978."
+    },
+    {
+      "cita": "El salario mínimo interprofesional quedó fijado en 2025 en 1.184 euros al mes en catorce pagas",
+      "texto_normalizado": "El salario mínimo interprofesional de España en 2025 es de 1.184 euros al mes en 14 pagas.",
+      "veredicto_esperado": "verdadero",
+      "notas": "Real Decreto 87/2025 (BOE)."
+    },
+    {
+      "cita": "La deuda pública española superó el 100 % del PIB al cierre de 2024",
+      "texto_normalizado": "La deuda pública de España superó el 100 % del PIB al cierre de 2024.",
+      "veredicto_esperado": "verdadero",
+      "notas": "101,8 % del PIB según Hacienda y Banco de España."
+    }
+  ],
+  "no_afirmaciones": [
+    "Esto demuestra que vamos en la buena dirección",
+    "Vamos a crear un millón de empleos en la próxima legislatura",
+    "¿De verdad alguien se cree que la sanidad pública está mejor que nunca?"
+  ]
+}

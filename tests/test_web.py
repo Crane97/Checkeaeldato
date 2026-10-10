@@ -50,7 +50,7 @@ def test_analysis_runs_and_returns_the_report(client, deps):
     report = status["informe"]
     assert report["speakers"] == {"autor": "Ana Oradora"}
     [claim] = report["claims"]
-    assert claim["verdict"] == "enganoso"
+    assert claim["category"] == "falso_con_fuente_oficial"
     assert claim["sources"][0]["url"] == "https://www.ine.es/epa"
     assert [p["paso"] for p in status["pasos"]] == [
         "transcript",

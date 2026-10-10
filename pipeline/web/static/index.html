@@ -8,15 +8,21 @@
   :root {
     --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6676; --border: #dde1e8;
     --accent: #2f5bd3; --accent-text: #ffffff;
-    --verdadero: #1f8a4c; --enganoso: #b7791f; --falso: #c53030; --no_verificable: #6b7280;
-    --tint-verdadero: #e6f4ec; --tint-enganoso: #fbf1e1; --tint-falso: #fbe7e7; --tint-no_verificable: #eef0f3;
+    --warn: #b7791f;
+    --verdadero: #1f8a4c; --verdadero_sin_fuente_oficial: #3f8f8a; --no_verificable: #6b7280;
+    --falso_sin_fuente_oficial: #c2610f; --falso_con_fuente_oficial: #c53030;
+    --tint-verdadero: #e6f4ec; --tint-verdadero_sin_fuente_oficial: #e5f2f1; --tint-no_verificable: #eef0f3;
+    --tint-falso_sin_fuente_oficial: #fcefe3; --tint-falso_con_fuente_oficial: #fbe7e7;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #12151b; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b2; --border: #2c3340;
       --accent: #6d8ff0; --accent-text: #0d1117;
-      --verdadero: #4cc38a; --enganoso: #e0a84a; --falso: #f07171; --no_verificable: #9aa3b2;
-      --tint-verdadero: #16291f; --tint-enganoso: #2d2414; --tint-falso: #2e1818; --tint-no_verificable: #232833;
+      --warn: #e0a84a;
+      --verdadero: #4cc38a; --verdadero_sin_fuente_oficial: #6cc4bd; --no_verificable: #9aa3b2;
+      --falso_sin_fuente_oficial: #f0a060; --falso_con_fuente_oficial: #f07171;
+      --tint-verdadero: #16291f; --tint-verdadero_sin_fuente_oficial: #152a29; --tint-no_verificable: #232833;
+      --tint-falso_sin_fuente_oficial: #2f2216; --tint-falso_con_fuente_oficial: #2e1818;
     }
   }
   * { box-sizing: border-box; }
@@ -50,14 +56,14 @@
   .spin { display: inline-block; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error { border-color: var(--falso); background: var(--tint-falso); }
-  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-  @media (max-width: 600px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+  @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
   .tile { border: 2px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer;
           text-align: left; background: var(--bg); color: var(--text); font: inherit; }
   .tile .n { font-size: 1.6rem; font-weight: 700; display: block; line-height: 1.2; }
   .tile.active { border-color: currentColor; }
   .meta { color: var(--muted); font-size: .92rem; margin: 4px 0; }
-  .warnings { margin: 10px 0 0; padding-left: 20px; color: var(--enganoso); font-size: .92rem; }
+  .warnings { margin: 10px 0 0; padding-left: 20px; color: var(--warn); font-size: .92rem; }
   .claim { border-left: 5px solid var(--border); }
   .claim header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
   .badge { border-radius: 999px; padding: 2px 12px; font-weight: 700; font-size: .9rem; }
@@ -67,7 +73,7 @@
   .explanation { margin: 0 0 10px; }
   .sources { margin: 0; padding-left: 20px; font-size: .92rem; }
   .sources a { color: var(--accent); word-break: break-word; }
-  .note { font-size: .88rem; color: var(--enganoso); margin: 8px 0 0; }
+  .note { font-size: .88rem; color: var(--warn); margin: 8px 0 0; }
   .hidden { display: none; }
 </style>
 </head>
@@ -112,6 +118,8 @@
       <h2 id="titulo-resumen"></h2>
       <div class="tiles" id="tiles"></div>
       <p class="meta" id="base"></p>
+      <p class="meta">«Fuente oficial» incluye organismos públicos (INE, BOE, Banco de España…) y
+        verificadores profesionales (Maldita, Newtral, EFE Verifica).</p>
       <p class="meta" id="coste"></p>
       <ul class="warnings" id="avisos"></ul>
     </div>
@@ -120,8 +128,12 @@
 </main>
 
 <script>
-const VERDICTS = {
-  verdadero: "Verdadero", enganoso: "Engañoso", falso: "Falso", no_verificable: "No verificable",
+const CATEGORIES = {
+  verdadero: "Verdadero",
+  verdadero_sin_fuente_oficial: "Verdadero sin fuente oficial",
+  no_verificable: "No verificable",
+  falso_sin_fuente_oficial: "Falso sin fuente oficial",
+  falso_con_fuente_oficial: "Falso con fuente oficial",
 };
 const STEP_NAMES = {
   audio: "Extraer audio", transcript: "Preparar el texto", claims: "Detectar afirmaciones",
@@ -173,10 +185,10 @@ function renderSteps(status) {
 }
 
 function renderClaim(claim, speakers) {
-  const color = `var(--${claim.verdict})`;
+  const color = `var(--${claim.category})`;
   const header = el("header", {},
-    el("span", { class: "badge", style: `background: var(--tint-${claim.verdict}); color: ${color}` },
-      VERDICTS[claim.verdict]),
+    el("span", { class: "badge", style: `background: var(--tint-${claim.category}); color: ${color}` },
+      CATEGORIES[claim.category]),
   );
   if (claim.verdict === "falso" && claim.matched_factcheck) {
     header.append(el("span", { class: "badge", style: `background: ${color}; color: var(--card)` }, "Bulo"));
@@ -211,10 +223,10 @@ function renderReport(report) {
   lastReport = report;
   const total = report.claims.length;
   $("titulo-resumen").textContent = `${total} afirmaci${total === 1 ? "ón verificable" : "ones verificables"}`;
-  $("tiles").replaceChildren(...Object.entries(VERDICTS).map(([key, name]) => {
+  $("tiles").replaceChildren(...Object.entries(CATEGORIES).map(([key, name]) => {
     const tile = el("button", { type: "button", class: "tile" + (filter === key ? " active" : ""),
       style: `color: var(--${key}); background: var(--tint-${key})` },
-      el("span", { class: "n" }, report.by_verdict[key]), name);
+      el("span", { class: "n" }, report.by_category[key]), name);
     tile.addEventListener("click", () => { filter = filter === key ? null : key; renderReport(lastReport); });
     return tile;
   }));
@@ -225,7 +237,7 @@ function renderReport(report) {
     (plan ? " (equivalente orientativo, cubierto por tu plan de Claude)" : "");
   $("avisos").replaceChildren(...report.warnings.map((w) => el("li", {}, w)));
 
-  const claims = report.claims.filter((c) => !filter || c.verdict === filter);
+  const claims = report.claims.filter((c) => !filter || c.category === filter);
   $("afirmaciones").replaceChildren(...claims.map((c) => renderClaim(c, report.speakers)));
   if (!total) {
     $("afirmaciones").append(el("p", { class: "meta" }, "No se han detectado afirmaciones verificables en el texto."));

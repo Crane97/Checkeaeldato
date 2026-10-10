@@ -77,7 +77,7 @@ def test_matching_is_one_to_one_and_uses_time_when_available():
 
 def test_score_case_counts_coverage_verdicts_and_false_positives():
     case = gold(
-        GoldClaim(cita="El paro ha bajado un 20 %", veredicto_esperado="enganoso"),
+        GoldClaim(cita="El paro ha bajado un 20 %", veredicto_esperado="verdadero"),
         GoldClaim(cita="La deuda es del 105 % del PIB", veredicto_esperado="verdadero"),
         not_claims=["Vamos a crear un millón de empleos"],
     )
@@ -92,7 +92,7 @@ def test_score_case_counts_coverage_verdicts_and_false_positives():
     assert (result.gold_claims, result.matched, result.correct) == (2, 1, 0)
     assert result.false_positives == 1
     assert result.extra_detected == 1  # c3: not in gold, not a known opinion
-    assert result.confusion == {("enganoso", "falso"): 1}
+    assert result.confusion == {("verdadero", "falso"): 1}
     assert result.missed == ["La deuda es del 105 % del PIB"]
 
 

@@ -1,0 +1,25 @@
+{
+  "id": "real-001-territorio-emigracion",
+  "descripcion": "Dos afirmaciones de un discurso de prueba del responsable del proyecto (2026-10-10). Fallaron en la primera versión: ambas salieron no_verificable teniendo evidencia suficiente.",
+  "sintetico": false,
+  "fecha": "2026-10-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Somos un país diverso, con 17 comunidades autónomas y 2 ciudades autónomas.\n\nY sin embargo, el 70% de los jóvenes españoles ya ha emigrado al extranjero."
+  },
+  "afirmaciones": [
+    {
+      "cita": "Somos un país diverso, con 17 comunidades autónomas y 2 ciudades autónomas",
+      "texto_normalizado": "España tiene 17 comunidades autónomas y 2 ciudades autónomas.",
+      "veredicto_esperado": "verdadero",
+      "notas": "Ceuta y Melilla son las dos ciudades autónomas (La Moncloa, INE)."
+    },
+    {
+      "cita": "el 70% de los jóvenes españoles ya ha emigrado al extranjero",
+      "texto_normalizado": "El 70 % de los jóvenes españoles ha emigrado al extranjero.",
+      "veredicto_esperado": "falso",
+      "notas": "Imposible con los datos del INE: en el extranjero viven 3,2 millones de españoles de todas las edades (PERE 2026), muy por debajo del 70 % de la población joven."
+    }
+  ],
+  "no_afirmaciones": []
+}

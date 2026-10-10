@@ -3,6 +3,7 @@
 import datetime as dt
 import html
 import logging
+from collections.abc import Callable
 from typing import Protocol, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -16,6 +17,11 @@ logger = logging.getLogger(__name__)
 PROMPT = "veredicto.md"
 # CLAUDE.md: a verdict resting only on general web sources carries less confidence.
 WEB_ONLY_MAX_CONFIDENCE = 0.6
+# A second, targeted search round when the first evidence cannot settle the claim.
+MAX_FOLLOW_UP_QUERIES = 3
+
+# (claim, queries, first evidence number) -> (new items numbered from it, errors)
+FollowUpSearch = Callable[[DetectedClaim, list[str], int], tuple[list[EvidenceItem], list[str]]]
 
 NO_EVIDENCE = "No se ha encontrado evidencia sobre esta afirmación en las fuentes consultadas."
 SEARCH_FAILED = (
@@ -46,6 +52,8 @@ class VerdictAnswer(BaseModel):
     explanation: str
     cited_evidence: list[str]
     matched_factcheck: str | None
+    # Only with no_verificable: searches for the specific data that would settle it.
+    follow_up_queries: list[str]
 
     @field_validator("explanation")
     @classmethod
@@ -76,7 +84,9 @@ def _evidence_block(item: EvidenceItem) -> str:
     return f"<evidencia {attr_text}>\n{body}\n</evidencia>"
 
 
-def format_claim(claim: DetectedClaim, evidence: ClaimEvidence, speech_date: dt.date) -> str:
+def format_claim(
+    claim: DetectedClaim, evidence: ClaimEvidence, speech_date: dt.date, final: bool = False
+) -> str:
     """User message for one claim. The speaker is left out on purpose (neutrality)."""
     parts = [
         f"<fecha>{speech_date.isoformat()}</fecha>",
@@ -85,6 +95,10 @@ def format_claim(claim: DetectedClaim, evidence: ClaimEvidence, speech_date: dt.
         f"<tipo>{claim.claim_type}</tipo>",
         *(_evidence_block(item) for item in evidence.items),
     ]
+    if final:
+        parts.append(
+            "<ronda_final>No habrá más búsquedas: decide con esta evidencia.</ronda_final>"
+        )
     return "\n".join(parts)
 
 
@@ -109,7 +123,12 @@ def _failed(claim: DetectedClaim, evidence: ClaimEvidence, error: str) -> Verdic
     )
 
 
-def _apply_rules(claim: DetectedClaim, evidence: ClaimEvidence, answer: VerdictAnswer) -> Verdict:
+def _apply_rules(
+    claim: DetectedClaim,
+    evidence: ClaimEvidence,
+    answer: VerdictAnswer,
+    follow_up_queries: list[str] | None = None,
+) -> Verdict:
     """Turn Claude's answer into a Verdict that respects CLAUDE.md's principles."""
     by_id = {item.id: item for item in evidence.items}
     cited = [by_id[i] for i in dict.fromkeys(answer.cited_evidence) if i in by_id]
@@ -139,7 +158,42 @@ def _apply_rules(claim: DetectedClaim, evidence: ClaimEvidence, answer: VerdictA
         sources=[item.source for item in cited],
         matched_factcheck=matched,
         evidence_errors=evidence.errors,
+        follow_up_queries=follow_up_queries or [],
     )
+
+
+def _decide(
+    claim: DetectedClaim,
+    evidence: ClaimEvidence,
+    speech_date: dt.date,
+    llm: StructuredLLM,
+    model: str,
+    follow_up: FollowUpSearch | None,
+) -> Verdict:
+    def ask(ev: ClaimEvidence, final: bool) -> VerdictAnswer:
+        return llm.structured(
+            step="verdicts",
+            model=model,
+            prompt=PROMPT,
+            user_content=format_claim(claim, ev, speech_date, final=final),
+            output_type=VerdictAnswer,
+        )
+
+    answer = ask(evidence, final=follow_up is None)
+    queries = [q.strip() for q in answer.follow_up_queries if q.strip()][:MAX_FOLLOW_UP_QUERIES]
+    if answer.verdict != "no_verificable" or not queries or follow_up is None:
+        return _apply_rules(claim, evidence, answer)
+
+    logger.info("%s: búsqueda adicional (%s)", claim.id, "; ".join(queries))
+    items, errors = follow_up(claim, queries, len(evidence.items) + 1)
+    known = {i.source.url for i in evidence.items}
+    items = [i for i in items if i.source.url not in known]
+    extended = evidence.model_copy(
+        update={"items": [*evidence.items, *items], "errors": [*evidence.errors, *errors]}
+    )
+    if not items:
+        return _apply_rules(claim, extended, answer, queries)
+    return _apply_rules(claim, extended, ask(extended, final=True), queries)
 
 
 def decide_verdicts(
@@ -149,8 +203,12 @@ def decide_verdicts(
     speech_date: dt.date,
     llm: StructuredLLM,
     model: str,
+    follow_up: FollowUpSearch | None = None,
 ) -> list[Verdict]:
     """One verdict per claim, based only on that claim's retrieved evidence.
+
+    With `follow_up`, a claim Claude cannot settle gets one extra targeted search for
+    the data it says is missing, and a final decision with the extended evidence.
 
     Claims without evidence are `no_verificable` without calling Claude. A failed
     analysis is recorded in `analysis_error`; a config error, or every analysis
@@ -171,14 +229,7 @@ def decide_verdicts(
         attempted += 1
         logger.info("Veredicto de %s (%d/%d)", claim.id, len(verdicts) + 1, len(claims))
         try:
-            answer = llm.structured(
-                step="verdicts",
-                model=model,
-                prompt=PROMPT,
-                user_content=format_claim(claim, evidence, speech_date),
-                output_type=VerdictAnswer,
-            )
-            verdicts.append(_apply_rules(claim, evidence, answer))
+            verdicts.append(_decide(claim, evidence, speech_date, llm, model, follow_up))
         except LLMConfigError:
             raise
         except (LLMError, ValidationError) as exc:

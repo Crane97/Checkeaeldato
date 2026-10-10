@@ -111,7 +111,7 @@ def test_report_counts_by_verdict_and_mapped_speaker():
         claims=[
             make_claim(id="c1"),
             make_claim(id="c2", verdict="no_verificable", sources=[]),
-            make_claim(id="c3", speaker="speaker_1", verdict="enganoso"),
+            make_claim(id="c3", speaker="speaker_1", verdict="falso"),
         ],
         cost=RunCost(
             entries=[
@@ -121,10 +121,17 @@ def test_report_counts_by_verdict_and_mapped_speaker():
         ),
     )
 
-    assert report.by_verdict == {"verdadero": 1, "enganoso": 1, "falso": 0, "no_verificable": 1}
-    assert report.by_speaker["Candidata A"]["verdadero"] == 1
+    assert report.by_verdict == {"verdadero": 1, "falso": 1, "no_verificable": 1}
+    assert report.by_category == {
+        "verdadero": 1,
+        "verdadero_sin_fuente_oficial": 0,
+        "no_verificable": 1,
+        "falso_sin_fuente_oficial": 0,
+        "falso_con_fuente_oficial": 1,
+    }
+    assert report.by_speaker["Candidata A"]["verdadero"] == 1  # categories
     assert report.by_speaker["Candidata A"]["no_verificable"] == 1
-    assert report.by_speaker["speaker_1"]["enganoso"] == 1
+    assert report.by_speaker["speaker_1"]["falso_con_fuente_oficial"] == 1
     assert report.cost.total_usd == pytest.approx(0.235)
 
     dumped = report.model_dump(mode="json")
@@ -155,3 +162,30 @@ def test_basis_is_the_strongest_cited_source_kind():
     assert make_claim(verdict="falso", sources=[web, FACTCHECK]).basis == "factcheck"
     assert make_claim(verdict="no_verificable", sources=[]).basis is None
     assert make_claim().model_dump(mode="json")["basis"] == "oficial"
+
+
+@pytest.mark.parametrize(
+    ("verdict", "kinds", "category"),
+    [
+        ("verdadero", ["oficial"], "verdadero"),
+        ("verdadero", ["factcheck"], "verdadero"),  # professional fact-checkers count as reliable
+        ("verdadero", ["web"], "verdadero_sin_fuente_oficial"),
+        ("verdadero", ["web", "oficial"], "verdadero"),
+        ("falso", ["oficial"], "falso_con_fuente_oficial"),
+        ("falso", ["factcheck"], "falso_con_fuente_oficial"),
+        ("falso", ["web"], "falso_sin_fuente_oficial"),
+        ("no_verificable", [], "no_verificable"),
+        ("no_verificable", ["oficial"], "no_verificable"),
+    ],
+)
+def test_category_combines_verdict_and_source_reliability(verdict, kinds, category):
+    sources = [
+        Source(url=f"https://x{i}.es", title="t", organization="o", kind=k)
+        for i, k in enumerate(kinds)
+    ]
+    assert make_claim(verdict=verdict, sources=sources).category == category
+
+
+def test_enganoso_is_no_longer_a_verdict():
+    with pytest.raises(ValidationError):
+        make_claim(verdict="enganoso")

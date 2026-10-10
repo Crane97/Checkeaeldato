@@ -3,7 +3,7 @@
 import datetime as dt
 
 from pipeline.models import (
-    VERDICT_LABELS,
+    CATEGORIES,
     Claim,
     ClaimDetection,
     InputKind,
@@ -12,11 +12,12 @@ from pipeline.models import (
     Verdict,
 )
 
-VERDICT_NAMES = {
-    "verdadero": "verdadero",
-    "enganoso": "engañoso",
-    "falso": "falso",
-    "no_verificable": "no verificable",
+CATEGORY_NAMES = {
+    "verdadero": "Verdadero",
+    "verdadero_sin_fuente_oficial": "Verdadero sin fuente oficial",
+    "no_verificable": "No verificable",
+    "falso_sin_fuente_oficial": "Falso sin fuente oficial",
+    "falso_con_fuente_oficial": "Falso con fuente oficial",
 }
 CLAUDE_PROVIDERS = ("anthropic", "claude-code")
 BASIS_NAMES = {
@@ -87,7 +88,7 @@ def build_report(
         claims.append(
             Claim(
                 **detected.model_dump(exclude={"search_queries"}),
-                **verdict.model_dump(exclude={"claim_id", "basis"}),
+                **verdict.model_dump(exclude={"claim_id", "basis", "category"}),
             )
         )
     return Report(
@@ -111,12 +112,12 @@ def format_summary(report: Report, report_path: str) -> str:
         "",
         f"Afirmaciones verificables: {len(report.claims)}",
     ]
-    lines += [f"  {VERDICT_NAMES[k]:<16}{report.by_verdict[k]:>4}" for k in VERDICT_LABELS]
+    lines += [f"  {CATEGORY_NAMES[k]:<30}{report.by_category[k]:>4}" for k in CATEGORIES]
 
     if report.by_speaker:
         lines += ["", "Por orador:"]
         for speaker, counts in report.by_speaker.items():
-            parts = [f"{VERDICT_NAMES[k]} {n}" for k, n in counts.items() if n]
+            parts = [f"{CATEGORY_NAMES[k]} {n}" for k, n in counts.items() if n]
             lines.append(f"  {speaker}: {', '.join(parts)}")
 
     if report.claims:

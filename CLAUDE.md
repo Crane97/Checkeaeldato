@@ -54,8 +54,8 @@ que no haya que reescribir al pasar de fase.
   `LLM_BACKEND=claude-code` (suscripción local vía `claude -p`, solo para pruebas en local:
   sin herramientas, sin MCP, desde una carpeta vacía y sin `ANTHROPIC_API_KEY`). Modelo configurable con `ANTHROPIC_MODEL` y, por
   paso, `ANTHROPIC_MODEL_DETECTION` / `ANTHROPIC_MODEL_VERDICT`; nunca hardcodeado. Para
-  la demo local: `claude-haiku-5-5` (mínimo coste); subir de modelo solo si la evaluación
-  lo justifica.
+  la demo local: detección con `claude-haiku-5-5` y **veredicto con `claude-opus-5-5`**
+  (`ANTHROPIC_MODEL_VERDICT`), por rigor con las cifras.
 - **Transcripción:** proveedor en la nube detrás de una interfaz `Transcriber`. Elegido:
   **ElevenLabs Scribe v2** (por lotes, diarización incluida). Requisitos: español,
   diarización, timestamps por palabra o segmento.
@@ -110,7 +110,8 @@ class Claim:
     end: float | None            # (los dos o ninguno)
     text_normalized: str         # autocontenida: quién, qué, cifra, periodo
     claim_type: Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
-    verdict: Literal["verdadero", "enganoso", "falso", "no_verificable"]
+    verdict: Literal["verdadero", "falso", "no_verificable"]
+    category: ...                # calculada: veredicto + si cita una fuente oficial (ver abajo)
     confidence: float            # 0–1
     explanation: str             # breve, neutral, en español
     sources: list[Source]        # url, título, organismo, fecha
@@ -119,12 +120,29 @@ class Claim:
 
 ## Categorías de veredicto (definiciones fijas)
 
-- **verdadero** — la evidencia respalda la afirmación tal como se formuló.
-- **enganoso** — tiene base real pero omite contexto, exagera, mezcla periodos o compara
-  mal.
-- **falso** — la evidencia la contradice claramente.
-- **no_verificable** — no hay evidencia suficiente o fiable. Es el valor por defecto ante
-  la duda.
+Decididas por el responsable del proyecto (2026-10-10). Claude decide el **veredicto**:
+
+- **verdadero** — la evidencia respalda **todas** las partes de la afirmación tal como se
+  formuló. Se admite el redondeo a la precisión usada por quien habla o una desviación
+  mínima (≤ 5 % relativo): "15 %" por un 15,4 % es válido.
+- **falso** — la evidencia contradice al menos una parte esencial, directamente o por
+  cálculo con las cifras de la evidencia (límites, totales, imposibilidades). **Una cifra
+  exagerada o rebajada más allá del redondeo es falsa** ("bajó un 20 %" si bajó un 15 %).
+  No existe la categoría "engañoso".
+- **no_verificable** — la evidencia no permite confirmar ni refutar, ni calculando. Es el
+  valor por defecto ante la duda.
+
+El código combina el veredicto con las fuentes citadas para dar la **categoría** que ve el
+usuario. "Fuente oficial" = organismo público o internacional **o verificador profesional**
+(Maldita, Newtral, EFE Verifica…):
+
+| Categoría | Veredicto | Fuentes citadas |
+|---|---|---|
+| Verdadero | verdadero | al menos una oficial o de verificador |
+| Verdadero sin fuente oficial | verdadero | solo web (confianza máx. 0,6) |
+| No verificable | no_verificable | — |
+| Falso sin fuente oficial | falso | solo web (confianza máx. 0,6) |
+| Falso con fuente oficial | falso | al menos una oficial o de verificador |
 
 En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` con
 `matched_factcheck` (desmentido publicado por un verificador reconocido).
@@ -170,8 +188,13 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 
 El informe indica en qué se apoya cada veredicto (`basis`: desmentido, oficial o solo web);
 un veredicto apoyado solo en web tiene confianza máxima 0,6. Límites por afirmación: hasta
-2 búsquedas oficiales y 1 web (≈30–45 créditos de Tavily por artículo de ~15 afirmaciones).
-Resultados de Tavily con relevancia < 0,4 se descartan (umbral provisional, ajustar con la
+3 búsquedas oficiales y 1 web, más hasta 3 de la ronda adicional cuando hace falta
+(≈45–90 créditos de Tavily por artículo de ~15 afirmaciones).
+De cada página se pide el texto completo y se envían a Claude los pasajes más relevantes
+para la afirmación (≈3.500 caracteres por fuente), no solo el principio de la página. Si
+con la evidencia no puede decidir pero sabe qué dato lo resolvería, Claude pide **una
+ronda de búsqueda adicional** (hasta 3 consultas en fuentes oficiales y web) y decide con
+todo; esas consultas quedan en `follow_up_queries`. Resultados de Tavily con relevancia < 0,4 se descartan (umbral provisional, ajustar con la
 evaluación). Pendiente: las fuentes aún no filtran por `--fecha`; el veredicto la tiene en
 cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay lista de medios
 "reconocidos"**: es una decisión de neutralidad pendiente del responsable del proyecto.
