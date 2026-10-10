@@ -1,0 +1,29 @@
+{
+  "id": "ejemplo-sintetico-001",
+  "descripcion": "Caso inventado para comprobar que la evaluación funciona. NO mide calidad: sustituir por casos reales con verificaciones publicadas (Maldita, Newtral, EFE Verifica).",
+  "sintetico": true,
+  "fecha": "2026-11-20",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Buenas tardes a todos.\n\nSegún los últimos datos, la tasa de paro en España se situó por debajo del 11 % en el tercer trimestre de 2026, la más baja desde 2008.\n\nEsto demuestra que vamos en la buena dirección. Vamos a crear un millón de empleos en la próxima legislatura.\n\n¿Alguien se cree de verdad que la sanidad pública está mejor que nunca?"
+  },
+  "afirmaciones": [
+    {
+      "cita": "la tasa de paro en España se situó por debajo del 11 % en el tercer trimestre de 2026",
+      "texto_normalizado": "La tasa de paro en España se situó por debajo del 11 % en el tercer trimestre de 2026.",
+      "veredicto_esperado": "no_verificable",
+      "notas": "Veredicto esperado provisional: el caso es sintético."
+    },
+    {
+      "cita": "la más baja desde 2008",
+      "texto_normalizado": "La tasa de paro de España en el tercer trimestre de 2026 fue la más baja desde 2008.",
+      "veredicto_esperado": "no_verificable",
+      "notas": "Comparación; veredicto esperado provisional."
+    }
+  ],
+  "no_afirmaciones": [
+    "Esto demuestra que vamos en la buena dirección",
+    "Vamos a crear un millón de empleos en la próxima legislatura",
+    "¿Alguien se cree de verdad que la sanidad pública está mejor que nunca?"
+  ]
+}
