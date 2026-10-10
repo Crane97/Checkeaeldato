@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Local videos, audio and job outputs
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# macOS
+.DS_Store
