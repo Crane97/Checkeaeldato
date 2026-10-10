@@ -4,12 +4,16 @@
 """
 
 import json
+import re
 import shlex
 import sys
 from pathlib import PurePath
 
 # Shell punctuation glued to a path: "<.env", "$(cat .env)", "--env-file=.env".
 _STRIP = "<>|&;()$`'\""
+# Heredoc bodies are data piped to a command, not arguments; the redirect target
+# (e.g. "cat > .env <<EOF") stays outside the body and is still checked.
+_HEREDOC_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2\b", re.DOTALL)
 
 
 def is_secret_env(path: str) -> bool:
@@ -24,6 +28,7 @@ def command_touches_env(command: str) -> bool:
     ".env" inside a quoted string is not blocked. A guard against accidents, not
     a security boundary.
     """
+    command = _HEREDOC_RE.sub(lambda m: m.group(0).split("\n", 1)[0], command)
     try:
         tokens = shlex.split(command)
     except ValueError:

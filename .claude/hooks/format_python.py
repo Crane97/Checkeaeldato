@@ -18,6 +18,8 @@ def main() -> None:
 
     if path.suffix != ".py" or not path.is_file() or not ruff.exists():
         return
+    if not path.resolve().is_relative_to(project.resolve()):
+        return  # only this repo's files follow its ruff config
 
     check = subprocess.run(
         [str(ruff), "check", "--fix", "--quiet", str(path)],

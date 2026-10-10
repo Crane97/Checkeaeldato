@@ -19,6 +19,7 @@ spec.loader.exec_module(protect_env)
         'echo "$(cat .env)"',
         "docker run --env-file=.env img",
         "less /Users/x/proyecto/.env.local",
+        "cat > .env <<'EOF'\nKEY=1\nEOF",
     ],
 )
 def test_blocks_commands_that_use_env(command):
@@ -33,6 +34,7 @@ def test_blocks_commands_that_use_env(command):
         'git commit -m "block access to .env (secrets)"',
         "ls ~/.local/share/uv-bootstrap",
         "echo 'unbalanced",
+        "python3 - <<'EOF'\ntext = 'bloquean el acceso a `.env`;'\nEOF\ngit diff --stat",
     ],
 )
 def test_allows_commands_that_only_mention_env(command):
