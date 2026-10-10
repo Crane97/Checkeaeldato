@@ -8,7 +8,7 @@ import httpx
 from pydantic import ValidationError
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
-from pipeline.evidence.http import TIMEOUT_SECONDS, request_with_retries
+from pipeline.http import TIMEOUT_SECONDS, request_with_retries
 from pipeline.models import DetectedClaim, EvidenceItem, Source
 
 logger = logging.getLogger(__name__)
@@ -83,6 +83,7 @@ class FactCheckSource:
             API_URL,
             max_attempts=self._max_attempts,
             backoff=self._backoff,
+            error_cls=EvidenceError,
             params={**params, "key": self._api_key},
         )
         if response.status_code in (401, 403) or (

@@ -10,7 +10,7 @@ import httpx
 from pydantic import ValidationError
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError
-from pipeline.evidence.http import TIMEOUT_SECONDS, request_with_retries
+from pipeline.http import TIMEOUT_SECONDS, request_with_retries
 from pipeline.models import EvidenceItem, Source, SourceKind
 
 API_URL = "https://api.tavily.com/search"
@@ -78,6 +78,7 @@ class TavilyClient:
             API_URL,
             max_attempts=self._max_attempts,
             backoff=self._backoff,
+            error_cls=EvidenceError,
             json=body,
             headers={"Authorization": f"Bearer {self._api_key}"},
         )
