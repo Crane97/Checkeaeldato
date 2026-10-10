@@ -21,14 +21,16 @@ def main() -> None:
     if not path.resolve().is_relative_to(project.resolve()):
         return  # only this repo's files follow its ruff config
 
+    # Fix what ruff can, format, then report only what is still wrong.
+    subprocess.run([str(ruff), "check", "--fix", "--quiet", str(path)], check=False, cwd=project)
+    subprocess.run([str(ruff), "format", "--quiet", str(path)], check=False, cwd=project)
     check = subprocess.run(
-        [str(ruff), "check", "--fix", "--quiet", str(path)],
+        [str(ruff), "check", "--quiet", str(path)],
         capture_output=True,
         text=True,
         check=False,
         cwd=project,
     )
-    subprocess.run([str(ruff), "format", "--quiet", str(path)], check=False, cwd=project)
     if check.returncode != 0:
         print(f"ruff encontró errores en {path.name}:\n{check.stdout}", file=sys.stderr)
         sys.exit(2)
