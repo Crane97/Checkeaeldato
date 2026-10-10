@@ -239,6 +239,8 @@ class Report(BaseModel):
     speakers: dict[str, str] = Field(default_factory=dict)
     claims: list[Claim]
     cost: RunCost
+    # Problems that make the report less complete (failed blocks, rejected quotes…).
+    warnings: list[str] = Field(default_factory=list)
 
     def speaker_name(self, label: str) -> str:
         return self.speakers.get(label, label)
@@ -249,6 +251,14 @@ class Report(BaseModel):
         counts = dict.fromkeys(VERDICT_LABELS, 0)
         for c in self.claims:
             counts[c.verdict] += 1
+        return counts
+
+    @computed_field
+    @property
+    def by_basis(self) -> dict[str, int]:
+        counts = {"factcheck": 0, "oficial": 0, "web": 0, "sin_fuente": 0}
+        for c in self.claims:
+            counts[c.basis or "sin_fuente"] += 1
         return counts
 
     @computed_field
