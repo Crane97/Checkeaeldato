@@ -91,6 +91,7 @@ def test_tavily_sends_bearer_key_and_parses_results():
     assert body["include_domains"] == ["ine.es"]
     assert body["max_results"] == 4
     assert body["search_depth"] == "basic"
+    assert body["include_raw_content"] == "text"
     assert "country" not in body
     assert (r.url, r.score) == ("https://www.ine.es/a", 0.8)
 
@@ -137,7 +138,11 @@ def test_official_source_restricts_domains_filters_score_and_labels_items():
     found = OfficialSearchSource(tavily(), DOMAINS).search(claim(), DATE)
 
     bodies = [json.loads(c.request.content) for c in route.calls]
-    assert [b["query"] for b in bodies] == ["tasa de paro EPA 2026", "parados España 2026"]
+    assert [b["query"] for b in bodies] == [
+        "tasa de paro EPA 2026",
+        "parados España 2026",
+        "tercera",
+    ]
     assert all(set(b["include_domains"]) == set(DOMAINS) for b in bodies)
     [item] = found.items  # same URL from both queries, low score dropped
     assert item.source.kind == "oficial"
@@ -159,6 +164,7 @@ def test_official_source_records_failed_query_and_keeps_others():
         side_effect=[
             httpx.Response(400),
             httpx.Response(200, json={"results": [result("https://www.ine.es/a")]}),
+            httpx.Response(200, json={"results": []}),
         ]
     )
     found = OfficialSearchSource(tavily(), DOMAINS).search(claim(), DATE)
@@ -259,3 +265,22 @@ def test_tavily_result_without_score_is_kept_and_bad_entries_are_skipped():
     found = OfficialSearchSource(tavily(), DOMAINS).search(claim([]), DATE)
     assert {i.source.url for i in found.items} == {"https://www.ine.es/a", "https://www.ine.es/b"}
     assert any("malformado" in e for e in found.errors)
+
+
+@respx.mock
+def test_official_excerpt_includes_relevant_passages_from_the_full_page():
+    raw = "\n".join(["Menú de navegación del sitio."] * 100) + (
+        "\nLa tasa de paro EPA se situó en el 10,5 % en el tercer trimestre de 2026.\n"
+    )
+    respx.post(API_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "results": [result("https://www.ine.es/a", content="Portada EPA", raw_content=raw)]
+            },
+        )
+    )
+    [item] = OfficialSearchSource(tavily(), DOMAINS).search(claim(), DATE).items
+    assert item.excerpt.startswith("Portada EPA")
+    assert "10,5 %" in item.excerpt
+    assert "Menú de navegación" not in item.excerpt

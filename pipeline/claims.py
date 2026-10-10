@@ -27,7 +27,7 @@ PROMPT = "deteccion_afirmaciones.md"
 # ~1,500 tokens of new text per call, plus context: a 2 h debate is ~20 calls.
 CORE_CHARS = 6000
 CONTEXT_CHARS = 1500
-MAX_SEARCH_QUERIES = 3
+MAX_SEARCH_QUERIES = 4
 
 T = TypeVar("T", bound=BaseModel)
 

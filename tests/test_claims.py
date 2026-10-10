@@ -233,6 +233,6 @@ def test_config_error_stops_immediately():
 
 def test_search_queries_are_capped():
     transcript = text_transcript("El paro bajó un 20 %.")
-    many = extracted(0, "El paro bajó un 20 %", search_queries=["a", "b", "c", "d", " "])
+    many = extracted(0, "El paro bajó un 20 %", search_queries=["a", "b", "c", "d", "e", " "])
     [claim] = run(transcript, FakeLLM(DetectionResult(claims=[many])), kind="texto").claims
-    assert claim.search_queries == ["a", "b", "c"]
+    assert claim.search_queries == ["a", "b", "c", "d"]

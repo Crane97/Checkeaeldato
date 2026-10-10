@@ -14,7 +14,6 @@ from pipeline.http import TIMEOUT_SECONDS, request_with_retries
 from pipeline.models import EvidenceItem, Source, SourceKind
 
 API_URL = "https://api.tavily.com/search"
-EXCERPT_CHARS = 1200
 
 
 @dataclass(frozen=True)
@@ -24,6 +23,7 @@ class TavilyResult:
     content: str
     score: float | None  # None when Tavily sent no usable score
     published_date: str | None = None
+    raw_content: str | None = None  # full page text, when requested
 
 
 @dataclass(frozen=True)
@@ -59,14 +59,18 @@ class TavilyClient:
         include_domains: list[str] | None = None,
         country: str | None = None,
         max_results: int = 5,
+        include_raw_content: bool = True,
     ) -> TavilySearch:
-        """One basic search (1 credit)."""
+        """One basic search (1 credit). With `include_raw_content` each result carries the
+        full page text, so the relevant passages can be selected instead of a short snippet."""
         body: dict[str, Any] = {
             "query": query,
             "search_depth": "basic",
             "max_results": max_results,
             "include_published_date": True,
         }
+        if include_raw_content:
+            body["include_raw_content"] = "text"
         if include_domains:
             body["include_domains"] = include_domains
         if country:
@@ -107,6 +111,7 @@ class TavilyClient:
                 content=str(r.get("content") or ""),
                 score=_score(r.get("score")),
                 published_date=r.get("published_date"),
+                raw_content=r.get("raw_content") if isinstance(r.get("raw_content"), str) else None,
             )
             for r in raw
             if isinstance(r, dict)
@@ -128,7 +133,7 @@ def parse_published_date(value: str | None) -> dt.date | None:
 
 
 def to_item(
-    result: TavilyResult, organization: str | None, kind: SourceKind
+    result: TavilyResult, organization: str | None, kind: SourceKind, excerpt: str
 ) -> EvidenceItem | None:
     """Evidence item for a search result; None if the URL is unusable."""
     host = urlparse(result.url).hostname or ""
@@ -142,7 +147,7 @@ def to_item(
                 date=parse_published_date(result.published_date),
                 kind=kind,
             ),
-            excerpt=result.content[:EXCERPT_CHARS],
+            excerpt=excerpt,
         )
     except ValidationError:
         return None

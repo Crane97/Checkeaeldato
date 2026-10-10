@@ -7,12 +7,13 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
+from pipeline.evidence.passages import claim_terms, relevant_excerpt
 from pipeline.evidence.tavily import TavilyClient, TavilySearch, to_item
 from pipeline.models import DetectedClaim
 
 # Tavily relevance below this is treated as "not found". To be tuned with the eval.
 MIN_SCORE = 0.4
-MAX_QUERIES = 2
+MAX_QUERIES = 3
 MAX_RESULTS = 5
 
 
@@ -33,7 +34,11 @@ def official_organization(url: str, domains: dict[str, str]) -> str | None:
 
 
 def label_results(
-    search: TavilySearch, domains: dict[str, str], min_score: float, found: SourceResult
+    search: TavilySearch,
+    domains: dict[str, str],
+    min_score: float,
+    found: SourceResult,
+    terms: set[str],
 ) -> None:
     """Add relevant results to `found`, as `oficial` if their domain is official.
 
@@ -46,7 +51,8 @@ def label_results(
         if (r.score is not None and r.score < min_score) or r.url in seen:
             continue
         organization = official_organization(r.url, domains)
-        item = to_item(r, organization, "oficial" if organization else "web")
+        excerpt = relevant_excerpt(r.content, r.raw_content, terms)
+        item = to_item(r, organization, "oficial" if organization else "web", excerpt)
         if item is not None:
             seen.add(item.source.url)
             found.items.append(item)
@@ -86,5 +92,5 @@ class OfficialSearchSource:
             except EvidenceError as exc:
                 found.errors.append(f"consulta «{query}»: {exc}")
                 continue
-            label_results(results, self._domains, self._min_score, found)
+            label_results(results, self._domains, self._min_score, found, claim_terms(claim))
         return found

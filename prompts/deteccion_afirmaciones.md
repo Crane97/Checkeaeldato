@@ -70,9 +70,14 @@ resultado normal.
   añadas datos que no estén en el texto o en el contexto**: si el ámbito o el periodo no se
   pueden deducir, déjalos sin precisar. No incluyas el nombre del orador ni valoraciones.
 - `claim_type`: uno de los cinco tipos anteriores.
-- `search_queries`: de 1 a 3 búsquedas cortas (de 3 a 8 palabras) en español para encontrar
-  el dato en fuentes oficiales o en verificadores: indicador, ámbito y periodo. Deben
-  tratar sobre el dato, no sobre la persona que habla.
+- `search_queries`: de 2 a 4 búsquedas cortas (de 3 a 8 palabras) en español para
+  encontrar en fuentes oficiales los datos que permitan **confirmar o refutar** la
+  afirmación:
+  1. el dato directo (indicador, ámbito y periodo);
+  2. los datos necesarios para contrastarlo o calcularlo: totales, población de referencia,
+     desgloses por edad, territorio o periodo, o la serie con la que se compara.
+  Puedes mencionar el organismo que lo publica si es evidente (INE, Eurostat, BOE, Banco
+  de España…). Deben tratar sobre los datos, no sobre la persona que habla.
 
 Si una frase contiene varios datos que se comprueban por separado, crea una afirmación para
 cada uno; pueden compartir parte de la cita.
@@ -98,7 +103,8 @@ Una afirmación:
 - `quote`: "Desde que gobernamos, el paro ha bajado un 20 %"
 - `text_normalized`: "El paro en España ha bajado un 20 % desde que el partido de quien habla llegó al Gobierno."
 - `claim_type`: `estadistica`
-- `search_queries`: ["evolución tasa de paro España EPA", "número de parados España 2026"]
+- `search_queries`: ["evolución tasa de paro España EPA", "número de parados España 2026",
+  "tasa de paro EPA serie trimestral INE"]
 
 "Eso es gracias a nuestro esfuerzo" es una opinión y "vamos a crear un millón de empleos" es
 una promesa: no se extraen.

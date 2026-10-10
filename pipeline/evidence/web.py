@@ -10,6 +10,7 @@ from pipeline.evidence.oficiales import (
     load_official_domains,
     queries_for,
 )
+from pipeline.evidence.passages import claim_terms
 from pipeline.evidence.tavily import TavilyClient
 from pipeline.models import DetectedClaim
 
@@ -44,5 +45,5 @@ class WebSearchSource:
         except EvidenceError as exc:
             found.errors.append(f"consulta «{query}»: {exc}")
             return found
-        label_results(results, self._domains, self._min_score, found)
+        label_results(results, self._domains, self._min_score, found, claim_terms(claim))
         return found
