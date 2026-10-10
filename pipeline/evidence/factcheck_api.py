@@ -6,9 +6,9 @@ from typing import Any
 
 import httpx
 from pydantic import ValidationError
-from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
+from pipeline.evidence.http import TIMEOUT_SECONDS, request_with_retries
 from pipeline.models import DetectedClaim, EvidenceItem, Source
 
 logger = logging.getLogger(__name__)
@@ -16,13 +16,6 @@ logger = logging.getLogger(__name__)
 API_URL = "https://factchecktools.googleapis.com/v1alpha1/claims:search"
 LANGUAGE = "es"
 PAGE_SIZE = 5
-TIMEOUT_SECONDS = 15
-
-
-class _RetryableStatus(Exception):
-    def __init__(self, status: int) -> None:
-        super().__init__(f"HTTP {status}")
-        self.status = status
 
 
 def _parse_date(value: str | None) -> dt.date | None:
@@ -79,22 +72,14 @@ class FactCheckSource:
 
     def _get(self, query: str) -> dict[str, Any]:
         params = {"query": query, "languageCode": LANGUAGE, "pageSize": PAGE_SIZE}
-        try:
-            for attempt in Retrying(
-                stop=stop_after_attempt(self._max_attempts),
-                wait=wait_exponential(multiplier=self._backoff, max=8),
-                retry=retry_if_exception_type((httpx.TransportError, _RetryableStatus)),
-                reraise=True,
-            ):
-                with attempt:
-                    response = self._client.get(API_URL, params={**params, "key": self._api_key})
-                    if response.status_code == 429 or response.status_code >= 500:
-                        raise _RetryableStatus(response.status_code)
-        except _RetryableStatus as exc:
-            raise EvidenceError(f"{exc} tras {self._max_attempts} intentos") from exc
-        except httpx.TransportError as exc:
-            raise EvidenceError(f"error de red: {type(exc).__name__}") from exc
-
+        response = request_with_retries(
+            self._client,
+            "GET",
+            API_URL,
+            max_attempts=self._max_attempts,
+            backoff=self._backoff,
+            params={**params, "key": self._api_key},
+        )
         if response.status_code in (401, 403):
             raise EvidenceConfigError(
                 f"Google Fact Check respondió {response.status_code}: revisa "
