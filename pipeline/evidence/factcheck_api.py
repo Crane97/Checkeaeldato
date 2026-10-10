@@ -29,6 +29,7 @@ class FactCheckSource:
     """Published fact-checks matching the claim's literal quote or its search queries."""
 
     name = "factcheck"
+    skip_if_found: frozenset[str] = frozenset()
 
     def __init__(
         self,

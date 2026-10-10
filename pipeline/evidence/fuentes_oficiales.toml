@@ -1,0 +1,40 @@
+# Dominios cuyas páginas se consideran fuente OFICIAL (tipo `oficial` en el informe).
+# Editable: añade o quita dominios sin tocar el código. Cada dominio incluye sus
+# subdominios (p. ej. "europa.eu" cubre ec.europa.eu/eurostat y ecb.europa.eu).
+# Criterio: organismos públicos, estadísticos, reguladores e instituciones
+# internacionales; nunca partidos, medios ni fundaciones.
+
+[dominios]
+# Estadística y datos
+"ine.es" = "Instituto Nacional de Estadística (INE)"
+"datos.gob.es" = "Portal de datos abiertos del Gobierno de España"
+"idescat.cat" = "Instituto de Estadística de Cataluña (Idescat)"
+"eustat.eus" = "Instituto Vasco de Estadística (Eustat)"
+"cis.es" = "Centro de Investigaciones Sociológicas (CIS)"
+
+# Economía, empleo y finanzas públicas
+"bde.es" = "Banco de España"
+"airef.es" = "Autoridad Independiente de Responsabilidad Fiscal (AIReF)"
+"sepe.es" = "Servicio Público de Empleo Estatal (SEPE)"
+"seg-social.es" = "Seguridad Social"
+"tcu.es" = "Tribunal de Cuentas"
+
+# Gobierno y ministerios (todos bajo gob.es)
+"gob.es" = "Administración General del Estado"
+"lamoncloa.gob.es" = "La Moncloa"
+"hacienda.gob.es" = "Ministerio de Hacienda"
+"inclusion.gob.es" = "Ministerio de Inclusión, Seguridad Social y Migraciones"
+"sanidad.gob.es" = "Ministerio de Sanidad"
+"interior.gob.es" = "Ministerio del Interior"
+
+# Legislación, Parlamento y justicia
+"boe.es" = "Boletín Oficial del Estado (BOE)"
+"congreso.es" = "Congreso de los Diputados"
+"senado.es" = "Senado"
+"poderjudicial.es" = "Consejo General del Poder Judicial"
+
+# Instituciones internacionales
+"europa.eu" = "Unión Europea (Eurostat, Comisión, BCE…)"
+"oecd.org" = "OCDE"
+"imf.org" = "Fondo Monetario Internacional"
+"worldbank.org" = "Banco Mundial"

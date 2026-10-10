@@ -28,6 +28,8 @@ class SourceResult:
 
 class EvidenceSource(Protocol):
     name: str
+    # Skip this source for a claim if earlier sources already found items of these kinds.
+    skip_if_found: frozenset[str]
 
     def search(self, claim: DetectedClaim, speech_date: dt.date) -> SourceResult: ...
 
@@ -43,6 +45,7 @@ def collect_evidence(
     so that "no evidence" never hides a broken source.
     """
     results: list[ClaimEvidence] = []
+    runs = {source.name: 0 for source in sources}
     failures = {source.name: 0 for source in sources}
 
     for claim in claims:
@@ -50,6 +53,11 @@ def collect_evidence(
         errors: list[str] = []
         seen: set[str] = set()
         for source in sources:
+            # Fallback sources (e.g. general web) only run if earlier ones found nothing.
+            skip_if_found = getattr(source, "skip_if_found", frozenset())
+            if any(i.source.kind in skip_if_found for i in items):
+                continue
+            runs[source.name] += 1
             try:
                 found = source.search(claim, speech_date)
             except EvidenceConfigError:
@@ -74,7 +82,7 @@ def collect_evidence(
         results.append(ClaimEvidence(claim_id=claim.id, items=items, errors=errors))
 
     for name, count in failures.items():
-        if claims and count == len(claims):
+        if runs[name] and count == runs[name]:
             first = next(e for r in results for e in r.errors if e.startswith(f"{name}: "))
             raise EvidenceError(f"La fuente {name} falló en todas las afirmaciones: {first}")
     return results
