@@ -146,6 +146,14 @@ class LLMClient:
             raise LLMError(f"Error de la API de Anthropic: {exc}") from exc
         except anthropic.APIError as exc:
             raise LLMError(f"Error de la API de Anthropic: {exc}") from exc
+        except TypeError as exc:
+            # The SDK raises TypeError (not an APIError) when it finds no credentials.
+            if "authentication method" not in str(exc):
+                raise
+            raise LLMConfigError(
+                "No hay credenciales de Anthropic: define ANTHROPIC_API_KEY en .env, o usa "
+                "LLM_BACKEND=claude-code para probar en local con tu suscripción de Claude"
+            ) from exc
 
     def _record_cost(self, step: str, model: str, response: Any) -> None:
         usage = response.usage

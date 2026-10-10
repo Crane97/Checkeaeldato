@@ -232,3 +232,16 @@ def test_low_credit_balance_is_a_config_error(prompts_dir):
     )
     with pytest.raises(LLMConfigError, match="saldo"):
         call(LLMClient(RaisingAnthropic(exc), prompts_dir))
+
+
+def test_missing_credentials_are_a_config_error(prompts_dir):
+    from pipeline.llm import LLMConfigError
+
+    exc = TypeError('"Could not resolve authentication method. Expected one of api_key, ..."')
+    with pytest.raises(LLMConfigError, match="LLM_BACKEND=claude-code"):
+        call(LLMClient(RaisingAnthropic(exc), prompts_dir))
+
+
+def test_other_type_errors_are_not_hidden(prompts_dir):
+    with pytest.raises(TypeError, match="otra cosa"):
+        call(LLMClient(RaisingAnthropic(TypeError("otra cosa")), prompts_dir))
