@@ -47,3 +47,50 @@ def test_empty_text_is_rejected(tmp_path: Path):
 def test_unsupported_extension_is_rejected(tmp_path: Path):
     with pytest.raises(InputError, match=".txt o .md"):
         load_text(write(tmp_path, "a.pdf", b"%PDF"))
+
+
+DEBATE = """Debate electoral de prueba.
+
+Moderadora: Buenas noches. Empezamos con economía.
+Candidata A: Gracias. El paro bajó un 15 % este año.
+Y la deuda está por debajo del 100 %.
+
+Candidato B: Eso no es así. La deuda supera el 101 % del PIB.
+**Candidata A:** Los datos del Banco de España dicen otra cosa.
+- Moderadora: Pasamos a vivienda.
+"""
+
+
+def test_speaker_labels_split_a_debate_into_turns(tmp_path: Path):
+    transcript = load_text(write(tmp_path, "debate.txt", DEBATE.encode()))
+    turns = [(s.speaker, s.text) for s in transcript.segments]
+    assert turns == [
+        ("autor", "Debate electoral de prueba."),
+        ("Moderadora", "Buenas noches. Empezamos con economía."),
+        (
+            "Candidata A",
+            "Gracias. El paro bajó un 15 % este año.\nY la deuda está por debajo del 100 %.",
+        ),
+        ("Candidato B", "Eso no es así. La deuda supera el 101 % del PIB."),
+        ("Candidata A", "Los datos del Banco de España dicen otra cosa."),
+        ("Moderadora", "Pasamos a vivienda."),
+    ]
+
+
+def test_same_speaker_written_differently_in_case_is_unified(tmp_path: Path):
+    text = "ANA PÉREZ: Hola.\nLuis: Adiós.\nAna Pérez: Otra vez."
+    speakers = [s.speaker for s in load_text(write(tmp_path, "a.txt", text.encode())).segments]
+    assert speakers == ["ANA PÉREZ", "Luis", "ANA PÉREZ"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Fuente: INE.\nNota: datos provisionales.\nEl paro bajó.",  # labels that are not people
+        "Conclusión: el paro bajó un 15 %.",  # a single label is not a dialogue
+        "El ministro dijo lo siguiente: que el paro bajó. Y añadió: que la deuda subió.",
+    ],
+)
+def test_prose_and_document_labels_are_not_speakers(tmp_path: Path, text):
+    speakers = {s.speaker for s in load_text(write(tmp_path, "a.txt", text.encode())).segments}
+    assert speakers == {"autor"}
