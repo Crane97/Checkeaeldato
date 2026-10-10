@@ -75,6 +75,15 @@
   .sources a { color: var(--accent); word-break: break-word; }
   .note { font-size: .88rem; color: var(--warn); margin: 8px 0 0; }
   .hidden { display: none; }
+  .table-wrap { overflow-x: auto; margin-top: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; }
+  th { color: var(--muted); font-weight: 600; font-size: .82rem; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover, tbody tr.active { background: var(--bg); }
+  tbody tr.active td:first-child { font-weight: 700; }
+  .filters { margin: 0 0 12px; }
 </style>
 </head>
 <body>
@@ -122,7 +131,12 @@
         verificadores profesionales (Maldita, Newtral, EFE Verifica).</p>
       <p class="meta" id="coste"></p>
       <ul class="warnings" id="avisos"></ul>
+      <div class="table-wrap hidden" id="oradores-wrap">
+        <h2>Por orador</h2>
+        <table id="oradores"></table>
+      </div>
     </div>
+    <p class="meta filters" id="filtros"></p>
     <div id="afirmaciones"></div>
   </section>
 </main>
@@ -146,6 +160,7 @@ const STEP_ICONS = { pending: "○", running: "◐", done: "✓", failed: "✗" 
 
 const $ = (id) => document.getElementById(id);
 let filter = null;
+let speakerFilter = null;
 let lastReport = null;
 
 function el(tag, attrs = {}, ...children) {
@@ -237,12 +252,38 @@ function renderReport(report) {
     (plan ? " (equivalente orientativo, cubierto por tu plan de Claude)" : "");
   $("avisos").replaceChildren(...report.warnings.map((w) => el("li", {}, w)));
 
-  const claims = report.claims.filter((c) => !filter || c.category === filter);
+  renderSpeakers(report);
+  const name = (c) => report.speakers[c.speaker] || c.speaker;
+  const claims = report.claims.filter((c) =>
+    (!filter || c.category === filter) && (!speakerFilter || name(c) === speakerFilter));
+  const active = [filter && CATEGORIES[filter], speakerFilter].filter(Boolean);
+  $("filtros").textContent = active.length
+    ? `Mostrando: ${active.join(" · ")} (${claims.length}). Pulsa de nuevo para quitar el filtro.` : "";
   $("afirmaciones").replaceChildren(...claims.map((c) => renderClaim(c, report.speakers)));
   if (!total) {
     $("afirmaciones").append(el("p", { class: "meta" }, "No se han detectado afirmaciones verificables en el texto."));
   }
   show("resultado", true);
+}
+
+function renderSpeakers(report) {
+  const speakers = Object.entries(report.by_speaker);
+  show("oradores-wrap", speakers.length > 1);
+  if (speakers.length < 2) return;
+  const head = el("tr", {}, el("th", {}, "Orador"),
+    ...Object.values(CATEGORIES).map((n) => el("th", {}, n)), el("th", {}, "Total"));
+  const rows = speakers.map(([speaker, counts]) => {
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const row = el("tr", { class: speakerFilter === speaker ? "active" : "" }, el("td", {}, speaker),
+      ...Object.keys(CATEGORIES).map((k) => el("td", { style: counts[k] ? `color: var(--${k}); font-weight: 700` : "" }, counts[k])),
+      el("td", {}, total));
+    row.addEventListener("click", () => {
+      speakerFilter = speakerFilter === speaker ? null : speaker;
+      renderReport(lastReport);
+    });
+    return row;
+  });
+  $("oradores").replaceChildren(el("thead", {}, head), el("tbody", {}, ...rows));
 }
 
 async function poll(jobId) {
@@ -265,7 +306,7 @@ function fail(error) {
 
 $("form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  show("error", false); show("resultado", false); filter = null;
+  show("error", false); show("resultado", false); filter = null; speakerFilter = null;
   $("enviar").disabled = true;
   try {
     const response = await fetch("/api/analisis", {

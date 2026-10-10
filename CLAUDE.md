@@ -170,8 +170,16 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 
 - **Vídeo** (`.mp4`, etc.): audio → transcripción con oradores → afirmaciones con
   timestamp.
-- **Texto** (`.txt` / `.md`): sin audio ni transcripción; un segmento por párrafo y orador
-  `autor` (nombre real con `--autor`). Sirve para probar sin coste de transcripción.
+- **Texto** (`.txt` / `.md`): sin audio ni transcripción. Oradores:
+  - **Diálogo** ("Nombre: texto" en varias líneas): un segmento por intervención y orador.
+    Se descartan rótulos que no son personas (Fuente, Nota, Crónica…). Una línea en blanco
+    cierra el turno: el texto sin etiqueta que sigue es del `autor`.
+  - **Prosa**: todo es del `autor` (nombre real con `--autor`), salvo que el texto recoja lo
+    que **dijo una persona concreta** ("la ministra afirmó que…"): entonces la detección le
+    atribuye la afirmación. Citar una fuente de datos ("según el INE") no cambia el orador.
+  - Variantes del mismo nombre se unifican ("Sánchez" → "Pedro Sánchez") salvo si es ambiguo.
+  - Criterio general: **ante la duda, no atribuir** a nadie una afirmación que no consta que
+    hiciera.
 - `--fecha AAAA-MM-DD` es obligatoria (contexto temporal). `--oradores` es opcional; si
   solo cambian los nombres, se regenera el informe sin coste.
 - `job_id` = primeros 12 caracteres del SHA-256 del archivo de entrada.

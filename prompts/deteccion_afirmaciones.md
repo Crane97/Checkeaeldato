@@ -79,6 +79,15 @@ resultado normal.
   Puedes mencionar el organismo que lo publica si es evidente (INE, Eurostat, BOE, Banco
   de España…). Deben tratar sobre los datos, no sobre la persona que habla.
 
+- `speaker`: quién hace la afirmación según el texto, solo cuando el segmento es del
+  `autor` y el texto recoge lo que **dijo una persona concreta** ("La ministra de Hacienda
+  afirmó que…", "Según declaró Ana Pérez, …"). Escribe su nombre o cargo tal como aparece
+  en el texto ("Ana Pérez", "Ministra de Hacienda"). Déjalo vacío (`""`) si la afirmación es
+  del propio autor u orador del segmento, si el segmento ya tiene un orador distinto de
+  `autor`, o si "según…" solo cita una **fuente de datos** ("según el INE", "según un
+  informe del Banco de España"): eso es el autor apoyándose en un dato, no otra persona
+  hablando.
+
 Si una frase contiene varios datos que se comprueban por separado, crea una afirmación para
 cada uno; pueden compartir parte de la cita.
 
@@ -105,6 +114,7 @@ Una afirmación:
 - `claim_type`: `estadistica`
 - `search_queries`: ["evolución tasa de paro España EPA", "número de parados España 2026",
   "tasa de paro EPA serie trimestral INE"]
+- `speaker`: "" (el segmento ya tiene orador)
 
 "Eso es gracias a nuestro esfuerzo" es una opinión y "vamos a crear un millón de empleos" es
 una promesa: no se extraen.
@@ -119,13 +129,24 @@ Dos afirmaciones:
 
 1. `segment` 0; `quote` "La deuda pública cerró el año pasado en el 105 % del PIB";
    `text_normalized` "La deuda pública de España cerró 2025 en el 105 % del PIB.";
-   `claim_type` `estadistica`; `search_queries` ["deuda pública España porcentaje PIB 2025"].
+   `claim_type` `estadistica`; `search_queries` ["deuda pública España porcentaje PIB 2025"];
+   `speaker` "" ("según el Banco de España" cita una fuente de datos).
 2. `segment` 0; `quote` "la cifra más baja desde 2019"; `text_normalized` "La deuda
    pública de España en 2025, del 105 % del PIB, fue la más baja en porcentaje del PIB
    desde 2019."; `claim_type` `comparacion`; `search_queries` ["deuda pública España
    porcentaje PIB serie 2019 2025"].
 
-**Ejemplo 3** (vídeo)
+**Ejemplo 3** (texto)
+
+```
+[S2] autor: En la rueda de prensa, la consejera de Sanidad aseguró que la lista de espera quirúrgica se ha reducido a la mitad desde 2023.
+```
+
+Una afirmación: `segment` 2; `quote` "la lista de espera quirúrgica se ha reducido a la mitad
+desde 2023"; `text_normalized` "La lista de espera quirúrgica de la comunidad se ha reducido a
+la mitad desde 2023."; `claim_type` `estadistica`; `speaker` "Consejera de Sanidad".
+
+**Ejemplo 4** (vídeo)
 
 ```
 [S9] speaker_0 (40:15): ¿De verdad alguien se cree que la sanidad pública está mejor que nunca?

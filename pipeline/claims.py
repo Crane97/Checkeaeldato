@@ -20,6 +20,7 @@ from pipeline.models import (
     Segment,
     Transcript,
 )
+from pipeline.text_input import TEXT_SPEAKER
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ class ExtractedClaim(BaseModel):
     text_normalized: str
     claim_type: ClaimType
     search_queries: list[str]
+    # Who the text says made the claim, as named there; empty if it is the speaker's own.
+    speaker: str
 
 
 class DetectionResult(BaseModel):
@@ -167,6 +170,37 @@ def _locate_quote(segments: list[Segment], index: int, quote: str) -> tuple[int,
     return None
 
 
+def _name_tokens(name: str) -> frozenset[str]:
+    return frozenset(re.findall(r"\w+", name.casefold()))
+
+
+def merge_speaker_aliases(names: list[str]) -> dict[str, str]:
+    """Map short name variants to the one longer name that contains them.
+
+    "Sánchez" -> "Pedro Sánchez"; a variant contained in several names ("García" with
+    "Ana García" and "Luis García") is ambiguous and left alone.
+    """
+    distinct = sorted({n for n in names if n != TEXT_SPEAKER}, key=len)
+    aliases: dict[str, str] = {}
+    for name in distinct:
+        tokens = _name_tokens(name)
+        fuller = {other for other in distinct if other != name and tokens < _name_tokens(other)}
+        # Keep only the most complete candidates; one of them must remain.
+        maximal = {o for o in fuller if not any(_name_tokens(o) < _name_tokens(x) for x in fuller)}
+        if len(maximal) == 1:
+            aliases[name] = maximal.pop()
+    return aliases
+
+
+def _attributed_speaker(segment: Segment, item: ExtractedClaim, input_kind: InputKind) -> str:
+    """Author prose may report what a named person said; dialogue labels and video
+    diarization always win."""
+    named = item.speaker.strip()
+    if input_kind == "texto" and segment.speaker == TEXT_SPEAKER and named:
+        return named
+    return segment.speaker
+
+
 def detect_claims(
     transcript: Transcript,
     *,
@@ -218,7 +252,7 @@ def detect_claims(
             try:
                 claim = DetectedClaim(
                     id="pending",
-                    speaker=segments[first].speaker,
+                    speaker=_attributed_speaker(segments[first], item, input_kind),
                     text_original=item.quote.strip(),
                     text_normalized=item.text_normalized.strip(),
                     claim_type=item.claim_type,
@@ -237,8 +271,11 @@ def detect_claims(
         raise ClaimsError(f"Todos los bloques de afirmaciones fallaron: {failures[0].error}")
 
     ordered = sorted(found.items(), key=lambda kv: (kv[0][0], kv[1][0]))
+    aliases = merge_speaker_aliases([claim.speaker for _, (_, claim) in ordered])
     claims = [
-        claim.model_copy(update={"id": f"c{n:03d}"})
+        claim.model_copy(
+            update={"id": f"c{n:03d}", "speaker": aliases.get(claim.speaker, claim.speaker)}
+        )
         for n, (_, (_, claim)) in enumerate(ordered, start=1)
     ]
     return ClaimDetection(claims=claims, rejected=rejected, failed_blocks=failures)

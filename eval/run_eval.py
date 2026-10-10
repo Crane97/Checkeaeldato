@@ -113,6 +113,10 @@ def _print_case(result: CaseResult) -> None:
         f"opiniones detectadas por error {result.false_positives}, "
         f"extra {result.extra_detected}"
     )
+    if result.speakers_checked:
+        typer.echo(f"  oradores correctos {result.speakers_correct}/{result.speakers_checked}")
+    for wrong in result.wrong_speakers:
+        typer.echo(f"  orador incorrecto: {wrong}")
     for quote in result.missed:
         typer.echo(f"  no detectada: «{quote}»")
     for (expected, got), n in sorted(result.confusion.items()):

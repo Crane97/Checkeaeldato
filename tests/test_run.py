@@ -30,6 +30,7 @@ class FakeLLM:
                         text_normalized="El paro en España bajó un 20 % en 2026.",
                         claim_type="estadistica",
                         search_queries=["tasa de paro España 2026"],
+                        speaker="",
                     )
                 ]
             )

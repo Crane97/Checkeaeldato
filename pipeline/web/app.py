@@ -92,7 +92,8 @@ class JobManager:
                     data_dir=self.data_dir,
                     deps=self.deps_factory(),
                     author=(request.autor or "").strip() or None,
-                    from_step="claims" if request.recalcular else None,
+                    # From the start: re-reading text is free and picks up parser changes.
+                    from_step="transcript" if request.recalcular else None,
                 )
                 state.estado, state.progreso = "terminado", "Análisis terminado"
             except Exception as exc:  # shown to the user; details in the server log

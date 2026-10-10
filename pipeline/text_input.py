@@ -53,6 +53,33 @@ _NOT_SPEAKERS = {
     "asunto",
     "importante",
     "atención",
+    "crónica",
+    "cronica",
+    "análisis",
+    "analisis",
+    "opinión",
+    "opinion",
+    "editorial",
+    "transcripción",
+    "transcripcion",
+    "debate",
+    "entrevista",
+    "noticia",
+    "titular",
+    "subtítulo",
+    "subtitulo",
+    "entradilla",
+    "sumario",
+    "claves",
+    "cifras",
+    "gráfico",
+    "grafico",
+    "tabla",
+    "mapa",
+    "última hora",
+    "ultima hora",
+    "en directo",
+    "directo",
 }
 MAX_NAME_WORDS = 6
 
@@ -88,8 +115,8 @@ def _speaker_label(line: str) -> tuple[str, str] | None:
 def _labelled_segments(text: str) -> list[Segment] | None:
     """Segments per speaker turn if the text is a dialogue ("Nombre: …" lines), else None.
 
-    Lines without a label continue the current turn; a blank line starts a new segment
-    of the same speaker. Text before the first label belongs to the author. The same
+    Lines without a label continue the current turn; a blank line ends it, so
+    unlabelled paragraphs belong to the author, as does text before the first label. The same
     name written in another case ("ANA PÉREZ" / "Ana Pérez") is one speaker.
     """
     lines = text.split("\n")
@@ -115,7 +142,10 @@ def _labelled_segments(text: str) -> list[Segment] | None:
             speaker = canonical.setdefault(name.casefold(), name)
             buffer.append(rest)
         elif not line.strip():
+            # A blank line ends the turn: unlabelled text after it goes back to the author
+            # rather than risk putting words in the last speaker's mouth.
             flush()
+            speaker = TEXT_SPEAKER
         else:
             buffer.append(line.strip())
     flush()

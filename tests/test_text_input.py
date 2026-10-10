@@ -94,3 +94,14 @@ def test_same_speaker_written_differently_in_case_is_unified(tmp_path: Path):
 def test_prose_and_document_labels_are_not_speakers(tmp_path: Path, text):
     speakers = {s.speaker for s in load_text(write(tmp_path, "a.txt", text.encode())).segments}
     assert speakers == {"autor"}
+
+
+def test_unlabelled_paragraph_after_a_blank_line_is_not_put_in_anyones_mouth(tmp_path: Path):
+    text = (
+        "Moderadora: Pasamos al siguiente bloque.\n"
+        "Candidata A: Gracias.\n"
+        "\n"
+        "Crónica: el portavoz del Gobierno aseguró que la deuda superó el 100 %.\n"
+    )
+    segments = load_text(write(tmp_path, "a.txt", text.encode())).segments
+    assert segments[-1].speaker == "autor"

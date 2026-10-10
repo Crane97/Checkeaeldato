@@ -11,6 +11,7 @@ from pipeline.claims import (
     build_blocks,
     detect_claims,
     format_block,
+    merge_speaker_aliases,
 )
 from pipeline.llm import LLMConfigError, LLMError
 from pipeline.models import Segment, Transcript
@@ -42,6 +43,7 @@ def extracted(segment: int, quote: str, **overrides: Any) -> ExtractedClaim:
         "text_normalized": f"Normalizada: {quote}",
         "claim_type": "estadistica",
         "search_queries": ["paro EPA 2026"],
+        "speaker": "",
     }
     return ExtractedClaim(**data | overrides)
 
@@ -236,3 +238,64 @@ def test_search_queries_are_capped():
     many = extracted(0, "El paro bajó un 20 %", search_queries=["a", "b", "c", "d", "e", " "])
     [claim] = run(transcript, FakeLLM(DetectionResult(claims=[many])), kind="texto").claims
     assert claim.search_queries == ["a", "b", "c", "d"]
+
+
+# --- speakers ---------------------------------------------------------------
+
+
+def test_prose_claims_are_attributed_to_the_person_the_text_names():
+    transcript = text_transcript("La ministra de Hacienda afirmó que la deuda bajó al 99 %.")
+    item = extracted(0, "la deuda bajó al 99 %", speaker="Ministra de Hacienda")
+    [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item])), kind="texto").claims
+    assert claim.speaker == "Ministra de Hacienda"
+
+
+def test_author_claims_without_a_named_speaker_stay_with_the_author():
+    transcript = text_transcript("Según el INE, la población supera los 49 millones.")
+    item = extracted(0, "la población supera los 49 millones", speaker="")
+    [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item])), kind="texto").claims
+    assert claim.speaker == "autor"
+
+
+def test_dialogue_labels_win_over_reported_speech():
+    transcript = Transcript(
+        provider="texto",
+        language="es",
+        segments=[Segment(speaker="Candidata A", text="Usted dijo que el paro bajó un 30 %.")],
+    )
+    item = extracted(0, "el paro bajó un 30 %", speaker="Candidato B")
+    [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item])), kind="texto").claims
+    assert claim.speaker == "Candidata A"
+
+
+def test_video_keeps_diarized_speakers():
+    transcript = video_transcript("El paro bajó un 15 %.")
+    item = extracted(0, "El paro bajó un 15 %", speaker="Ana")
+    [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item]))).claims
+    assert claim.speaker == "speaker_0"
+
+
+def test_name_variants_are_merged_into_the_full_name():
+    transcript = text_transcript("Sánchez dijo A con 10 %.", "Pedro Sánchez dijo B con 20 %.")
+    llm = FakeLLM(
+        DetectionResult(
+            claims=[
+                extracted(0, "A con 10 %", speaker="Sánchez"),
+                extracted(1, "B con 20 %", speaker="Pedro Sánchez"),
+            ]
+        )
+    )
+    claims = run(transcript, llm, kind="texto").claims
+    assert [c.speaker for c in claims] == ["Pedro Sánchez", "Pedro Sánchez"]
+
+
+def test_alias_merging_rules():
+    assert merge_speaker_aliases(["Sánchez", "Pedro Sánchez", "autor"]) == {
+        "Sánchez": "Pedro Sánchez"
+    }
+    # Ambiguous: "García" could be either person, so it is left alone.
+    assert merge_speaker_aliases(["García", "Ana García", "Luis García"]) == {}
+    assert merge_speaker_aliases(["Candidata A", "Candidata B"]) == {}
+    assert merge_speaker_aliases(["MINISTRA", "Ministra de Hacienda"]) == {
+        "MINISTRA": "Ministra de Hacienda"
+    }

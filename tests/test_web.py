@@ -112,3 +112,8 @@ def test_only_one_analysis_at_a_time(tmp_path, deps):
     app.state.jobs.busy_with = "otro"
     response = TestClient(app).post("/api/analisis", json={"texto": ARTICLE, "fecha": DATE})
     assert response.status_code == 409
+
+
+def test_page_has_per_speaker_table():
+    html = (STATIC_DIR / "index.html").read_text()
+    assert 'id="oradores"' in html and "by_speaker" in html

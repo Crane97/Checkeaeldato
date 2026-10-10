@@ -1,0 +1,34 @@
+{
+  "id": "real-003-varios-oradores",
+  "descripcion": "Debate en formato de transcripción y un párrafo en prosa con declaraciones atribuidas. Oradores ficticios; los datos son reales y comprobables en fuentes oficiales.",
+  "sintetico": false,
+  "fecha": "2026-10-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Moderadora: Buenas noches y bienvenidos al debate. Empezamos.\nCandidata A: Gracias. Recuerdo que la Constitución se aprobó en referéndum en diciembre de 1978.\nCandidato B: España tiene ya más de 60 millones de habitantes y eso exige más vivienda.\nCandidata A: El salario mínimo de 2025 quedó en 1.184 euros al mes en catorce pagas.\nModeradora: Pasamos al siguiente bloque.\n\nCrónica posterior al debate.\n\nEn la rueda de prensa, el portavoz del Gobierno aseguró que la deuda pública superó el 100 % del PIB al cierre de 2024."
+  },
+  "afirmaciones": [
+    {
+      "cita": "la Constitución se aprobó en referéndum en diciembre de 1978",
+      "veredicto_esperado": "verdadero",
+      "orador": "Candidata A"
+    },
+    {
+      "cita": "España tiene ya más de 60 millones de habitantes",
+      "veredicto_esperado": "falso",
+      "orador": "Candidato B",
+      "notas": "INE: 49,8 millones a 1 de julio de 2026."
+    },
+    {
+      "cita": "El salario mínimo de 2025 quedó en 1.184 euros al mes en catorce pagas",
+      "veredicto_esperado": "verdadero",
+      "orador": "Candidata A"
+    },
+    {
+      "cita": "la deuda pública superó el 100 % del PIB al cierre de 2024",
+      "veredicto_esperado": "verdadero",
+      "orador": "Portavoz del Gobierno"
+    }
+  ],
+  "no_afirmaciones": ["Buenas noches y bienvenidos al debate", "Pasamos al siguiente bloque"]
+}

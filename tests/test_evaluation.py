@@ -121,3 +121,23 @@ def test_invalid_gold_case_reports_file(tmp_path: Path):
     (tmp_path / "malo.json").write_text('{"id": "x"}')
     with pytest.raises(ValueError, match="malo.json"):
         load_gold_cases(tmp_path)
+
+
+def test_speaker_accuracy_is_measured_when_gold_names_the_speaker():
+    case = gold(
+        GoldClaim(
+            cita="dato uno con cifra", veredicto_esperado="no_verificable", orador="Candidata A"
+        ),
+        GoldClaim(
+            cita="dato dos con cifra",
+            veredicto_esperado="no_verificable",
+            orador="Portavoz del Gobierno",
+        ),
+        GoldClaim(cita="dato tres con cifra", veredicto_esperado="no_verificable"),
+    )
+    c1 = claim("c1", "dato uno con cifra").model_copy(update={"speaker": "Candidata A"})
+    c2 = claim("c2", "dato dos con cifra").model_copy(update={"speaker": "autor"})
+    c3 = claim("c3", "dato tres con cifra")
+    result = score_case(case, report(c1, c2, c3))
+    assert (result.speakers_checked, result.speakers_correct) == (2, 1)
+    assert result.wrong_speakers == ["dato dos con cifra: Portavoz del Gobierno -> autor"]

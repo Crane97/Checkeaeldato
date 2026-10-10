@@ -40,6 +40,7 @@ class GoldClaim(BaseModel):
     inicio: float | None = None  # seconds, video only
     fin: float | None = None
     veredicto_esperado: VerdictLabel
+    orador: str | None = None  # expected speaker (name as written), if checked
     desmentido: str | None = None  # URL of the published fact-check it comes from
     notas: str | None = None
 
@@ -115,6 +116,14 @@ class CaseResult:
     extra_detected: int  # detected claims not in the gold set (gold may be incomplete)
     confusion: dict[tuple[str, str], int] = field(default_factory=dict)  # (expected, got)
     missed: list[str] = field(default_factory=list)
+    speakers_checked: int = 0
+    speakers_correct: int = 0
+    wrong_speakers: list[str] = field(default_factory=list)  # "quote: expected -> got"
+
+
+def _same_speaker(expected: str, got: str) -> bool:
+    a, b = (frozenset(re.findall(r"\w+", x.casefold())) for x in (expected, got))
+    return bool(a) and (a <= b or b <= a)
 
 
 def score_case(case: GoldCase, report: Report) -> CaseResult:
@@ -123,6 +132,19 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
     confusion: Counter[tuple[str, str]] = Counter()
     for gi, did in matches.items():
         confusion[(case.afirmaciones[gi].veredicto_esperado, by_id[did].verdict)] += 1
+
+    checked = correct = 0
+    wrong: list[str] = []
+    for gi, did in matches.items():
+        expected = case.afirmaciones[gi].orador
+        if expected is None:
+            continue
+        got = report.speaker_name(by_id[did].speaker)
+        checked += 1
+        if _same_speaker(expected, got):
+            correct += 1
+        else:
+            wrong.append(f"{case.afirmaciones[gi].cita}: {expected} -> {got}")
 
     unmatched = [c for c in report.claims if c.id not in set(matches.values())]
     false_positives = sum(
@@ -140,6 +162,9 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
         extra_detected=len(unmatched) - false_positives,
         confusion=dict(confusion),
         missed=[g.cita for gi, g in enumerate(case.afirmaciones) if gi not in matches],
+        speakers_checked=checked,
+        speakers_correct=correct,
+        wrong_speakers=wrong,
     )
 
 
