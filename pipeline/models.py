@@ -217,3 +217,32 @@ class Report(BaseModel):
             )
             counts[c.verdict] += 1
         return result
+
+
+# --- Jobs -------------------------------------------------------------------
+
+StepName = Literal["audio", "transcript", "claims", "evidence", "verdicts", "report"]
+STEPS: tuple[StepName, ...] = ("audio", "transcript", "claims", "evidence", "verdicts", "report")
+
+
+class StepRecord(BaseModel):
+    status: Literal["done", "failed"]
+    finished_at: dt.datetime
+    # Prompt file name -> content hash used by this run of the step.
+    prompt_hashes: dict[str, str] = Field(default_factory=dict)
+    cost: list[CostEntry] = Field(default_factory=list)
+    error: str | None = None
+
+
+class JobManifest(BaseModel):
+    job_id: str
+    video_path: str
+    video_sha256: str
+    speech_date: dt.date
+    speakers: dict[str, str] = Field(default_factory=dict)
+    created_at: dt.datetime
+    steps: dict[StepName, StepRecord] = Field(default_factory=dict)
+
+    def run_cost(self) -> RunCost:
+        """Cost of the step runs whose outputs make up the current report."""
+        return RunCost(entries=[e for s in STEPS if s in self.steps for e in self.steps[s].cost])
