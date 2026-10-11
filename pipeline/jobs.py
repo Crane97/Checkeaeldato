@@ -147,10 +147,16 @@ class Step:
     name: StepName
     run: Callable[[JobStore], StepOutcome]
     prompts: tuple[str, ...] = ()
+    # Bump when the step's code changes its output (e.g. how text is split into turns), so
+    # cached results are recomputed like after a prompt change.
+    version: str = ""
 
 
 def _current_hashes(step: Step, prompts_dir: Path) -> dict[str, str]:
-    return {name: prompt_hash(prompts_dir, name) for name in step.prompts}
+    hashes = {name: prompt_hash(prompts_dir, name) for name in step.prompts}
+    if step.version:
+        hashes["version"] = step.version
+    return hashes
 
 
 def _ordered(steps: Sequence[Step]) -> list[Step]:
@@ -187,7 +193,7 @@ def plan_steps(
             and record.prompt_hashes != hashes[step.name]
         )
         if prompt_changed:
-            logger.info("El prompt del paso %s ha cambiado; se recalcula", step.name)
+            logger.info("El prompt o el código del paso %s ha cambiado; se recalcula", step.name)
         stale = record is None or record.status != "done" or prompt_changed
         if must_run or stale:
             to_run.append(step.name)

@@ -9,6 +9,8 @@ from pipeline.models import Segment, Transcript
 logger = logging.getLogger(__name__)
 
 TEXT_SPEAKER = "autor"
+# Bump when the way text is split into segments or turns changes: cached jobs redo it.
+VERSION = "2"
 SUPPORTED_SUFFIXES = (".txt", ".md")
 
 _PARAGRAPH_BREAK_RE = re.compile(r"\n\s*\n")

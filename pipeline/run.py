@@ -39,6 +39,7 @@ from pipeline.speaker_research import SpeakerSearch, research_speakers
 from pipeline.speakers import PROMPT as SPEAKERS_PROMPT
 from pipeline.speakers import identify_speakers
 from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
+from pipeline.text_input import VERSION as TRANSCRIPT_VERSION
 from pipeline.transcribe import Transcriber
 from pipeline.verdict import PROMPT as VERDICT_PROMPT
 from pipeline.verdict import FollowUpSearch, decide_verdicts
@@ -339,7 +340,7 @@ def build_steps(
         return StepOutcome()
 
     steps = [
-        Step("transcript", transcript_step),
+        Step("transcript", transcript_step, version=TRANSCRIPT_VERSION if kind == "texto" else ""),
         Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
         Step("speaker_research", speaker_research_step, (RESEARCH_PROMPT,)),
         Step("claims", claims_step, (CLAIMS_PROMPT,)),

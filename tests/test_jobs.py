@@ -225,3 +225,15 @@ def test_partial_step_is_kept_but_retried_on_the_next_run(store, prompts_dir):
     run_steps(store, steps(), prompts_dir)
     assert rec.calls == ["verdicts", "report"]
     assert store.manifest.steps["verdicts"].status == "done"
+
+
+def test_changed_code_version_reruns_from_its_step(store, prompts_dir):
+    rec = Recorder()
+    run_steps(store, rec.steps(), prompts_dir)
+    steps = [
+        Step(s.name, s.run, s.prompts, version="2") if s.name == "transcript" else s
+        for s in rec.steps()
+    ]
+    assert plan_steps(store.manifest, steps, prompts_dir)[0] == "transcript"
+    run_steps(store, steps, prompts_dir)
+    assert plan_steps(store.manifest, steps, prompts_dir) == []
