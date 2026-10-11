@@ -300,3 +300,23 @@ def test_resolved_periods_and_actor_reach_the_model():
         in content
     )
     assert "<periodos>05/05/1996–17/04/2004; 21/12/2011–02/06/2018</periodos>" in content
+
+
+def test_verdict_input_is_capped_reliable_sources_first():
+    from pipeline.verdict import MAX_EVIDENCE_ITEMS, VERDICT_EXCERPT_CHARS
+
+    webs = [item(f"E{i}", "web", f"https://web{i}.es/x") for i in range(1, 9)]
+    officials = [item(f"E{i}", "oficial", f"https://www.ine.es/{i}") for i in range(9, 13)]
+    long = officials[0].model_copy(update={"excerpt": "x" * 9000})
+    content = format_claim(claim(), evidence(*webs, long, *officials[1:]), DATE)
+
+    assert content.count("<evidencia ") == MAX_EVIDENCE_ITEMS
+    assert all(f'id="E{i}"' in content for i in range(9, 13))  # every official kept
+    assert 'id="E5"' not in content  # lower-priority web items dropped first
+    assert "x" * (VERDICT_EXCERPT_CHARS + 1) not in content
+
+
+def test_follow_up_items_are_always_sent():
+    officials = [item(f"E{i}", "oficial", f"https://www.ine.es/{i}") for i in range(1, 12)]
+    content = format_claim(claim(), evidence(*officials), DATE, final=True, prefer=["E11"])
+    assert 'id="E11"' in content

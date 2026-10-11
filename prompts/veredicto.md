@@ -86,6 +86,11 @@ realmente dice (eso es `falso`).
    es esencialmente la misma. Que traten un tema parecido no basta.
 5. **Prioridad.** Si las fuentes se contradicen, pesa más un organismo oficial o un
    verificador que revisó la misma afirmación que una web general.
+   **Fuentes de parte:** las proposiciones, enmiendas, preguntas, mociones o intervenciones
+   de grupos parlamentarios y de partidos, sus notas de prensa y sus argumentarios expresan
+   una postura, aunque estén publicadas en la web del Congreso, del Senado o de un
+   Gobierno. No las uses como prueba de hechos ni de cifras; usa en su lugar la norma, la
+   estadística o el dato oficial al que se refieran.
 6. **Contexto temporal.** Compara con los datos del periodo al que se refiere la afirmación
    o disponibles en su `<fecha>`. Ten en cuenta la fecha de cada fuente.
 7. **Afirmaciones generales sin cifra** ("ha subido los impuestos", "ha recortado la
@@ -93,6 +98,12 @@ realmente dice (eso es `falso`).
    contradigan dentro del ámbito y periodo de la afirmación. `verdadero` si las medidas la
    respaldan sin excepciones relevantes; `falso` si ocurrió lo contrario; `verdad_a_medias`
    si hay de ambas; `no_verificable` si la evidencia no habla de esas medidas.
+   **Alcance:** cuando la afirmación habla de un grupo amplio ("las familias", "los
+   trabajadores", "los pensionistas"), una medida solo cuenta a favor o en contra si afecta
+   a una parte sustancial de ese grupo. Una medida que solo afecta a una pequeña minoría
+   (por ejemplo, rentas muy altas o un sector concreto) no basta para respaldar ni para
+   desmentir una afirmación sobre el grupo en general; menciónala, pero pesa poco. Aplica la
+   regla igual en los dos sentidos (subidas y bajadas, recortes y aumentos).
 8. **Periodos resueltos.** Si hay `<periodos>`, solo cuentan los datos de dentro de esos
    periodos: "el paro superó el 26 % cuando gobernaban" es verdadero si en algún momento
    de esos periodos lo superó, y falso si nunca lo hizo dentro de ellos, aunque lo hiciera
@@ -148,15 +159,22 @@ de 25 de abril, crea el Sistema Nacional de Salud. El contenido es correcto, per
 la ley no: veredicto `confusion`, confianza 0.85: "La Ley General de Sanidad sí creó el
 Sistema Nacional de Salud, pero es de 1986 (Ley 14/1986, BOE), no de 1990."
 
-**5. Afirmación general con medidas en ambos sentidos → verdad_a_medias.** Afirmación:
-"El Gobierno regional ha subido los impuestos a las familias". E1 (oficial): el Gobierno
-regional subió el impuesto sobre el patrimonio. E2 (oficial): el mismo Gobierno bajó el
-tramo autonómico del impuesto sobre la renta para rentas medias y bajas. Veredicto
-`verdad_a_medias`, confianza 0.75: "El Gobierno regional subió el impuesto sobre el
-patrimonio (E1), pero bajó el tramo autonómico de la renta para rentas medias y bajas (E2):
-algunas familias pagan más y otras menos."
+**5. Afirmación general con medidas amplias en ambos sentidos → verdad_a_medias.**
+Afirmación: "El Gobierno regional ha subido los impuestos a las familias". E1 (oficial): el
+Gobierno regional subió el impuesto sobre los carburantes, que pagan casi todos los hogares.
+E2 (oficial): bajó el tramo autonómico del impuesto sobre la renta para rentas medias y
+bajas. Veredicto `verdad_a_medias`, confianza 0.75: "Subió el impuesto sobre los
+carburantes, que afecta a casi todos los hogares (E1), pero bajó el tramo autonómico de la
+renta para rentas medias y bajas (E2)."
 
-**6. Falta un dato → búsqueda adicional.** Afirmación: "Un tercio de los médicos del país
+**6. Subida para una minoría y rebajas amplias → falso.** Misma afirmación. E1 (oficial):
+se subió el impuesto sobre el patrimonio, que pagan menos del 1 % de los contribuyentes. E2
+(oficial): bajó el tramo autonómico de la renta para rentas medias y bajas. Veredicto
+`falso`, confianza 0.75: "La única subida afectó al impuesto sobre el patrimonio, que paga
+menos del 1 % de los contribuyentes (E1), mientras que la renta bajó para las rentas medias
+y bajas (E2): para la mayoría de las familias los impuestos bajaron."
+
+**7. Falta un dato → búsqueda adicional.** Afirmación: "Un tercio de los médicos del país
 tiene más de 60 años". La evidencia solo da el número total de médicos. Veredicto
 `no_verificable`, confianza 0, y `follow_up_queries`: ["médicos colegiados por edad España
 INE", "profesionales sanitarios colegiados mayores de 60 años"].

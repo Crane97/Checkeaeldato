@@ -19,6 +19,11 @@ PROMPT = "veredicto.md"
 WEB_ONLY_MAX_CONFIDENCE = 0.6
 # A second, targeted search round when the first evidence cannot settle the claim.
 MAX_FOLLOW_UP_QUERIES = 3
+# Token budget of the verdict call (the most expensive step): the evidence sent is capped,
+# reliable sources first; the full evidence stays in evidence.json.
+MAX_EVIDENCE_ITEMS = 8
+VERDICT_EXCERPT_CHARS = 2500
+_KIND_PRIORITY = {"factcheck": 0, "oficial": 1, "web": 2}
 
 # (claim, queries, first evidence number) -> (new items numbered from it, errors)
 FollowUpSearch = Callable[[DetectedClaim, list[str], int], tuple[list[EvidenceItem], list[str]]]
@@ -79,13 +84,28 @@ def _evidence_block(item: EvidenceItem) -> str:
         lines.append(f"afirmación revisada por el verificador: {item.claim_reviewed}")
     if item.rating:
         lines.append(f"valoración del verificador: {item.rating}")
-    lines.append(f"extracto: {item.excerpt}")
+    lines.append(f"extracto: {item.excerpt[:VERDICT_EXCERPT_CHARS]}")
     body = html.escape("\n".join(lines), quote=False)
     return f"<evidencia {attr_text}>\n{body}\n</evidencia>"
 
 
+def _selected_items(evidence: ClaimEvidence, prefer: list[str]) -> list[EvidenceItem]:
+    """Up to MAX_EVIDENCE_ITEMS: preferred ids (new follow-up evidence) first, then
+    fact-checks, official and web sources, keeping their order within each kind."""
+    ranked = sorted(
+        evidence.items,
+        key=lambda i: (i.id not in prefer, _KIND_PRIORITY.get(i.source.kind, 3)),
+    )
+    chosen = {i.id for i in ranked[:MAX_EVIDENCE_ITEMS]}
+    return [i for i in evidence.items if i.id in chosen]
+
+
 def format_claim(
-    claim: DetectedClaim, evidence: ClaimEvidence, speech_date: dt.date, final: bool = False
+    claim: DetectedClaim,
+    evidence: ClaimEvidence,
+    speech_date: dt.date,
+    final: bool = False,
+    prefer: list[str] | None = None,
 ) -> str:
     """User message for one claim. The speaker is left out on purpose (neutrality)."""
     parts = [
@@ -102,7 +122,7 @@ def format_claim(
             if claim.context_status == "resuelto"
             else []
         ),
-        *(_evidence_block(item) for item in evidence.items),
+        *(_evidence_block(item) for item in _selected_items(evidence, prefer or [])),
     ]
     if final:
         parts.append(
@@ -190,12 +210,12 @@ def _decide(
     model: str,
     follow_up: FollowUpSearch | None,
 ) -> Verdict:
-    def ask(ev: ClaimEvidence, final: bool) -> VerdictAnswer:
+    def ask(ev: ClaimEvidence, final: bool, prefer: list[str] | None = None) -> VerdictAnswer:
         return llm.structured(
             step="verdicts",
             model=model,
             prompt=PROMPT,
-            user_content=format_claim(claim, ev, speech_date, final=final),
+            user_content=format_claim(claim, ev, speech_date, final=final, prefer=prefer),
             output_type=VerdictAnswer,
         )
 
@@ -213,7 +233,8 @@ def _decide(
     )
     if not items:
         return _apply_rules(claim, extended, answer, queries)
-    return _apply_rules(claim, extended, ask(extended, final=True), queries)
+    final = ask(extended, final=True, prefer=[i.id for i in items])
+    return _apply_rules(claim, extended, final, queries)
 
 
 def decide_verdicts(
