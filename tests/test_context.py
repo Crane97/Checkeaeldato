@@ -247,3 +247,11 @@ def test_model_errors_leave_the_claim_unresolved_but_config_errors_stop():
     assert c.context_status == "no_resuelto"
     with pytest.raises(LLMConfigError):
         resolve(claim("cuando ustedes gobernaban"), FakeLLM(LLMConfigError("clave")))
+
+
+def test_actor_lists_only_the_presidents_of_those_periods():
+    llm = FakeLLM(answer(referent="orador", addressee=""))
+    c = resolve(claim("nosotros subimos el salario mínimo"), llm)  # PSOE, all periods
+    assert c.resolved_actor == (
+        "PSOE (gobiernos de Felipe González y José Luis Rodríguez Zapatero y Pedro Sánchez)"
+    )

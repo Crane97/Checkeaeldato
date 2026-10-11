@@ -171,7 +171,8 @@ def _presidents(gov: Governments, scope: list[DateRange]) -> list[str]:
     names = [
         t.president
         for t in gov.terms
-        if any(t.start <= r.end and (t.end is None or r.start < t.end) for r in scope)
+        # Strict on both ends: the handover day belongs to only one of the two presidents.
+        if any(t.start < r.end and (t.end is None or r.start < t.end) for r in scope)
     ]
     return list(dict.fromkeys(names))
 

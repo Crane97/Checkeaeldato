@@ -11,13 +11,15 @@ from typing import Literal, Self
 from pydantic import BaseModel, ValidationError, model_validator
 from rapidfuzz import fuzz
 
-from pipeline.models import Claim, Report, VerdictLabel
+from pipeline.models import Claim, DateRange, Report, VerdictLabel
 
 GOLD_DIR = Path(__file__).resolve().parent.parent / "eval" / "gold"
 # Minimum fuzzy similarity (0-100) between a gold quote and a detected quote.
 MATCH_THRESHOLD = 80
 # Seconds of slack when both quotes have video timestamps.
 TIME_TOLERANCE = 5.0
+# Days of slack when comparing resolved periods with the expected ones.
+PERIOD_TOLERANCE_DAYS = 31
 
 
 class GoldInput(BaseModel):
@@ -39,8 +41,13 @@ class GoldClaim(BaseModel):
     texto_normalizado: str | None = None  # used by the verdict-only mode
     inicio: float | None = None  # seconds, video only
     fin: float | None = None
-    veredicto_esperado: VerdictLabel
-    orador: str | None = None  # expected speaker (name as written), if checked
+    veredicto_esperado: VerdictLabel | None = None  # None: verdict not checked
+    orador: str | None = None
+    # Context resolution: expected party in the resolved actor, or "no_resuelto".
+    actor_esperado: str | None = None
+    periodos_esperados: list[DateRange] | None = (
+        None  # expected speaker (name as written), if checked
+    )
     desmentido: str | None = None  # URL of the published fact-check it comes from
     notas: str | None = None
 
@@ -119,6 +126,34 @@ class CaseResult:
     speakers_checked: int = 0
     speakers_correct: int = 0
     wrong_speakers: list[str] = field(default_factory=list)  # "quote: expected -> got"
+    verdicts_checked: int = 0
+    context_checked: int = 0
+    context_correct: int = 0
+    wrong_context: list[str] = field(default_factory=list)
+
+
+def _periods_match(expected: list[DateRange], got: list[DateRange]) -> bool:
+    if len(expected) != len(got):
+        return False
+    slack = dt.timedelta(days=PERIOD_TOLERANCE_DAYS)
+    return all(
+        abs(e.start - g.start) <= slack and abs(e.end - g.end) <= slack
+        for e, g in zip(
+            sorted(expected, key=lambda r: r.start), sorted(got, key=lambda r: r.start), strict=True
+        )
+    )
+
+
+def _context_ok(gold: GoldClaim, claim: Claim) -> bool:
+    if gold.actor_esperado == "no_resuelto":
+        return claim.context_status == "no_resuelto"
+    if claim.context_status != "resuelto" or not claim.resolved_actor:
+        return False
+    if gold.actor_esperado not in claim.resolved_actor:
+        return False
+    return gold.periodos_esperados is None or _periods_match(
+        gold.periodos_esperados, claim.time_scope
+    )
 
 
 def _same_speaker(expected: str, got: str) -> bool:
@@ -131,7 +166,25 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
     matches = match_claims(case.afirmaciones, report.claims)
     confusion: Counter[tuple[str, str]] = Counter()
     for gi, did in matches.items():
-        confusion[(case.afirmaciones[gi].veredicto_esperado, by_id[did].verdict)] += 1
+        expected_verdict = case.afirmaciones[gi].veredicto_esperado
+        if expected_verdict is not None:
+            confusion[(expected_verdict, by_id[did].verdict)] += 1
+
+    context_checked = context_correct = 0
+    wrong_context: list[str] = []
+    for gi, did in matches.items():
+        gold_claim, got_claim = case.afirmaciones[gi], by_id[did]
+        if gold_claim.actor_esperado is None:
+            continue
+        context_checked += 1
+        if _context_ok(gold_claim, got_claim):
+            context_correct += 1
+        else:
+            periods = "; ".join(r.label() for r in got_claim.time_scope) or "—"
+            wrong_context.append(
+                f"{gold_claim.cita}: esperado {gold_claim.actor_esperado}, obtenido "
+                f"{got_claim.context_status} {got_claim.resolved_actor or ''} [{periods}]"
+            )
 
     checked = correct = 0
     wrong: list[str] = []
@@ -165,6 +218,10 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
         speakers_checked=checked,
         speakers_correct=correct,
         wrong_speakers=wrong,
+        verdicts_checked=sum(confusion.values()),
+        context_checked=context_checked,
+        context_correct=context_correct,
+        wrong_context=wrong_context,
     )
 
 
@@ -177,6 +234,9 @@ class Summary:
     false_positives: int
     extra_detected: int
     confusion: dict[tuple[str, str], int]
+    verdicts_checked: int = 0
+    context_checked: int = 0
+    context_correct: int = 0
 
     @property
     def coverage(self) -> float | None:
@@ -184,7 +244,11 @@ class Summary:
 
     @property
     def verdict_accuracy(self) -> float | None:
-        return self.correct / self.matched if self.matched else None
+        return self.correct / self.verdicts_checked if self.verdicts_checked else None
+
+    @property
+    def context_accuracy(self) -> float | None:
+        return self.context_correct / self.context_checked if self.context_checked else None
 
 
 def summarize(results: list[CaseResult]) -> Summary:
@@ -199,4 +263,7 @@ def summarize(results: list[CaseResult]) -> Summary:
         false_positives=sum(r.false_positives for r in results),
         extra_detected=sum(r.extra_detected for r in results),
         confusion=dict(confusion),
+        verdicts_checked=sum(r.verdicts_checked for r in results),
+        context_checked=sum(r.context_checked for r in results),
+        context_correct=sum(r.context_correct for r in results),
     )

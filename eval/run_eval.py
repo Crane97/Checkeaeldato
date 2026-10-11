@@ -109,10 +109,14 @@ def _print_case(result: CaseResult) -> None:
     tag = " (sintético)" if result.synthetic else ""
     typer.echo(
         f"\n[{result.case_id}{tag}] detectadas {result.matched}/{result.gold_claims}, "
-        f"veredictos correctos {result.correct}/{result.matched}, "
+        f"veredictos correctos {result.correct}/{result.verdicts_checked}, "
         f"opiniones detectadas por error {result.false_positives}, "
         f"extra {result.extra_detected}"
     )
+    if result.context_checked:
+        typer.echo(f"  contexto correcto {result.context_correct}/{result.context_checked}")
+    for wrong in result.wrong_context:
+        typer.echo(f"  contexto incorrecto: {wrong}")
     if result.speakers_checked:
         typer.echo(f"  oradores correctos {result.speakers_correct}/{result.speakers_checked}")
     for wrong in result.wrong_speakers:
@@ -149,7 +153,9 @@ def main(
     typer.echo(
         f"\nRESUMEN ({modo}, {summary.cases} casos): cobertura {_rate(summary.coverage)} "
         f"({summary.matched}/{summary.gold_claims}), precisión de veredictos "
-        f"{_rate(summary.verdict_accuracy)} ({summary.correct}/{summary.matched}), "
+        f"{_rate(summary.verdict_accuracy)} ({summary.correct}/{summary.verdicts_checked}), "
+        f"contexto {_rate(summary.context_accuracy)} "
+        f"({summary.context_correct}/{summary.context_checked}), "
         f"opiniones detectadas por error {summary.false_positives}"
     )
     if any(r.synthetic for r in results):
@@ -171,6 +177,7 @@ def main(
                 "resumen": {
                     "cobertura": summary.coverage,
                     "precision_veredictos": summary.verdict_accuracy,
+                    "precision_contexto": summary.context_accuracy,
                     "afirmaciones_gold": summary.gold_claims,
                     "emparejadas": summary.matched,
                     "correctas": summary.correct,

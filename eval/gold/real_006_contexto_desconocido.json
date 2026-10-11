@@ -1,0 +1,18 @@
+{
+  "id": "real-006-contexto-desconocido",
+  "descripcion": "Orador desconocido que dice «cuando ustedes gobernaban»: no se puede saber a quién se refiere, así que debe quedar como no verificable con el motivo.",
+  "sintetico": false,
+  "fecha": "2023-07-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Cuando ustedes gobernaban el paro superó el 26 %."
+  },
+  "afirmaciones": [
+    {
+      "cita": "Cuando ustedes gobernaban el paro superó el 26 %",
+      "veredicto_esperado": "no_verificable",
+      "actor_esperado": "no_resuelto"
+    }
+  ],
+  "no_afirmaciones": []
+}

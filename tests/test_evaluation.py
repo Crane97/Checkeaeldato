@@ -141,3 +141,57 @@ def test_speaker_accuracy_is_measured_when_gold_names_the_speaker():
     result = score_case(case, report(c1, c2, c3))
     assert (result.speakers_checked, result.speakers_correct) == (2, 1)
     assert result.wrong_speakers == ["dato dos con cifra: Portavoz del Gobierno -> autor"]
+
+
+def test_context_resolution_is_measured():
+    from pipeline.models import DateRange
+
+    pp_periods = [
+        DateRange(start=dt.date(1996, 5, 5), end=dt.date(2004, 4, 17)),
+        DateRange(start=dt.date(2011, 12, 21), end=dt.date(2018, 6, 2)),
+    ]
+    case = gold(
+        GoldClaim(
+            cita="cuando ustedes gobernaban el paro superó el 26 %",
+            veredicto_esperado="verdadero",
+            actor_esperado="PP",
+            periodos_esperados=pp_periods,
+        ),
+        GoldClaim(
+            cita="este Gobierno ha subido los impuestos",
+            actor_esperado="PSOE",
+            periodos_esperados=[DateRange(start=dt.date(2018, 6, 2), end=dt.date(2023, 7, 10))],
+        ),
+        GoldClaim(
+            cita="cuando gobernaban ustedes la deuda subió",
+            veredicto_esperado="no_verificable",
+            actor_esperado="no_resuelto",
+        ),
+    )
+    good = claim("c1", "cuando ustedes gobernaban el paro superó el 26 %", "verdadero").model_copy(
+        update={
+            "context_status": "resuelto",
+            "resolved_actor": "PP (gobiernos de Aznar y Rajoy)",
+            "time_scope": [
+                DateRange(start=dt.date(1996, 5, 10), end=dt.date(2004, 4, 17)),
+                DateRange(start=dt.date(2011, 12, 21), end=dt.date(2018, 6, 2)),
+            ],
+        }
+    )
+    wrong_periods = claim("c2", "este Gobierno ha subido los impuestos").model_copy(
+        update={
+            "context_status": "resuelto",
+            "resolved_actor": "Gobierno de Pedro Sánchez (PSOE)",
+            "time_scope": [DateRange(start=dt.date(1982, 12, 2), end=dt.date(1996, 5, 5))],
+        }
+    )
+    unresolved = claim("c3", "cuando gobernaban ustedes la deuda subió").model_copy(
+        update={"context_status": "no_resuelto"}
+    )
+    result = score_case(case, report(good, wrong_periods, unresolved))
+
+    assert (result.context_checked, result.context_correct) == (3, 2)
+    assert "este Gobierno ha subido los impuestos" in result.wrong_context[0]
+    # The claim without an expected verdict does not count towards verdict accuracy.
+    assert (result.verdicts_checked, result.correct) == (2, 2)
+    assert summarize([result]).verdict_accuracy == pytest.approx(1.0)

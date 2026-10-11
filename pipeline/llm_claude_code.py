@@ -25,7 +25,9 @@ T = TypeVar("T", bound=BaseModel)
 
 TIMEOUT_SECONDS = 600
 # Failures that will repeat on every call, so the job must stop.
-_FATAL_RE = re.compile(r"not logged in|/login|usage limit|invalid api key", re.IGNORECASE)
+_FATAL_RE = re.compile(
+    r"not logged in|/login|usage limit|session limit|rate limit|invalid api key", re.IGNORECASE
+)
 
 
 class ClaudeCodeLLM:

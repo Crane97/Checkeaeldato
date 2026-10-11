@@ -1,0 +1,47 @@
+{
+  "id": "real-005-contexto-debate",
+  "descripcion": "Resolución de contexto político en un debate de 2023 (casos definidos por el responsable del proyecto). Oradores ficticios presentados por la moderadora con partidos reales; periodos según data/knowledge/governments.json.",
+  "sintetico": false,
+  "fecha": "2023-07-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Moderadora: Buenas noches. Esta noche debaten Ana Ruiz, candidata del PSOE, y Luis Gómez, candidato del PP. Empieza el señor Gómez.\nLuis Gómez: Gracias. Este Gobierno ha subido los impuestos a las familias.\nAna Ruiz: Señor Gómez, cuando ustedes gobernaban el paro superó el 26 %.\nLuis Gómez: Con el señor Zapatero el paro superó los cuatro millones de personas.\nAna Ruiz: Nosotros subimos el salario mínimo a 900 euros.\nAna Ruiz: Ustedes, los ciudadanos, merecen saber la verdad."
+  },
+  "afirmaciones": [
+    {
+      "cita": "Este Gobierno ha subido los impuestos a las familias",
+      "orador": "Luis Gómez",
+      "actor_esperado": "PSOE",
+      "periodos_esperados": [{"start": "2018-06-02", "end": "2023-07-10"}],
+      "notas": "Gobierno de coalición PSOE-Unidas Podemos en la fecha. Veredicto no evaluado (afirmación genérica)."
+    },
+    {
+      "cita": "cuando ustedes gobernaban el paro superó el 26 %",
+      "orador": "Ana Ruiz",
+      "veredicto_esperado": "verdadero",
+      "actor_esperado": "PP",
+      "periodos_esperados": [
+        {"start": "1996-05-05", "end": "2004-04-17"},
+        {"start": "2011-12-21", "end": "2018-06-02"}
+      ],
+      "notas": "EPA: 26,94 % en el primer trimestre de 2013, dentro de 2011-2018."
+    },
+    {
+      "cita": "Con el señor Zapatero el paro superó los cuatro millones de personas",
+      "orador": "Luis Gómez",
+      "veredicto_esperado": "verdadero",
+      "actor_esperado": "PSOE",
+      "periodos_esperados": [{"start": "2004-04-17", "end": "2011-12-21"}],
+      "notas": "Los parados de la EPA superaron los cuatro millones en 2009."
+    },
+    {
+      "cita": "Nosotros subimos el salario mínimo a 900 euros",
+      "orador": "Ana Ruiz",
+      "veredicto_esperado": "verdadero",
+      "actor_esperado": "PSOE",
+      "periodos_esperados": [{"start": "2018-06-02", "end": "2023-07-10"}],
+      "notas": "SMI de 900 euros/mes en 2019 (Real Decreto 1462/2018)."
+    }
+  ],
+  "no_afirmaciones": ["Ustedes, los ciudadanos, merecen saber la verdad", "Buenas noches"]
+}
