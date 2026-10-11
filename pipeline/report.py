@@ -15,6 +15,7 @@ from pipeline.models import (
 CATEGORY_NAMES = {
     "verdadero": "Verdadero",
     "verdadero_sin_fuente_oficial": "Verdadero sin fuente oficial",
+    "confusion": "Confusión",
     "no_verificable": "No verificable",
     "falso_sin_fuente_oficial": "Falso sin fuente oficial",
     "falso_con_fuente_oficial": "Falso con fuente oficial",

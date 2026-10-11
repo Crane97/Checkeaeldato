@@ -110,7 +110,7 @@ class Claim:
     end: float | None            # (los dos o ninguno)
     text_normalized: str         # autocontenida: quién, qué, cifra, periodo
     claim_type: Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
-    verdict: Literal["verdadero", "falso", "no_verificable"]
+    verdict: Literal["verdadero", "confusion", "falso", "no_verificable"]
     category: ...                # calculada: veredicto + si cita una fuente oficial (ver abajo)
     confidence: float            # 0–1
     explanation: str             # breve, neutral, en español
@@ -125,6 +125,11 @@ Decididas por el responsable del proyecto (2026-10-10). Claude decide el **vered
 - **verdadero** — la evidencia respalda **todas** las partes de la afirmación tal como se
   formuló. Se admite el redondeo a la precisión usada por quien habla o una desviación
   mínima (≤ 5 % relativo): "15 %" por un 15,4 % es válido.
+- **confusion** — el contenido es correcto pero una referencia secundaria está mal (número
+  de artículo o ley, nombre de la norma u organismo, fecha del documento) sin cambiar el
+  sentido: "el artículo 32 de la Constitución dice que el Rey es el Jefe del Estado" (es el
+  56). Una cifra equivocada nunca es confusión; atribuir a una norma algo que no dice es
+  falso.
 - **falso** — la evidencia contradice al menos una parte esencial, directamente o por
   cálculo con las cifras de la evidencia (límites, totales, imposibilidades). **Una cifra
   exagerada o rebajada más allá del redondeo es falsa** ("bajó un 20 %" si bajó un 15 %).
@@ -140,6 +145,7 @@ usuario. "Fuente oficial" = organismo público o internacional **o verificador p
 |---|---|---|
 | Verdadero | verdadero | al menos una oficial o de verificador |
 | Verdadero sin fuente oficial | verdadero | solo web (confianza máx. 0,6) |
+| Confusión | confusion | cualquiera (se indica en qué fuente se apoya) |
 | No verificable | no_verificable | — |
 | Falso sin fuente oficial | falso | solo web (confianza máx. 0,6) |
 | Falso con fuente oficial | falso | al menos una oficial o de verificador |

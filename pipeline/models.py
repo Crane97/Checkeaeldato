@@ -8,16 +8,17 @@ from pydantic import BaseModel, Field, computed_field, field_validator, model_va
 from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
-VerdictLabel = Literal["verdadero", "falso", "no_verificable"]
+VerdictLabel = Literal["verdadero", "confusion", "falso", "no_verificable"]
 SourceKind = Literal["factcheck", "oficial", "web"]
 InputKind = Literal["video", "texto"]
 
-VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "falso", "no_verificable")
+VERDICT_LABELS: tuple[VerdictLabel, ...] = ("verdadero", "confusion", "falso", "no_verificable")
 
 # What the user sees: the verdict plus whether a reliable source backs it.
 Category = Literal[
     "verdadero",
     "verdadero_sin_fuente_oficial",
+    "confusion",
     "no_verificable",
     "falso_sin_fuente_oficial",
     "falso_con_fuente_oficial",
@@ -25,6 +26,7 @@ Category = Literal[
 CATEGORIES: tuple[Category, ...] = (
     "verdadero",
     "verdadero_sin_fuente_oficial",
+    "confusion",
     "no_verificable",
     "falso_sin_fuente_oficial",
     "falso_con_fuente_oficial",
@@ -213,8 +215,8 @@ class VerdictFields(BaseModel):
     @computed_field
     @property
     def category(self) -> Category:
-        if self.verdict == "no_verificable":
-            return "no_verificable"
+        if self.verdict in ("no_verificable", "confusion"):
+            return self.verdict
         reliable = any(s.kind in RELIABLE_KINDS for s in self.sources)
         if self.verdict == "verdadero":
             return "verdadero" if reliable else "verdadero_sin_fuente_oficial"

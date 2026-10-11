@@ -121,10 +121,11 @@ def test_report_counts_by_verdict_and_mapped_speaker():
         ),
     )
 
-    assert report.by_verdict == {"verdadero": 1, "falso": 1, "no_verificable": 1}
+    assert report.by_verdict == {"verdadero": 1, "confusion": 0, "falso": 1, "no_verificable": 1}
     assert report.by_category == {
         "verdadero": 1,
         "verdadero_sin_fuente_oficial": 0,
+        "confusion": 0,
         "no_verificable": 1,
         "falso_sin_fuente_oficial": 0,
         "falso_con_fuente_oficial": 1,
@@ -176,6 +177,8 @@ def test_basis_is_the_strongest_cited_source_kind():
         ("falso", ["web"], "falso_sin_fuente_oficial"),
         ("no_verificable", [], "no_verificable"),
         ("no_verificable", ["oficial"], "no_verificable"),
+        ("confusion", ["oficial"], "confusion"),
+        ("confusion", ["web"], "confusion"),
     ],
 )
 def test_category_combines_verdict_and_source_reliability(verdict, kinds, category):
@@ -189,3 +192,8 @@ def test_category_combines_verdict_and_source_reliability(verdict, kinds, catego
 def test_enganoso_is_no_longer_a_verdict():
     with pytest.raises(ValidationError):
         make_claim(verdict="enganoso")
+
+
+def test_confusion_needs_a_source_like_other_verdicts():
+    with pytest.raises(ValidationError, match="at least one source"):
+        make_claim(verdict="confusion", sources=[])

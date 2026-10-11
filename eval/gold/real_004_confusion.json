@@ -1,0 +1,30 @@
+{
+  "id": "real-004-confusion",
+  "descripcion": "Referencias a artículos de la Constitución: una con el artículo equivocado (confusión, ejemplo del responsable del proyecto), una correcta y una falsa.",
+  "sintetico": false,
+  "fecha": "2026-10-10",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Como establece el artículo 32 de la Constitución, el Rey es el Jefe del Estado, símbolo de su unidad y permanencia.\n\nEl artículo 56 de la Constitución dice que el Rey es el Jefe del Estado.\n\nLa Constitución establece en su artículo 56 que el Rey es elegido por las Cortes cada cuatro años."
+  },
+  "afirmaciones": [
+    {
+      "cita": "Como establece el artículo 32 de la Constitución, el Rey es el Jefe del Estado, símbolo de su unidad y permanencia",
+      "texto_normalizado": "El artículo 32 de la Constitución española establece que el Rey es el Jefe del Estado, símbolo de su unidad y permanencia.",
+      "veredicto_esperado": "confusion",
+      "notas": "Lo dice el artículo 56.1; el 32 trata del matrimonio."
+    },
+    {
+      "cita": "El artículo 56 de la Constitución dice que el Rey es el Jefe del Estado",
+      "texto_normalizado": "El artículo 56 de la Constitución española dice que el Rey es el Jefe del Estado.",
+      "veredicto_esperado": "verdadero"
+    },
+    {
+      "cita": "La Constitución establece en su artículo 56 que el Rey es elegido por las Cortes cada cuatro años",
+      "texto_normalizado": "El artículo 56 de la Constitución española establece que el Rey es elegido por las Cortes cada cuatro años.",
+      "veredicto_esperado": "falso",
+      "notas": "La Corona es hereditaria (artículo 57); no hay elección por las Cortes."
+    }
+  ],
+  "no_afirmaciones": []
+}

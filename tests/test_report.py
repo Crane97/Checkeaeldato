@@ -148,3 +148,11 @@ def test_summary_counts_claude_code_as_claude_and_says_it_is_covered_by_the_plan
     assert "Claude: 0.0100 $ en 1 llamada" in text
     assert "transcripción: 0.0000 $" in text
     assert "cubierto por tu plan" in text
+
+
+def test_summary_lists_confusion():
+    detection = ClaimDetection(claims=[detected("c001", "speaker_0")])
+    report = build(detection, [verdict("c001", "confusion", [INE])])
+    text = format_summary(report, report_path="r.json")
+    assert "Confusión" in text
+    assert report.by_category["confusion"] == 1
