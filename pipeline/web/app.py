@@ -242,19 +242,21 @@ def create_app(
 def main() -> None:
     import uvicorn
 
-    from pipeline.config import get_settings
+    from pipeline.config import Settings
     from pipeline.run import LiveDeps
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     for noisy in ("httpx", "httpcore", "anthropic"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
-    settings = get_settings()
+    settings = Settings()
     from pipeline.email_report import email_report
 
+    # Settings are read again for every analysis and email, so edits to the
+    # configuration apply without restarting the web.
     app = create_app(
         data_dir=settings.data_dir,
-        deps_factory=lambda: LiveDeps(settings),
-        email_sender=lambda report, to: email_report(report, to, settings),
+        deps_factory=lambda: LiveDeps(Settings()),
+        email_sender=lambda report, to: email_report(report, to, Settings()),
     )
     url = f"http://localhost:{PORT}"
     print(f"\nVerificador local en {url}  (Ctrl+C para parar)\n")
