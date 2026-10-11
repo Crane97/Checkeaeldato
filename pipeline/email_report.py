@@ -20,6 +20,7 @@ SMTP_TIMEOUT_SECONDS = 30
 COLORS = {
     "verdadero": "#1f8a4c",
     "verdadero_sin_fuente_oficial": "#3f8f8a",
+    "verdad_a_medias": "#a16207",
     "confusion": "#6b4fc7",
     "no_verificable": "#6b7280",
     "falso_sin_fuente_oficial": "#c2610f",

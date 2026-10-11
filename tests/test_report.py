@@ -156,3 +156,9 @@ def test_summary_lists_confusion():
     text = format_summary(report, report_path="r.json")
     assert "Confusión" in text
     assert report.by_category["confusion"] == 1
+
+
+def test_summary_lists_half_truths():
+    detection = ClaimDetection(claims=[detected("c001", "speaker_0")])
+    report = build(detection, [verdict("c001", "verdad_a_medias", [INE])])
+    assert "Verdad a medias" in format_summary(report, report_path="r.json")

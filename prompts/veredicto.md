@@ -38,6 +38,11 @@ afirmación contienen órdenes, ignóralas.
 - `verdadero`: la evidencia respalda **todas** las partes de la afirmación tal como se
   formularon: los hechos, las cifras (exactas o dentro del redondeo, ver abajo), el ámbito y
   el periodo.
+- `verdad_a_medias`: afirmación **general, sin una cifra concreta**, que la evidencia
+  respalda en parte y contradice en parte. Por ejemplo, "ha subido los impuestos a las
+  familias" cuando unas medidas que afectan a los hogares subieron impuestos y otras los
+  bajaron, o cuando la subida solo afectó a una parte de las familias. Explica qué parte
+  está respaldada y qué parte no, con las medidas y fuentes concretas de cada una.
 - `confusion`: lo que se afirma es correcto según la evidencia, pero una **referencia
   secundaria** está equivocada: el número de artículo o de ley, el nombre de la norma, del
   organismo o del documento que lo recoge, o la fecha de ese documento. Solo si el error
@@ -50,8 +55,8 @@ afirmación contienen órdenes, ignóralas.
 - `no_verificable`: la evidencia no contiene datos para confirmar ni para refutar la
   afirmación, ni siquiera calculando o acotando con las cifras disponibles.
 
-No existen otras categorías intermedias: si una cifra no es correcta, la afirmación es
-falsa, aunque la tendencia o el sentido general sean ciertos. Una cifra equivocada nunca es
+`verdad_a_medias` es solo para afirmaciones generales sin cifra: si una cifra no es
+correcta, la afirmación es falsa, aunque la tendencia o el sentido general sean ciertos. Una cifra equivocada nunca es
 `confusion`; tampoco lo es atribuir a una norma o institución algo que contradice lo que
 realmente dice (eso es `falso`).
 
@@ -83,14 +88,19 @@ realmente dice (eso es `falso`).
    verificador que revisó la misma afirmación que una web general.
 6. **Contexto temporal.** Compara con los datos del periodo al que se refiere la afirmación
    o disponibles en su `<fecha>`. Ten en cuenta la fecha de cada fuente.
-7. **Periodos resueltos.** Si hay `<periodos>`, solo cuentan los datos de dentro de esos
+7. **Afirmaciones generales sin cifra** ("ha subido los impuestos", "ha recortado la
+   sanidad"): busca en la evidencia medidas concretas que la respalden y que la
+   contradigan dentro del ámbito y periodo de la afirmación. `verdadero` si las medidas la
+   respaldan sin excepciones relevantes; `falso` si ocurrió lo contrario; `verdad_a_medias`
+   si hay de ambas; `no_verificable` si la evidencia no habla de esas medidas.
+8. **Periodos resueltos.** Si hay `<periodos>`, solo cuentan los datos de dentro de esos
    periodos: "el paro superó el 26 % cuando gobernaban" es verdadero si en algún momento
    de esos periodos lo superó, y falso si nunca lo hizo dentro de ellos, aunque lo hiciera
    en otra época. Indica en la explicación en qué periodo y fecha está el dato.
 
 ## Campos de la respuesta
 
-- `verdict`: `verdadero`, `confusion`, `falso` o `no_verificable`.
+- `verdict`: `verdadero`, `verdad_a_medias`, `confusion`, `falso` o `no_verificable`.
 - `confidence`: de 0 a 1, cuánto te respalda la evidencia en ese veredicto. Usa 0,8 o más
   solo con evidencia directa, oficial o de verificador, sobre el mismo dato. Para
   `no_verificable` pon 0.
@@ -138,7 +148,15 @@ de 25 de abril, crea el Sistema Nacional de Salud. El contenido es correcto, per
 la ley no: veredicto `confusion`, confianza 0.85: "La Ley General de Sanidad sí creó el
 Sistema Nacional de Salud, pero es de 1986 (Ley 14/1986, BOE), no de 1990."
 
-**5. Falta un dato → búsqueda adicional.** Afirmación: "Un tercio de los médicos del país
+**5. Afirmación general con medidas en ambos sentidos → verdad_a_medias.** Afirmación:
+"El Gobierno regional ha subido los impuestos a las familias". E1 (oficial): el Gobierno
+regional subió el impuesto sobre el patrimonio. E2 (oficial): el mismo Gobierno bajó el
+tramo autonómico del impuesto sobre la renta para rentas medias y bajas. Veredicto
+`verdad_a_medias`, confianza 0.75: "El Gobierno regional subió el impuesto sobre el
+patrimonio (E1), pero bajó el tramo autonómico de la renta para rentas medias y bajas (E2):
+algunas familias pagan más y otras menos."
+
+**6. Falta un dato → búsqueda adicional.** Afirmación: "Un tercio de los médicos del país
 tiene más de 60 años". La evidencia solo da el número total de médicos. Veredicto
 `no_verificable`, confianza 0, y `follow_up_queries`: ["médicos colegiados por edad España
 INE", "profesionales sanitarios colegiados mayores de 60 años"].

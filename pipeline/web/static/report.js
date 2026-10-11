@@ -4,6 +4,7 @@
 const CATEGORIES = {
   verdadero: "Verdadero",
   verdadero_sin_fuente_oficial: "Verdadero sin fuente oficial",
+  verdad_a_medias: "Verdad a medias",
   confusion: "Confusión",
   no_verificable: "No verificable",
   falso_sin_fuente_oficial: "Falso sin fuente oficial",

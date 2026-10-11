@@ -44,12 +44,19 @@ datos o documentos públicos. Clasifícala con uno de estos tipos:
 - Promesas y propuestas ("bajaremos los impuestos").
 - Predicciones sobre el futuro ("el paro bajará el año que viene").
 - Preguntas retóricas, insultos, eslóganes e ironía.
-- Afirmaciones demasiado vagas para comprobarse ("la economía va mejor", "muchísima gente"),
-  salvo que incluyan un dato concreto.
+- Valoraciones vagas sin un hecho comprobable ("la economía va mejor", "el país está peor",
+  "muchísima gente").
+
+Sí se extraen las afirmaciones **generales sobre acciones o hechos concretos** que se pueden
+contrastar con medidas, normas o datos reales aunque no lleven cifra: "este Gobierno ha
+subido los impuestos a las familias", "han recortado la sanidad pública", "aprobaron una
+ley de vivienda". Clasifícalas como `otro` o `legal` según corresponda.
 - Hechos triviales sin interés para verificar (saludos, "hoy estamos en Valencia").
 
 Ante la duda entre opinión y hecho: si la frase contiene un dato concreto comprobable
-(cifra, fecha, norma, comparación medible), extráelo; si no, descártalo.
+(cifra, fecha, norma, comparación medible) o atribuye una acción concreta que se puede
+contrastar (subir o bajar un impuesto, recortar un gasto, aprobar una ley), extráela; si
+solo expresa una valoración, descártala.
 
 Si en el fragmento no hay ninguna afirmación verificable, devuelve una lista vacía. Es un
 resultado normal.

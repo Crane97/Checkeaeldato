@@ -121,10 +121,17 @@ def test_report_counts_by_verdict_and_mapped_speaker():
         ),
     )
 
-    assert report.by_verdict == {"verdadero": 1, "confusion": 0, "falso": 1, "no_verificable": 1}
+    assert report.by_verdict == {
+        "verdadero": 1,
+        "verdad_a_medias": 0,
+        "confusion": 0,
+        "falso": 1,
+        "no_verificable": 1,
+    }
     assert report.by_category == {
         "verdadero": 1,
         "verdadero_sin_fuente_oficial": 0,
+        "verdad_a_medias": 0,
         "confusion": 0,
         "no_verificable": 1,
         "falso_sin_fuente_oficial": 0,
@@ -178,6 +185,8 @@ def test_basis_is_the_strongest_cited_source_kind():
         ("no_verificable", [], "no_verificable"),
         ("no_verificable", ["oficial"], "no_verificable"),
         ("confusion", ["oficial"], "confusion"),
+        ("verdad_a_medias", ["oficial"], "verdad_a_medias"),
+        ("verdad_a_medias", ["web"], "verdad_a_medias"),
         ("confusion", ["web"], "confusion"),
     ],
 )
@@ -197,3 +206,8 @@ def test_enganoso_is_no_longer_a_verdict():
 def test_confusion_needs_a_source_like_other_verdicts():
     with pytest.raises(ValidationError, match="at least one source"):
         make_claim(verdict="confusion", sources=[])
+
+
+def test_half_truth_needs_a_source():
+    with pytest.raises(ValidationError, match="at least one source"):
+        make_claim(verdict="verdad_a_medias", sources=[])
