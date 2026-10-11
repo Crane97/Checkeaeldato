@@ -12,8 +12,14 @@
       "cita": "Este Gobierno ha subido los impuestos a las familias",
       "orador": "Luis Gómez",
       "actor_esperado": "PSOE",
-      "periodos_esperados": [{"start": "2018-06-02", "end": "2023-07-10"}],
-      "notas": "Gobierno de coalición PSOE-Unidas Podemos en la fecha. Veredicto no evaluado (afirmación genérica)."
+      "periodos_esperados": [
+        {
+          "start": "2018-06-02",
+          "end": "2023-07-10"
+        }
+      ],
+      "notas": "Decisión del responsable del proyecto (2026-10-11): las rebajas que afectan a la mayoría de hogares (IVA de luz, gas y alimentos; reducción del IRPF por trabajo) pesan claramente más que las subidas, que afectan a minorías (tramo del ahorro > 200.000 €). Más recaudación no es subida de impuestos.",
+      "veredicto_esperado": "falso"
     },
     {
       "cita": "cuando ustedes gobernaban el paro superó el 26 %",
@@ -21,8 +27,14 @@
       "veredicto_esperado": "verdadero",
       "actor_esperado": "PP",
       "periodos_esperados": [
-        {"start": "1996-05-05", "end": "2004-04-17"},
-        {"start": "2011-12-21", "end": "2018-06-02"}
+        {
+          "start": "1996-05-05",
+          "end": "2004-04-17"
+        },
+        {
+          "start": "2011-12-21",
+          "end": "2018-06-02"
+        }
       ],
       "notas": "EPA: 26,94 % en el primer trimestre de 2013, dentro de 2011-2018."
     },
@@ -31,7 +43,12 @@
       "orador": "Luis Gómez",
       "veredicto_esperado": "verdadero",
       "actor_esperado": "PSOE",
-      "periodos_esperados": [{"start": "2004-04-17", "end": "2011-12-21"}],
+      "periodos_esperados": [
+        {
+          "start": "2004-04-17",
+          "end": "2011-12-21"
+        }
+      ],
       "notas": "Los parados de la EPA superaron los cuatro millones en 2009."
     },
     {
@@ -39,9 +56,17 @@
       "orador": "Ana Ruiz",
       "veredicto_esperado": "verdadero",
       "actor_esperado": "PSOE",
-      "periodos_esperados": [{"start": "2018-06-02", "end": "2023-07-10"}],
+      "periodos_esperados": [
+        {
+          "start": "2018-06-02",
+          "end": "2023-07-10"
+        }
+      ],
       "notas": "SMI de 900 euros/mes en 2019 (Real Decreto 1462/2018)."
     }
   ],
-  "no_afirmaciones": ["Ustedes, los ciudadanos, merecen saber la verdad", "Buenas noches"]
+  "no_afirmaciones": [
+    "Ustedes, los ciudadanos, merecen saber la verdad",
+    "Buenas noches"
+  ]
 }

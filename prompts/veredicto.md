@@ -92,6 +92,12 @@ realmente dice (eso es `falso`).
    una postura, aunque estén publicadas en la web del Congreso, del Senado o de un
    Gobierno. No las uses como prueba de hechos ni de cifras; usa en su lugar la norma, la
    estadística o el dato oficial al que se refieran.
+   **Recaudación no es subida de impuestos:** que aumente lo recaudado (en euros o en
+   porcentaje del PIB) no demuestra por sí solo que se hayan subido los impuestos, venga de
+   la fuente que venga: puede deberse al crecimiento económico, al empleo o a la inflación.
+   Para afirmar que se subieron o bajaron impuestos hacen falta medidas concretas (cambios
+   de tipos, tramos, bases o deducciones), o una fuente que atribuya expresamente el
+   aumento a decisiones fiscales (por ejemplo, no ajustar los tramos a la inflación).
 6. **Contexto temporal.** Compara con los datos del periodo al que se refiere la afirmación
    o disponibles en su `<fecha>`. Ten en cuenta la fecha de cada fuente.
 7. **Afirmaciones generales sin cifra** ("ha subido los impuestos", "ha recortado la
@@ -109,6 +115,12 @@ realmente dice (eso es `falso`).
    (por ejemplo, rentas muy altas o un sector concreto) no basta para respaldar ni para
    desmentir una afirmación sobre el grupo en general; menciónala, pero pesa poco. Aplica la
    regla igual en los dos sentidos (subidas y bajadas, recortes y aumentos).
+   **No exijas probar una ausencia:** si la evidencia oficial describe medidas del sentido
+   contrario que afectan a la mayoría del grupo y no aparece ninguna medida del sentido
+   afirmado que afecte a una parte sustancial de él, el veredicto es `falso` (no
+   `no_verificable`), aunque no se pueda descartar del todo una medida no encontrada; indícalo
+   en la explicación y ajusta la confianza. `no_verificable` queda para cuando la evidencia no
+   habla de medidas en ningún sentido.
 8. **Periodos resueltos.** Si hay `<periodos>`, solo cuentan los datos de dentro de esos
    periodos: "el paro superó el 26 % cuando gobernaban" es verdadero si en algún momento
    de esos periodos lo superó, y falso si nunca lo hizo dentro de ellos, aunque lo hiciera

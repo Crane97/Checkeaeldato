@@ -86,7 +86,8 @@ pipeline/
   audio.py            # extracción con ffmpeg
   text_input.py       # entrada .txt/.md: un segmento por párrafo, sin tiempos
   transcribe/         # interfaz Transcriber + proveedores
-  speakers.py         # identificación de oradores (nombre, partido, rol) con citas
+  speakers.py         # etapa 1: interlocutores y lo que el texto dice de ellos, con citas
+  speaker_research.py # etapa 2: partido y cargo de cada orador (oficial → web), con citas
   claims.py           # detección y normalización de afirmaciones
   governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
   context.py          # resolución de "ustedes", "este Gobierno"… → actor y periodos
@@ -149,6 +150,12 @@ Decididas por el responsable del proyecto (2026-10-10). Claude decide el **vered
   una medida que afecta a una pequeña minoría pesa poco, en los dos sentidos.
 - Las proposiciones, enmiendas e intervenciones de grupos parlamentarios y partidos son
   posturas, no evidencia, aunque se publiquen en webs oficiales.
+- **Recaudación no es subida de impuestos** (decisión del responsable del proyecto,
+  2026-10-11): más recaudación puede venir del crecimiento, el empleo o la inflación; hacen
+  falta medidas concretas o una fuente que atribuya el aumento a decisiones fiscales.
+- **No exigir probar una ausencia:** si la evidencia oficial muestra medidas del sentido
+  contrario para la mayoría del grupo y ninguna del sentido afirmado que afecte a una parte
+  sustancial, es `falso`, no `no_verificable`.
 - **confusion** — el contenido es correcto pero una referencia secundaria está mal (número
   de artículo o ley, nombre de la norma u organismo, fecha del documento) sin cambiar el
   sentido: "el artículo 32 de la Constitución dice que el Rey es el Jefe del Estado" (es el
@@ -205,8 +212,10 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
   timestamp.
 - **Texto** (`.txt` / `.md`): sin audio ni transcripción. Oradores:
   - **Diálogo** ("Nombre: texto" en varias líneas): un segmento por intervención y orador.
-    Se descartan rótulos que no son personas (Fuente, Nota, Crónica…). Una línea en blanco
-    cierra el turno: el texto sin etiqueta que sigue es del `autor`.
+    Se descartan rótulos que no son personas (Fuente, Nota, Crónica…). Los párrafos sin
+    etiqueta **continúan el turno** de quien hablaba (los diarios de sesiones solo rotulan
+    el primer párrafo); un rótulo de documento ("Nota:", "Crónica:") devuelve el texto al
+    `autor`, igual que lo anterior a la primera etiqueta.
   - **Prosa**: todo es del `autor` (nombre real con `--autor`), salvo que el texto recoja lo
     que **dijo una persona concreta** ("la ministra afirmó que…"): entonces la detección le
     atribuye la afirmación. Citar una fuente de datos ("según el INE") no cambia el orador.
@@ -219,12 +228,21 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 
 ## Oradores y contexto político
 
-- **Identificación de oradores** (paso `speakers`, tras la transcripción): etiqueta → nombre,
+- **Etapa 1 — interlocutores** (paso `speakers`, tras la transcripción): cuántos hay y qué
+  turno es de cada uno (diarización en vídeo, rótulos en texto) y etiqueta → nombre,
   partido y rol. Fuentes por orden: `--speakers speakers.json` o el campo "Quién es quién"
   de la web; presentaciones y vocativos del texto (Claude debe citar frases literales, que
   el código comprueba; el partido solo se acepta si aparece en ellas); la tabla de
   gobiernos para presidentes. Por debajo de 0,6 de confianza, desconocido. **Nunca se
   toma un partido de lo que el modelo "sabe".**
+- **Etapa 2 — investigación de los oradores** (paso `speaker_research`, salida
+  `speaker_research.json`, que es lo que leen los pasos siguientes): para cada orador con
+  nombre y sin partido, búsqueda Tavily primero en dominios oficiales (Congreso, Senado, La
+  Moncloa, BOE…) y, solo si no lo aclaran, en la web general. Claude extrae partido, cargo
+  en la fecha del discurso y nombre completo citando frases literales; el código exige que
+  las frases estén en los resultados y nombren a la persona (todas las palabras del nombre
+  en las páginas citadas) y al partido. El orador guarda las URLs (`references`) y la base
+  (`oficial` o `web`). Sin `TAVILY_API_KEY` el paso no hace nada.
 - **Resolución de contexto** (paso `context`, entre detección y evidencia): "ustedes",
   "nosotros", "este Gobierno", "el Gobierno anterior", "cuando gobernaban", "con el señor
   X", "hace diez años". Claude **solo interpreta** el referente; **las fechas las calcula
