@@ -121,7 +121,8 @@ class Transcript(BaseModel):
 
 # --- Speakers ---------------------------------------------------------------
 
-SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos"]
+# "oficial"/"web": found by the speaker research step (see `references`).
+SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos", "oficial", "web"]
 
 
 class SpeakerInfo(BaseModel):
@@ -143,6 +144,8 @@ class Speaker(BaseModel):
     # Literal quotes from the transcript (or "speakers.json") supporting the identification.
     evidence: list[str] = Field(default_factory=list)
     sources: list[SpeakerSource] = Field(default_factory=list)
+    # Pages that support the research step's findings.
+    references: list["Source"] = Field(default_factory=list)
 
     def display(self) -> str:
         base = self.name or self.label
@@ -239,6 +242,11 @@ class Source(BaseModel):
         if not v.startswith(("http://", "https://")):
             raise ValueError("url must be http(s)")
         return v
+
+
+# Speaker.references is declared before Source.
+Speaker.model_rebuild()
+SpeakerMap.model_rebuild()
 
 
 class EvidenceItem(BaseModel):
@@ -407,12 +415,21 @@ class Report(BaseModel):
 # --- Jobs -------------------------------------------------------------------
 
 StepName = Literal[
-    "audio", "transcript", "speakers", "claims", "context", "evidence", "verdicts", "report"
+    "audio",
+    "transcript",
+    "speakers",
+    "speaker_research",
+    "claims",
+    "context",
+    "evidence",
+    "verdicts",
+    "report",
 ]
 STEPS: tuple[StepName, ...] = (
     "audio",
     "transcript",
     "speakers",
+    "speaker_research",
     "claims",
     "context",
     "evidence",

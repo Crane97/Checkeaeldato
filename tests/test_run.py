@@ -97,6 +97,7 @@ class FakeDeps:
         self.transcriber = FakeTranscriber()
         self.evidence_sources = [self.source]
         self.disabled_sources = ["factcheck"]
+        self.speaker_search = None
 
     def model_for(self, step: str) -> str:
         return "claude-haiku-5-5"

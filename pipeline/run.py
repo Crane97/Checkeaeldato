@@ -34,6 +34,8 @@ from pipeline.models import (
     Verdict,
 )
 from pipeline.report import build_report, format_summary
+from pipeline.speaker_research import PROMPT as RESEARCH_PROMPT
+from pipeline.speaker_research import SpeakerSearch, research_speakers
 from pipeline.speakers import PROMPT as SPEAKERS_PROMPT
 from pipeline.speakers import identify_speakers
 from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
@@ -45,6 +47,8 @@ logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 SPEAKER_INFO_FILE = "speakers_input.json"
+# Speakers after both stages (identification and research); what later steps read.
+SPEAKERS_FILE = "speaker_research.json"
 
 
 class Deps(Protocol):
@@ -54,6 +58,8 @@ class Deps(Protocol):
     transcriber: Transcriber
     evidence_sources: list[EvidenceSource]
     disabled_sources: list[str]
+    # None when there is no search key: speakers are then not researched.
+    speaker_search: SpeakerSearch | None
 
     def model_for(self, step: LlmStep) -> str: ...
 
@@ -116,6 +122,15 @@ class LiveDeps:
     @property
     def disabled_sources(self) -> list[str]:
         return self._sources[1]
+
+    @cached_property
+    def speaker_search(self) -> SpeakerSearch | None:
+        if not self.settings.tavily_api_key:
+            return None
+        from pipeline.evidence.speaker_search import TavilySpeakerSearch
+        from pipeline.evidence.tavily import TavilyClient
+
+        return TavilySpeakerSearch(TavilyClient(self.settings.secret("tavily_api_key")))
 
 
 @dataclass(frozen=True)
@@ -206,6 +221,27 @@ def build_steps(
 
         return _with_llm_costs(deps, work)
 
+    def speaker_research_step(store: JobStore) -> StepOutcome:
+        speakers = store.read("speakers.json", SpeakerMap)
+        search = deps.speaker_search
+        if search is None:
+            store.write(SPEAKERS_FILE, speakers, SpeakerMap)
+            return StepOutcome()
+
+        def work() -> bool:
+            researched = research_speakers(
+                speakers,
+                speech_date=store.manifest.speech_date,
+                search=search,
+                llm=deps.llm,
+                model=deps.model_for("detection"),
+                governments=default_governments(),
+            )
+            store.write(SPEAKERS_FILE, researched, SpeakerMap)
+            return len(researched.errors) == len(speakers.errors)
+
+        return _with_llm_costs(deps, work)
+
     def claims_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
             detection = detect_claims(
@@ -225,7 +261,7 @@ def build_steps(
             resolved = resolve_context(
                 store.read("claims.json", ClaimDetection),
                 store.read("transcript.json", Transcript),
-                store.read("speakers.json", SpeakerMap),
+                store.read(SPEAKERS_FILE, SpeakerMap),
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
                 # Interpreting who "ustedes" is needs the careful model.
@@ -277,7 +313,7 @@ def build_steps(
 
     def report_step(store: JobStore) -> StepOutcome:
         evidence = store.read("evidence.json", EvidenceRun)
-        profiles = store.read("speakers.json", SpeakerMap)
+        profiles = store.read(SPEAKERS_FILE, SpeakerMap)
         display = {s.label: s.display() for s in profiles.speakers if s.name or s.party}
         for label, name in store.manifest.speakers.items():  # --oradores / --autor win
             known = profiles.get(label)
@@ -305,6 +341,7 @@ def build_steps(
     steps = [
         Step("transcript", transcript_step),
         Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
+        Step("speaker_research", speaker_research_step, (RESEARCH_PROMPT,)),
         Step("claims", claims_step, (CLAIMS_PROMPT,)),
         Step("context", context_step, (CONTEXT_PROMPT,)),
         Step("evidence", evidence_step),

@@ -76,6 +76,7 @@ def test_analysis_runs_and_returns_the_report(client, deps):
     assert [p["paso"] for p in status["pasos"]] == [
         "transcript",
         "speakers",
+        "speaker_research",
         "claims",
         "context",
         "evidence",

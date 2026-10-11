@@ -105,7 +105,12 @@ _NUMBER_RE = re.compile(r"\d[\d.,]*")
 
 def claim_terms(claim: DetectedClaim) -> set[str]:
     """Keywords (4+ letters, no stopwords) and numbers from the claim and its queries."""
-    text = " ".join([claim.text_normalized, *claim.search_queries]).lower()
+    return query_terms(" ".join([claim.text_normalized, *claim.search_queries]))
+
+
+def query_terms(text: str) -> set[str]:
+    """Keywords (4+ letters, no stopwords) and numbers from a free text."""
+    text = text.lower()
     terms = {w for w in _WORD_RE.findall(text) if len(w) >= 4 and w not in _STOPWORDS}
     terms |= {n.strip(".,") for n in _NUMBER_RE.findall(text)}
     return {t for t in terms if t}

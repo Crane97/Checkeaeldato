@@ -9,6 +9,7 @@ from pipeline.governments import (
     DateRange,
     Governments,
     KnowledgeError,
+    default_governments,
     load_knowledge,
 )
 
@@ -154,3 +155,9 @@ def test_only_the_last_term_may_be_open(tmp_path):
     path = _write(tmp_path, [_term("a", "2000-01-01", None), _term("b", "2004-01-01", None)])
     with pytest.raises(KnowledgeError):
         load_knowledge(path)
+
+
+def test_party_written_with_its_acronym_in_brackets():
+    governments = default_governments()
+    assert governments.canonical_party("Partido Popular (PP)") == "PP"
+    assert governments.canonical_party("el Partido Socialista Obrero Español (PSOE)") == "PSOE"

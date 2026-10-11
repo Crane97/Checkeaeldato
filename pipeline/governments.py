@@ -233,9 +233,12 @@ class Governments:
     def canonical_party(self, text: str) -> str | None:
         """Party id for a name or alias in the knowledge base ("Partido Popular" -> "PP")."""
         folded = _fold(text).strip()
-        folded = re.sub(r"^(el|la|los|las)\s+", "", folded)
-        for party_id, party in self.knowledge.parties.items():
-            names = {party_id, party.name, *party.aliases}
-            if folded in {_fold(n) for n in names}:
-                return party_id
+        # "Partido Popular (PP)": try the whole text, then each part.
+        candidates = [folded, *(p.strip() for p in re.split(r"[()]", folded) if p.strip())]
+        for candidate in candidates:
+            candidate = re.sub(r"^(el|la|los|las)\s+", "", candidate)
+            for party_id, party in self.knowledge.parties.items():
+                names = {party_id, party.name, *party.aliases}
+                if candidate in {_fold(n) for n in names}:
+                    return party_id
         return None
