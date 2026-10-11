@@ -145,6 +145,8 @@ class SpeakerMap(BaseModel):
     """Output of the speakers step (speakers.json)."""
 
     speakers: list[Speaker] = Field(default_factory=list)
+    # Model calls that failed (identification incomplete; retried on the next run).
+    errors: list[str] = Field(default_factory=list)
 
     def get(self, label: str) -> Speaker | None:
         return next((s for s in self.speakers if s.label == label), None)
@@ -209,6 +211,8 @@ class ClaimDetection(BaseModel):
     claims: list[DetectedClaim] = Field(default_factory=list)
     rejected: list[RejectedClaim] = Field(default_factory=list)
     failed_blocks: list[BlockFailure] = Field(default_factory=list)
+    # Context resolutions that failed for technical reasons (retried on the next run).
+    context_errors: list[str] = Field(default_factory=list)
 
 
 # --- Evidence ---------------------------------------------------------------
@@ -410,7 +414,8 @@ STEPS: tuple[StepName, ...] = (
 
 
 class StepRecord(BaseModel):
-    status: Literal["done", "failed"]
+    # "partial": finished, but some items failed (e.g. usage limit); retried next run.
+    status: Literal["done", "partial", "failed"]
     finished_at: dt.datetime
     # Prompt file name -> content hash used by this run of the step.
     prompt_hashes: dict[str, str] = Field(default_factory=dict)

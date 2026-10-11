@@ -48,6 +48,7 @@ button:disabled { opacity: .5; cursor: default; }
 .steps li.done { color: var(--text); }
 .steps li.running { color: var(--accent); font-weight: 600; }
 .steps li.failed { color: var(--error); font-weight: 600; }
+.steps li.partial { color: var(--warn); }
 .icon { width: 1.2em; text-align: center; }
 .spin { display: inline-block; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

@@ -324,3 +324,27 @@ def test_unresolved_context_skips_evidence_and_is_no_verificable(tmp_path):
     assert "interlocutor" in claim.explanation
     assert deps.source.calls == 0  # no searches spent on it
     assert "verdicts" not in deps.llm.calls
+
+
+def test_failed_verdicts_are_retried_on_the_next_run(article, tmp_path):
+    from pipeline.llm import LLMError
+
+    deps = FakeDeps()
+    original = deps.llm.structured
+
+    def flaky(**kwargs):
+        if kwargs["step"] == "verdicts":
+            raise LLMError("límite de uso")
+        return original(**kwargs)
+
+    deps.llm.structured = flaky
+    from pipeline.verdict import VerdictError
+
+    with pytest.raises(VerdictError):  # the only verdict failed: the step stops
+        run(article, tmp_path / "data", deps)
+
+    deps.llm.structured = original
+    deps.llm.calls.clear()
+    result = run(article, tmp_path / "data", deps)
+    assert deps.llm.calls == ["verdicts"]
+    assert result.report.claims[0].analysis_error is None

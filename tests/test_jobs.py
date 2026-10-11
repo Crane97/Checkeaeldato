@@ -199,3 +199,29 @@ def test_failed_step_keeps_the_cost_it_already_spent(store, prompts_dir):
     record = store.manifest.steps["claims"]
     assert record.status == "failed"
     assert [c.usd for c in record.cost] == [0.05]
+
+
+def test_partial_step_is_kept_but_retried_on_the_next_run(store, prompts_dir):
+    rec = Recorder()
+    outcomes = {"verdicts": StepOutcome(complete=False)}
+
+    def steps():
+        return [
+            Step(
+                s.name,
+                (lambda r: lambda st: rec.calls.append(r) or outcomes.get(r, StepOutcome()))(
+                    s.name
+                ),
+                s.prompts,
+            )
+            for s in rec.steps()
+        ]
+
+    run_steps(store, steps(), prompts_dir)
+    assert store.manifest.steps["verdicts"].status == "partial"
+
+    rec.calls.clear()
+    outcomes.clear()
+    run_steps(store, steps(), prompts_dir)
+    assert rec.calls == ["verdicts", "report"]
+    assert store.manifest.steps["verdicts"].status == "done"

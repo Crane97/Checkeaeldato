@@ -314,6 +314,7 @@ def resolve_context(
     governments: Governments,
 ) -> ClaimDetection:
     resolved: list[DetectedClaim] = []
+    errors: list[str] = []
     pending = [c for c in detection.claims if c.needs_context]
     for claim in detection.claims:
         if not claim.needs_context:
@@ -334,6 +335,7 @@ def resolve_context(
             raise
         except LLMError as exc:
             logger.warning("Contexto de %s no resuelto: %s", claim.id, exc)
+            errors.append(f"{claim.id}: {exc}")
             resolved.append(
                 claim.model_copy(
                     update={
@@ -373,4 +375,4 @@ def resolve_context(
                 }
             )
         )
-    return detection.model_copy(update={"claims": resolved})
+    return detection.model_copy(update={"claims": resolved, "context_errors": errors})

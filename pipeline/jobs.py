@@ -135,6 +135,9 @@ class JobStore:
 @dataclass(frozen=True)
 class StepOutcome:
     cost: list[CostEntry] = field(default_factory=list)
+    # False when some items failed transiently: the output is kept (and reported) but the
+    # step is run again next time instead of being reused.
+    complete: bool = True
 
 
 @dataclass(frozen=True)
@@ -229,8 +232,13 @@ def run_steps(
             )
             store.save_manifest()
             raise
+        if not outcome.complete:
+            logger.warning("Paso %s incompleto: se repetirá en la próxima ejecución", step.name)
         store.manifest.steps[step.name] = StepRecord(
-            status="done", finished_at=_now(), prompt_hashes=hashes, cost=outcome.cost
+            status="done" if outcome.complete else "partial",
+            finished_at=_now(),
+            prompt_hashes=hashes,
+            cost=outcome.cost,
         )
         store.save_manifest()
     return to_run

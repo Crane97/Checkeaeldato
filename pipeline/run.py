@@ -130,14 +130,15 @@ def input_kind_for(path: Path) -> InputKind:
     return "texto" if path.suffix.lower() in SUPPORTED_SUFFIXES else "video"
 
 
-def _with_llm_costs(deps: Deps, work: Callable[[], None]) -> StepOutcome:
-    """Run an LLM step and return its cost, attaching it to the error if it fails."""
+def _with_llm_costs(deps: Deps, work: Callable[[], bool]) -> StepOutcome:
+    """Run an LLM step and return its cost, attaching it to the error if it fails.
+    `work` returns whether every item succeeded; if not, the step is retried next run."""
     try:
-        work()
+        complete = work()
     except Exception as exc:
         exc.step_costs = deps.llm.take_costs()  # type: ignore[attr-defined]
         raise
-    return StepOutcome(cost=deps.llm.take_costs())
+    return StepOutcome(cost=deps.llm.take_costs(), complete=complete)
 
 
 def follow_up_search(deps: Deps, speech_date: dt.date) -> FollowUpSearch:
@@ -187,7 +188,7 @@ def build_steps(
         return StepOutcome(cost=[transcription_cost("transcript", transcript.provider, seconds)])
 
     def speakers_step(store: JobStore) -> StepOutcome:
-        def work() -> None:
+        def work() -> bool:
             info_path = store.path(SPEAKER_INFO_FILE)
             info = (
                 store.read(SPEAKER_INFO_FILE, dict[str, SpeakerInfo]) if info_path.exists() else {}
@@ -201,11 +202,12 @@ def build_steps(
                 info=info,
             )
             store.write("speakers.json", speakers, SpeakerMap)
+            return not speakers.errors
 
         return _with_llm_costs(deps, work)
 
     def claims_step(store: JobStore) -> StepOutcome:
-        def work() -> None:
+        def work() -> bool:
             detection = detect_claims(
                 store.read("transcript.json", Transcript),
                 speech_date=store.manifest.speech_date,
@@ -214,11 +216,12 @@ def build_steps(
                 model=deps.model_for("detection"),
             )
             store.write("claims.json", detection, ClaimDetection)
+            return not detection.failed_blocks
 
         return _with_llm_costs(deps, work)
 
     def context_step(store: JobStore) -> StepOutcome:
-        def work() -> None:
+        def work() -> bool:
             resolved = resolve_context(
                 store.read("claims.json", ClaimDetection),
                 store.read("transcript.json", Transcript),
@@ -230,6 +233,7 @@ def build_steps(
                 governments=default_governments(),
             )
             store.write("context.json", resolved, ClaimDetection)
+            return not resolved.context_errors
 
         return _with_llm_costs(deps, work)
 
@@ -257,7 +261,7 @@ def build_steps(
         return StepOutcome()
 
     def verdicts_step(store: JobStore) -> StepOutcome:
-        def work() -> None:
+        def work() -> bool:
             verdicts = decide_verdicts(
                 store.read("context.json", ClaimDetection).claims,
                 store.read("evidence.json", EvidenceRun).claims,
@@ -267,6 +271,7 @@ def build_steps(
                 follow_up=follow_up_search(deps, store.manifest.speech_date),
             )
             store.write("verdicts.json", verdicts, list[Verdict])
+            return not any(v.analysis_error for v in verdicts)
 
         return _with_llm_costs(deps, work)
 

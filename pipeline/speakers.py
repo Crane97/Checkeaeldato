@@ -175,6 +175,7 @@ def identify_speakers(
     info = info or {}
     labels = list(dict.fromkeys(s.speaker for s in transcript.segments))
     by_label: dict[str, Speaker] = {}
+    errors: list[str] = []
 
     for label in labels:
         if label in info:
@@ -204,6 +205,7 @@ def identify_speakers(
             raise
         except LLMError as exc:
             logger.warning("No se pudo identificar a los oradores: %s", exc)
+            errors.append(str(exc))
             answer = SpeakerIdentification(speakers=[])
         for guess in answer.speakers:
             if guess.label not in pending:
@@ -248,7 +250,7 @@ def identify_speakers(
                     }
                 )
         speakers.append(_with_table(speaker, speech_date, governments))
-    return SpeakerMap(speakers=speakers)
+    return SpeakerMap(speakers=speakers, errors=errors)
 
 
 def parse_speaker_lines(text: str) -> dict[str, SpeakerInfo]:
