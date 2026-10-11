@@ -83,7 +83,10 @@ pipeline/
   audio.py            # extracción con ffmpeg
   text_input.py       # entrada .txt/.md: un segmento por párrafo, sin tiempos
   transcribe/         # interfaz Transcriber + proveedores
+  speakers.py         # identificación de oradores (nombre, partido, rol) con citas
   claims.py           # detección y normalización de afirmaciones
+  governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
+  context.py          # resolución de "ustedes", "este Gobierno"… → actor y periodos
   evidence/           # base.py (interfaz y recolector), factcheck_api.py, tavily.py,
                       # oficiales.py (+ fuentes_oficiales.toml), web.py
   verdict.py          # veredicto basado solo en evidencia
@@ -114,7 +117,12 @@ class Claim:
     end: float | None            # (los dos o ninguno)
     text_normalized: str         # autocontenida: quién, qué, cifra, periodo
     claim_type: Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
-    verdict: Literal["verdadero", "confusion", "falso", "no_verificable"]
+    context_status: Literal["no_necesario", "resuelto", "no_resuelto"]
+    resolved_actor: str | None   # "PP (gobiernos de José María Aznar y Mariano Rajoy)"
+    time_scope: list[DateRange]  # periodos calculados con la tabla de gobiernos
+    resolution_confidence: float | None
+    resolution_notes: str | None # razonamiento breve de la resolución
+    verdict: Literal["verdadero", "verdad_a_medias", "confusion", "falso", "no_verificable"]
     category: ...                # calculada: veredicto + si cita una fuente oficial (ver abajo)
     confidence: float            # 0–1
     explanation: str             # breve, neutral, en español
@@ -129,6 +137,10 @@ Decididas por el responsable del proyecto (2026-10-10). Claude decide el **vered
 - **verdadero** — la evidencia respalda **todas** las partes de la afirmación tal como se
   formuló. Se admite el redondeo a la precisión usada por quien habla o una desviación
   mínima (≤ 5 % relativo): "15 %" por un 15,4 % es válido.
+- **verdad_a_medias** — solo para afirmaciones **generales sin cifra** ("ha subido los
+  impuestos a las familias") que la evidencia respalda en parte y contradice en parte. Una
+  sola categoría (no "verdad a medias" / "falso a medias"): decidir hacia qué lado se
+  inclina sería una valoración subjetiva. La explicación detalla ambas partes.
 - **confusion** — el contenido es correcto pero una referencia secundaria está mal (número
   de artículo o ley, nombre de la norma u organismo, fecha del documento) sin cambiar el
   sentido: "el artículo 32 de la Constitución dice que el Rey es el Jefe del Estado" (es el
@@ -149,6 +161,7 @@ usuario. "Fuente oficial" = organismo público o internacional **o verificador p
 |---|---|---|
 | Verdadero | verdadero | al menos una oficial o de verificador |
 | Verdadero sin fuente oficial | verdadero | solo web (confianza máx. 0,6) |
+| Verdad a medias | verdad_a_medias | cualquiera (se indica en qué fuente se apoya) |
 | Confusión | confusion | cualquiera (se indica en qué fuente se apoya) |
 | No verificable | no_verificable | — |
 | Falso sin fuente oficial | falso | solo web (confianza máx. 0,6) |
@@ -168,7 +181,9 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 3. **Neutralidad.** Mismo método y mismos prompts para todos los partidos y oradores. Los
    prompts no mencionan partidos concretos. Las explicaciones describen hechos, no juzgan
    intenciones.
-4. **Opiniones y promesas no se verifican.** La detección debe descartarlas.
+4. **Opiniones y promesas no se verifican.** La detección debe descartarlas. Sí se extraen
+   las afirmaciones generales sobre acciones concretas contrastables aunque no lleven cifra
+   ("este Gobierno ha subido los impuestos a las familias", "han recortado la sanidad").
 5. **Contexto temporal.** Cada veredicto considera la fecha del discurso; las fuentes
    llevan fecha.
 6. **Trazabilidad.** Cada Claim cita literalmente la frase original y enlaza a sus
@@ -193,6 +208,29 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 - `--fecha AAAA-MM-DD` es obligatoria (contexto temporal). `--oradores` es opcional; si
   solo cambian los nombres, se regenera el informe sin coste.
 - `job_id` = primeros 12 caracteres del SHA-256 del archivo de entrada.
+
+## Oradores y contexto político
+
+- **Identificación de oradores** (paso `speakers`, tras la transcripción): etiqueta → nombre,
+  partido y rol. Fuentes por orden: `--speakers speakers.json` o el campo "Quién es quién"
+  de la web; presentaciones y vocativos del texto (Claude debe citar frases literales, que
+  el código comprueba; el partido solo se acepta si aparece en ellas); la tabla de
+  gobiernos para presidentes. Por debajo de 0,6 de confianza, desconocido. **Nunca se
+  toma un partido de lo que el modelo "sabe".**
+- **Resolución de contexto** (paso `context`, entre detección y evidencia): "ustedes",
+  "nosotros", "este Gobierno", "el Gobierno anterior", "cuando gobernaban", "con el señor
+  X", "hace diez años". Claude **solo interpreta** el referente; **las fechas las calcula
+  código Python** (`pipeline/governments.py`) con la tabla. La afirmación se reescribe con
+  periodos explícitos y las búsquedas se acotan a esos años. Si no se resuelve con
+  confianza (orador o interlocutor sin partido, audiencia, ambigüedad), la afirmación queda
+  `no_verificable` con el motivo y no se gastan búsquedas.
+- "Nosotros" dicho por alguien del partido que gobierna, sin pista de otra época, se
+  entiende como el mandato en curso (decisión del responsable del proyecto, 2026-10-11).
+- **Tabla de gobiernos** `data/knowledge/governments.json` (versionada; única excepción
+  al `.gitignore` de `data/`): mandatos con partidos, socios de coalición, periodos en
+  funciones y decretos de nombramiento, contrastados con La Moncloa y el BOE. **Se
+  actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 30-11-2026). El
+  esquema admite niveles autonómico y municipal; solo se usa el nacional.
 
 ## Fuentes de evidencia (cascada, por orden de prioridad)
 
@@ -229,6 +267,10 @@ cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay l
   las afirmaciones), se para: un informe vacío por un error sería un fallo silencioso.
 - Una fuente sin clave en `.env` se desactiva y el informe lo avisa.
 - El coste gastado por un paso que falla queda en el `manifest.json`.
+- Un paso con fallos puntuales de IA (límite de uso, red) termina como **incompleto**
+  (`partial`): se conserva y se informa, pero se repite en la siguiente ejecución en vez de
+  reutilizarse. No aplica a la evidencia (sus fallos pueden ser permanentes y gastarían
+  créditos en cada ejecución).
 
 ## Convenciones
 
