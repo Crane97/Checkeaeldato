@@ -10,6 +10,7 @@ import typer
 from pipeline.audio import AudioError
 from pipeline.claims import ClaimsError
 from pipeline.config import ConfigError, get_settings
+from pipeline.email_report import EmailError, email_report, is_valid_email
 from pipeline.evidence.base import EvidenceError
 from pipeline.jobs import JobError
 from pipeline.llm import LLMError
@@ -92,12 +93,17 @@ def main(
     purge_audio: Annotated[
         bool, typer.Option("--purge-audio", help="Borra el audio extraído tras transcribir")
     ] = False,
+    email: Annotated[
+        str | None, typer.Option("--email", help="Envía el informe a esta dirección")
+    ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Más detalle")] = False,
 ) -> None:
     """Analiza un vídeo o texto y genera data/<job_id>/report.json."""
     speech_date = _parse_date(fecha)
     speakers = _parse_speakers(oradores)
     step = _parse_step(from_step)
+    if email is not None and not is_valid_email(email):
+        raise typer.BadParameter("la dirección de correo no es válida", param_hint="--email")
     _setup_logging(verbose)
 
     settings = get_settings()
@@ -122,3 +128,14 @@ def main(
         raise typer.Exit(code=1) from exc
 
     typer.echo("\n" + result.summary)
+    if email:
+        try:
+            email_report(result.report, email, settings)
+        except (EmailError, ConfigError) as exc:
+            typer.secho(
+                f"\nEl análisis terminó, pero no se pudo enviar el correo: {exc}",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1) from exc
+        typer.echo(f"\nInforme enviado a {email}")

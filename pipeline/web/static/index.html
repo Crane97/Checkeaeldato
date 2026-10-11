@@ -4,89 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkea el Dato · prueba local</title>
-<style>
-  :root {
-    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6676; --border: #dde1e8;
-    --accent: #2f5bd3; --accent-text: #ffffff;
-    --warn: #b7791f;
-    --verdadero: #1f8a4c; --verdadero_sin_fuente_oficial: #3f8f8a; --no_verificable: #6b7280;
-    --confusion: #6b4fc7; --tint-confusion: #efebfa;
-    --falso_sin_fuente_oficial: #c2610f; --falso_con_fuente_oficial: #c53030;
-    --tint-verdadero: #e6f4ec; --tint-verdadero_sin_fuente_oficial: #e5f2f1; --tint-no_verificable: #eef0f3;
-    --tint-falso_sin_fuente_oficial: #fcefe3; --tint-falso_con_fuente_oficial: #fbe7e7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12151b; --card: #1b2029; --text: #e6e9ef; --muted: #9aa3b2; --border: #2c3340;
-      --accent: #6d8ff0; --accent-text: #0d1117;
-      --warn: #e0a84a;
-      --verdadero: #4cc38a; --verdadero_sin_fuente_oficial: #6cc4bd; --no_verificable: #9aa3b2;
-      --confusion: #a993f0; --tint-confusion: #241f36;
-      --falso_sin_fuente_oficial: #f0a060; --falso_con_fuente_oficial: #f07171;
-      --tint-verdadero: #16291f; --tint-verdadero_sin_fuente_oficial: #152a29; --tint-no_verificable: #232833;
-      --tint-falso_sin_fuente_oficial: #2f2216; --tint-falso_con_fuente_oficial: #2e1818;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 1.5rem; margin: 0 0 4px; }
-  h2 { font-size: 1.15rem; margin: 0 0 12px; }
-  .sub { color: var(--muted); margin: 0 0 24px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-          padding: 20px; margin-bottom: 20px; }
-  label { display: block; font-weight: 600; margin-bottom: 6px; }
-  textarea, input[type=text], input[type=date] {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--bg); color: var(--text); font: inherit; }
-  textarea { min-height: 280px; resize: vertical; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-weight: 400; }
-  .actions { display: flex; align-items: center; gap: 16px; margin-top: 20px; }
-  button { background: var(--accent); color: var(--accent-text); border: 0; border-radius: 8px;
-           padding: 10px 22px; font: inherit; font-weight: 600; cursor: pointer; }
-  button:disabled { opacity: .5; cursor: default; }
-  .hint { color: var(--muted); font-size: .9rem; }
-  .steps { list-style: none; padding: 0; margin: 0 0 12px; }
-  .steps li { display: flex; gap: 10px; align-items: center; padding: 4px 0; color: var(--muted); }
-  .steps li.done { color: var(--text); }
-  .steps li.running { color: var(--accent); font-weight: 600; }
-  .steps li.failed { color: var(--falso); font-weight: 600; }
-  .icon { width: 1.2em; text-align: center; }
-  .spin { display: inline-block; animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { border-color: var(--falso); background: var(--tint-falso); }
-  .tiles { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 14px; }
-  @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
-  .tile { border: 2px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer;
-          text-align: left; background: var(--bg); color: var(--text); font: inherit; }
-  .tile .n { font-size: 1.6rem; font-weight: 700; display: block; line-height: 1.2; }
-  .tile.active { border-color: currentColor; }
-  .meta { color: var(--muted); font-size: .92rem; margin: 4px 0; }
-  .warnings { margin: 10px 0 0; padding-left: 20px; color: var(--warn); font-size: .92rem; }
-  .claim { border-left: 5px solid var(--border); }
-  .claim header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-  .badge { border-radius: 999px; padding: 2px 12px; font-weight: 700; font-size: .9rem; }
-  .pill { border: 1px solid var(--border); border-radius: 999px; padding: 1px 10px; font-size: .82rem; color: var(--muted); }
-  blockquote { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: var(--bg); font-style: italic; }
-  .normalized { margin: 0 0 10px; font-weight: 600; }
-  .explanation { margin: 0 0 10px; }
-  .sources { margin: 0; padding-left: 20px; font-size: .92rem; }
-  .sources a { color: var(--accent); word-break: break-word; }
-  .note { font-size: .88rem; color: var(--warn); margin: 8px 0 0; }
-  .hidden { display: none; }
-  .table-wrap { overflow-x: auto; margin-top: 14px; }
-  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
-  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
-  th:first-child, td:first-child { text-align: left; white-space: normal; }
-  th { color: var(--muted); font-weight: 600; font-size: .82rem; }
-  tbody tr { cursor: pointer; }
-  tbody tr:hover, tbody tr.active { background: var(--bg); }
-  tbody tr.active td:first-child { font-weight: 700; }
-  .filters { margin: 0 0 12px; }
-</style>
+<link rel="stylesheet" href="/static/report.css">
 </head>
 <body>
 <main>
@@ -96,7 +14,7 @@
   <section class="card">
     <form id="form">
       <label for="texto">Texto del discurso</label>
-      <textarea id="texto" placeholder="Pega aquí el texto…" required></textarea>
+      <textarea id="texto" placeholder="Pega aquí el texto. Si hay varios oradores, escríbelo como «Nombre: lo que dice»." required></textarea>
       <div class="row">
         <div>
           <label for="fecha">Fecha del discurso</label>
@@ -105,6 +23,12 @@
         <div>
           <label for="autor">Orador o autor (opcional)</label>
           <input id="autor" type="text" placeholder="Nombre">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="email">Enviar el informe a (opcional)</label>
+          <input id="email" type="email" placeholder="correo@ejemplo.com" autocomplete="email">
         </div>
       </div>
       <label class="check"><input id="recalcular" type="checkbox">
@@ -120,6 +44,7 @@
     <h2>Progreso</h2>
     <ul class="steps" id="pasos"></ul>
     <p class="meta" id="mensaje"></p>
+    <p class="meta" id="correo"></p>
   </section>
 
   <section class="card error hidden" id="error"></section>
@@ -137,61 +62,25 @@
         <h2>Por orador</h2>
         <table id="oradores"></table>
       </div>
+      <div class="actions"><a class="button" id="descargar" href="#">Descargar informe</a></div>
     </div>
     <p class="meta filters" id="filtros"></p>
     <div id="afirmaciones"></div>
   </section>
 </main>
 
+<script src="/static/report.js"></script>
 <script>
-const CATEGORIES = {
-  verdadero: "Verdadero",
-  verdadero_sin_fuente_oficial: "Verdadero sin fuente oficial",
-  confusion: "Confusión",
-  no_verificable: "No verificable",
-  falso_sin_fuente_oficial: "Falso sin fuente oficial",
-  falso_con_fuente_oficial: "Falso con fuente oficial",
-};
 const STEP_NAMES = {
   audio: "Extraer audio", transcript: "Preparar el texto", claims: "Detectar afirmaciones",
   evidence: "Buscar evidencia", verdicts: "Decidir veredictos", report: "Generar informe",
 };
-const BASIS = {
-  factcheck: "desmentido publicado", oficial: "fuente oficial", web: "solo web", sin_fuente: "sin fuente",
-};
 const STEP_ICONS = { pending: "○", running: "◐", done: "✓", failed: "✗" };
-
-const $ = (id) => document.getElementById(id);
-let filter = null;
-let speakerFilter = null;
-let lastReport = null;
-
-function el(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) {
-    if (key === "class") node.className = value;
-    else if (key === "style") node.style.cssText = value;
-    else node.setAttribute(key, value);
-  }
-  for (const child of children) {
-    if (child === null || child === undefined) continue;
-    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
-  }
-  return node;
-}
-
-function safeLink(url, text) {
-  // Only http(s) links; text is always set as text, never as HTML.
-  if (!/^https?:\/\//i.test(url)) return el("span", {}, text);
-  return el("a", { href: url, target: "_blank", rel: "noopener noreferrer" }, text);
-}
-
-function formatTime(seconds) {
-  const s = Math.floor(seconds), m = Math.floor(s / 60);
-  return `${String(m).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
+const MAIL_TEXT = {
+  pendiente: "El informe se enviará por correo al terminar.",
+  enviando: "Enviando el informe por correo…",
+  enviado: "Informe enviado por correo.",
+};
 
 function renderSteps(status) {
   $("pasos").replaceChildren(...status.pasos.map((step) => {
@@ -200,93 +89,10 @@ function renderSteps(status) {
     return el("li", { class: step.estado }, icon, STEP_NAMES[step.paso] || step.paso);
   }));
   $("mensaje").textContent = status.estado === "en_curso" ? status.progreso : "";
-}
-
-function renderClaim(claim, speakers) {
-  const color = `var(--${claim.category})`;
-  const header = el("header", {},
-    el("span", { class: "badge", style: `background: var(--tint-${claim.category}); color: ${color}` },
-      CATEGORIES[claim.category]),
-  );
-  if (claim.verdict === "falso" && claim.matched_factcheck) {
-    header.append(el("span", { class: "badge", style: `background: ${color}; color: var(--card)` }, "Bulo"));
-  }
-  if (claim.verdict !== "no_verificable") {
-    header.append(el("span", { class: "pill" }, `confianza ${Math.round(claim.confidence * 100)} %`));
-  }
-  if (claim.basis) header.append(el("span", { class: "pill" }, BASIS[claim.basis]));
-  header.append(el("span", { class: "pill" }, speakers[claim.speaker] || claim.speaker));
-  if (claim.start !== null && claim.start !== undefined) {
-    header.append(el("span", { class: "pill" }, formatTime(claim.start)));
-  }
-
-  const card = el("article", { class: "card claim", style: `border-left-color: ${color}` },
-    header,
-    el("blockquote", {}, `«${claim.text_original}»`),
-    el("p", { class: "normalized" }, claim.text_normalized),
-    el("p", { class: "explanation" }, claim.explanation),
-  );
-  if (claim.sources.length) {
-    card.append(el("ul", { class: "sources" }, ...claim.sources.map((s) => el("li", {},
-      `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));
-  }
-  if (claim.analysis_error) card.append(el("p", { class: "note" }, `El análisis falló: ${claim.analysis_error}`));
-  if (claim.evidence_errors.length) {
-    card.append(el("p", { class: "note" }, `Búsquedas con errores: ${claim.evidence_errors.join("; ")}`));
-  }
-  return card;
-}
-
-function renderReport(report) {
-  lastReport = report;
-  const total = report.claims.length;
-  $("titulo-resumen").textContent = `${total} afirmaci${total === 1 ? "ón verificable" : "ones verificables"}`;
-  $("tiles").replaceChildren(...Object.entries(CATEGORIES).map(([key, name]) => {
-    const tile = el("button", { type: "button", class: "tile" + (filter === key ? " active" : ""),
-      style: `color: var(--${key}); background: var(--tint-${key})` },
-      el("span", { class: "n" }, report.by_category[key]), name);
-    tile.addEventListener("click", () => { filter = filter === key ? null : key; renderReport(lastReport); });
-    return tile;
-  }));
-  const basis = Object.entries(report.by_basis).filter(([, n]) => n).map(([k, n]) => `${BASIS[k]}: ${n}`);
-  $("base").textContent = basis.length ? `En qué se apoyan los veredictos — ${basis.join(", ")}` : "";
-  const plan = report.cost.entries.some((e) => e.provider === "claude-code");
-  $("coste").textContent = `Coste estimado: ${report.cost.total_usd.toFixed(4)} $` +
-    (plan ? " (equivalente orientativo, cubierto por tu plan de Claude)" : "");
-  $("avisos").replaceChildren(...report.warnings.map((w) => el("li", {}, w)));
-
-  renderSpeakers(report);
-  const name = (c) => report.speakers[c.speaker] || c.speaker;
-  const claims = report.claims.filter((c) =>
-    (!filter || c.category === filter) && (!speakerFilter || name(c) === speakerFilter));
-  const active = [filter && CATEGORIES[filter], speakerFilter].filter(Boolean);
-  $("filtros").textContent = active.length
-    ? `Mostrando: ${active.join(" · ")} (${claims.length}). Pulsa de nuevo para quitar el filtro.` : "";
-  $("afirmaciones").replaceChildren(...claims.map((c) => renderClaim(c, report.speakers)));
-  if (!total) {
-    $("afirmaciones").append(el("p", { class: "meta" }, "No se han detectado afirmaciones verificables en el texto."));
-  }
-  show("resultado", true);
-}
-
-function renderSpeakers(report) {
-  const speakers = Object.entries(report.by_speaker);
-  show("oradores-wrap", speakers.length > 1);
-  if (speakers.length < 2) return;
-  const head = el("tr", {}, el("th", {}, "Orador"),
-    ...Object.values(CATEGORIES).map((n) => el("th", {}, n)), el("th", {}, "Total"));
-  const rows = speakers.map(([speaker, counts]) => {
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    const row = el("tr", { class: speakerFilter === speaker ? "active" : "" }, el("td", {}, speaker),
-      ...Object.keys(CATEGORIES).map((k) => el("td", { style: counts[k] ? `color: var(--${k}); font-weight: 700` : "" }, counts[k])),
-      el("td", {}, total));
-    row.addEventListener("click", () => {
-      speakerFilter = speakerFilter === speaker ? null : speaker;
-      renderReport(lastReport);
-    });
-    return row;
-  });
-  $("oradores").replaceChildren(el("thead", {}, head), el("tbody", {}, ...rows));
+  const mail = status.correo;
+  $("correo").textContent = !mail ? "" : mail.estado === "error"
+    ? `No se pudo enviar el correo: ${mail.detalle}` : `${MAIL_TEXT[mail.estado]} (${mail.destino})`;
+  $("correo").style.color = mail && mail.estado === "error" ? "var(--error)" : "";
 }
 
 async function poll(jobId) {
@@ -294,11 +100,16 @@ async function poll(jobId) {
   if (!response.ok) throw new Error("No se pudo consultar el análisis");
   const status = await response.json();
   renderSteps(status);
-  if (status.estado === "en_curso") return setTimeout(() => poll(jobId).catch(fail), 1000);
+  const mailPending = status.correo && ["pendiente", "enviando"].includes(status.correo.estado);
+  if (status.estado === "en_curso" || (status.estado === "terminado" && mailPending)) {
+    setTimeout(() => poll(jobId).catch(fail), 1000);
+  }
+  if (status.estado === "en_curso") return;
   $("enviar").disabled = false;
   if (status.estado === "error") return fail(new Error(status.error));
   try { localStorage.setItem("ultimoAnalisis", jobId); } catch (e) { /* storage unavailable */ }
-  renderReport(status.informe);
+  $("descargar").href = `/api/analisis/${jobId}/informe.html`;
+  if (!lastReport || lastReport.job_id !== status.informe.job_id) renderReport(status.informe);
 }
 
 function fail(error) {
@@ -309,15 +120,15 @@ function fail(error) {
 
 $("form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  show("error", false); show("resultado", false); filter = null; speakerFilter = null;
+  show("error", false); show("resultado", false); resetFilters(); lastReport = null;
   $("enviar").disabled = true;
   try {
     const response = await fetch("/api/analisis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        texto: $("texto").value, fecha: $("fecha").value,
-        autor: $("autor").value, recalcular: $("recalcular").checked,
+        texto: $("texto").value, fecha: $("fecha").value, autor: $("autor").value,
+        email: $("email").value, recalcular: $("recalcular").checked,
       }),
     });
     const body = await response.json();
@@ -334,6 +145,11 @@ $("texto").addEventListener("input", () => {
 
 $("fecha").value = new Date().toISOString().slice(0, 10);
 try {
+  const savedEmail = localStorage.getItem("correo");
+  if (savedEmail) $("email").value = savedEmail;
+  $("email").addEventListener("change", () => {
+    try { localStorage.setItem("correo", $("email").value); } catch (e) { /* storage unavailable */ }
+  });
   const last = localStorage.getItem("ultimoAnalisis");
   if (last) poll(last).then(() => show("progreso", true)).catch(() => {});
 } catch (e) { /* storage unavailable */ }

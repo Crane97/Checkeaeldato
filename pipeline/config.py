@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     google_factcheck_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
 
+    # Sending reports by email (any SMTP provider; Gmail needs an app password).
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    email_from: str | None = None  # defaults to SMTP_USER
+
     data_dir: Path = Path("data")
 
     def model_for(self, step: LlmStep) -> str:

@@ -15,9 +15,30 @@ def deps() -> FakeDeps:
     return FakeDeps()
 
 
+class FakeSender:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.sent: list[tuple[str, str]] = []
+        self.error = error
+
+    def __call__(self, report, to: str) -> None:
+        if self.error:
+            raise self.error
+        self.sent.append((report.job_id, to))
+
+
 @pytest.fixture
-def client(tmp_path: Path, deps: FakeDeps) -> TestClient:
-    app = create_app(data_dir=tmp_path / "data", deps_factory=lambda: deps, run_in_thread=False)
+def sender() -> FakeSender:
+    return FakeSender()
+
+
+@pytest.fixture
+def client(tmp_path: Path, deps: FakeDeps, sender: FakeSender) -> TestClient:
+    app = create_app(
+        data_dir=tmp_path / "data",
+        deps_factory=lambda: deps,
+        run_in_thread=False,
+        email_sender=sender,
+    )
     return TestClient(app)
 
 
@@ -31,7 +52,7 @@ def start(client: TestClient, **overrides) -> dict:
 def test_home_page_has_the_form(client):
     response = client.get("/")
     assert response.status_code == 200
-    for element in ('id="texto"', 'id="fecha"', 'id="autor"', 'id="recalcular"'):
+    for element in ('id="texto"', 'id="fecha"', 'id="autor"', 'id="email"', 'id="recalcular"'):
         assert element in response.text
 
 
@@ -115,5 +136,57 @@ def test_only_one_analysis_at_a_time(tmp_path, deps):
 
 
 def test_page_has_per_speaker_table():
-    html = (STATIC_DIR / "index.html").read_text()
-    assert 'id="oradores"' in html and "by_speaker" in html
+    assert 'id="oradores"' in (STATIC_DIR / "index.html").read_text()
+    assert "by_speaker" in (STATIC_DIR / "report.js").read_text()
+
+
+def test_report_is_emailed_when_an_address_is_given(client, sender):
+    job = start(client, email="ana@example.com")
+    status = client.get(f"/api/analisis/{job['job_id']}").json()
+    assert sender.sent == [(job["job_id"], "ana@example.com")]
+    assert status["correo"] == {"estado": "enviado", "destino": "ana@example.com", "detalle": None}
+
+
+def test_no_email_without_an_address(client, sender):
+    job = start(client)
+    assert sender.sent == []
+    assert client.get(f"/api/analisis/{job['job_id']}").json()["correo"] is None
+
+
+def test_email_failure_is_shown_but_results_stay_available(tmp_path, deps):
+    from pipeline.email_report import EmailError
+
+    app = create_app(
+        data_dir=tmp_path / "data",
+        deps_factory=lambda: deps,
+        run_in_thread=False,
+        email_sender=FakeSender(EmailError("El servidor rechazó la contraseña")),
+    )
+    client = TestClient(app)
+    job = start(client, email="ana@example.com")
+    status = client.get(f"/api/analisis/{job['job_id']}").json()
+    assert status["estado"] == "terminado"
+    assert status["informe"] is not None
+    assert status["correo"]["estado"] == "error"
+    assert "contraseña" in status["correo"]["detalle"]
+
+
+def test_invalid_email_is_rejected(client):
+    response = client.post(
+        "/api/analisis", json={"texto": ARTICLE, "fecha": DATE, "email": "no-es-un-correo"}
+    )
+    assert response.status_code == 400
+    assert "correo" in response.text
+
+
+def test_interactive_report_can_be_downloaded(client):
+    job = start(client)
+    response = client.get(f"/api/analisis/{job['job_id']}/informe.html")
+    assert response.status_code == 200
+    assert "function renderReport" in response.text
+    assert "attachment" in response.headers["content-disposition"]
+
+
+def test_shared_assets_are_served(client):
+    assert "renderReport" in client.get("/static/report.js").text
+    assert "--confusion" in client.get("/static/report.css").text

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de verificación · __TITLE__</title>
+<style>
+__CSS__
+</style>
+</head>
+<body>
+<main>
+  <h1>Informe de verificación</h1>
+  <p class="sub">__SUBTITLE__</p>
+
+  <section class="hidden" id="resultado">
+    <div class="card">
+      <h2 id="titulo-resumen"></h2>
+      <p class="meta">Pulsa una categoría o un orador para ver solo esas afirmaciones.</p>
+      <div class="tiles" id="tiles"></div>
+      <p class="meta" id="base"></p>
+      <p class="meta">«Fuente oficial» incluye organismos públicos (INE, BOE, Banco de España…) y
+        verificadores profesionales (Maldita, Newtral, EFE Verifica).</p>
+      <p class="meta" id="coste"></p>
+      <ul class="warnings" id="avisos"></ul>
+      <div class="table-wrap hidden" id="oradores-wrap">
+        <h2>Por orador</h2>
+        <table id="oradores"></table>
+      </div>
+    </div>
+    <p class="meta filters" id="filtros"></p>
+    <div id="afirmaciones"></div>
+  </section>
+  <p class="meta">Generado por Checkea el Dato el __GENERATED__. Cada veredicto se basa solo en
+    las fuentes enlazadas.</p>
+</main>
+<script>const REPORT = __REPORT_JSON__;</script>
+<script>
+__JS__
+</script>
+<script>renderReport(REPORT);</script>
+</body>
+</html>

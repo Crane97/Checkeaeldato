@@ -59,3 +59,34 @@ def test_user_errors_are_shown_without_traceback(tmp_path, fake_deps):
     assert "No existe el archivo" in result.output
     assert "repite el mismo comando" in result.output
     assert "Traceback" not in result.output
+
+
+def test_email_option_sends_the_report(article, fake_deps, monkeypatch):
+    sent = []
+    monkeypatch.setattr(cli, "email_report", lambda report, to, settings: sent.append(to))
+    result = runner.invoke(
+        cli.app, [str(article), "--fecha", "2026-11-20", "--email", "ana@example.com"]
+    )
+    assert result.exit_code == 0, result.output
+    assert sent == ["ana@example.com"]
+    assert "Informe enviado a ana@example.com" in result.output
+
+
+def test_email_failure_keeps_the_summary_and_explains(article, fake_deps, monkeypatch):
+    from pipeline.email_report import EmailError
+
+    def broken(report, to, settings):
+        raise EmailError("contraseña rechazada")
+
+    monkeypatch.setattr(cli, "email_report", broken)
+    result = runner.invoke(
+        cli.app, [str(article), "--fecha", "2026-11-20", "--email", "ana@example.com"]
+    )
+    assert result.exit_code == 1
+    assert "Afirmaciones verificables" in result.output
+    assert "contraseña rechazada" in result.output
+
+
+def test_invalid_email_option_is_rejected(article, fake_deps):
+    result = runner.invoke(cli.app, [str(article), "--fecha", "2026-11-20", "--email", "x"])
+    assert result.exit_code == 2

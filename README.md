@@ -22,6 +22,10 @@ Las reglas del proyecto (neutralidad, categorías, principios) están en
    | `TRANSCRIPTION_API_KEY` | Solo para vídeo (ElevenLabs Scribe v2) | elevenlabs.io → API Keys |
 
    Si falta la clave de Google o de Tavily, esa fuente se desactiva y el informe lo avisa.
+
+   Para recibir el informe por correo, rellena además `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`
+   y `SMTP_PASSWORD` (ver `.env.example`). El correo trae un resumen y un adjunto
+   `informe-….html` que se abre en el navegador y permite filtrar por orador y por tipo.
 3. Para vídeo hace falta además `ffmpeg` (`brew install ffmpeg`).
 
 ## Uso
@@ -32,8 +36,8 @@ Las reglas del proyecto (neutralidad, categorías, principios) están en
 uv run verificar-web
 ```
 
-Se abre `http://localhost:8000`: pega el texto, pon la fecha y (opcional) el orador, y pulsa
-**Analizar**. Verás el progreso por pasos y el resultado con cada afirmación, su veredicto,
+Se abre `http://localhost:8000`: pega el texto, pon la fecha y (opcional) el orador y un
+correo al que enviar el informe, y pulsa **Analizar**. Verás el progreso por pasos y el resultado con cada afirmación, su veredicto,
 la explicación y las fuentes. Solo es accesible desde tu ordenador. Para pararla: Ctrl+C.
 
 ### Terminal

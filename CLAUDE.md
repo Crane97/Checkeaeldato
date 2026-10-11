@@ -90,7 +90,11 @@ pipeline/
   report.py           # agregación y salida JSON
   evaluation.py       # formato gold, emparejamiento y métricas
   web/                # web LOCAL de pruebas (FastAPI + una página): `uv run verificar-web`.
-                      # No es la web de la fase 4; solo escucha en 127.0.0.1
+                      # No es la web de la fase 4; solo escucha en 127.0.0.1.
+                      # static/report.{css,js}: pintado compartido con el informe HTML
+  report_html.py      # informe HTML autocontenido e interactivo (filtros orador/categoría)
+  email_report.py     # envío por SMTP: resumen estático en el cuerpo + informe adjunto
+                      # (los clientes de correo bloquean JavaScript)
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
   gold/               # casos de prueba (JSON) con veredicto esperado
@@ -250,6 +254,7 @@ TRANSCRIPTION_PROVIDER=elevenlabs
 TRANSCRIPTION_API_KEY=
 GOOGLE_FACTCHECK_API_KEY=
 TAVILY_API_KEY=
+SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
 ```
 
 ## Comandos
