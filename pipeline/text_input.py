@@ -112,12 +112,20 @@ def _speaker_label(line: str) -> tuple[str, str] | None:
     return name, match["text"].strip()
 
 
+def _document_label(line: str) -> bool:
+    """True for "Nota: …", "Crónica: …": the narrator speaks, not the last speaker."""
+    match = _LABEL_RE.match(line)
+    return match is not None and match["name"].strip().casefold() in _NOT_SPEAKERS
+
+
 def _labelled_segments(text: str) -> list[Segment] | None:
     """Segments per speaker turn if the text is a dialogue ("Nombre: …" lines), else None.
 
-    Lines without a label continue the current turn; a blank line ends it, so
-    unlabelled paragraphs belong to the author, as does text before the first label. The same
-    name written in another case ("ANA PÉREZ" / "Ana Pérez") is one speaker.
+    Transcripts (e.g. the Diario de Sesiones) label only the first paragraph of each
+    intervention, so unlabelled lines and paragraphs continue the current turn, each paragraph
+    as its own segment. Text before the first label and after a document label ("Nota:",
+    "Crónica:") belongs to the author. The same name written in another case ("ANA PÉREZ" /
+    "Ana Pérez") is one speaker.
     """
     lines = text.split("\n")
     labels = [label for line in lines if (label := _speaker_label(line))]
@@ -142,10 +150,11 @@ def _labelled_segments(text: str) -> list[Segment] | None:
             speaker = canonical.setdefault(name.casefold(), name)
             buffer.append(rest)
         elif not line.strip():
-            # A blank line ends the turn: unlabelled text after it goes back to the author
-            # rather than risk putting words in the last speaker's mouth.
+            flush()  # a new paragraph of the same turn
+        elif _document_label(line):
             flush()
             speaker = TEXT_SPEAKER
+            buffer.append(line.strip())
         else:
             buffer.append(line.strip())
     flush()

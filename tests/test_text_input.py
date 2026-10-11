@@ -96,7 +96,7 @@ def test_prose_and_document_labels_are_not_speakers(tmp_path: Path, text):
     assert speakers == {"autor"}
 
 
-def test_unlabelled_paragraph_after_a_blank_line_is_not_put_in_anyones_mouth(tmp_path: Path):
+def test_document_label_ends_the_turn_and_returns_to_the_author(tmp_path: Path):
     text = (
         "Moderadora: Pasamos al siguiente bloque.\n"
         "Candidata A: Gracias.\n"
@@ -105,3 +105,23 @@ def test_unlabelled_paragraph_after_a_blank_line_is_not_put_in_anyones_mouth(tmp
     )
     segments = load_text(write(tmp_path, "a.txt", text.encode())).segments
     assert segments[-1].speaker == "autor"
+
+
+def test_paragraphs_without_label_continue_the_current_turn(tmp_path: Path):
+    # Parliamentary transcripts label only the first paragraph of each intervention.
+    text = (
+        "Sr. Pérez: Gracias, presidente.\n"
+        "\n"
+        "El paro subió un 3 % el último año.\n"
+        "\n"
+        "Presidente: Muchas gracias, señoría.\n"
+        "\n"
+        "Hemos creado 500.000 empleos.\n"
+    )
+    segments = load_text(write(tmp_path, "a.txt", text.encode())).segments
+    assert [(s.speaker, s.text) for s in segments] == [
+        ("Sr. Pérez", "Gracias, presidente."),
+        ("Sr. Pérez", "El paro subió un 3 % el último año."),
+        ("Presidente", "Muchas gracias, señoría."),
+        ("Presidente", "Hemos creado 500.000 empleos."),
+    ]
