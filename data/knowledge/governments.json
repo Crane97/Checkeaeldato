@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "updated": "2026-10-10",
+  "sources": [
+    "https://www.lamoncloa.gob.es/presidente/presidentes/Paginas/index.aspx",
+    "Reales decretos de nombramiento publicados en el BOE (citados en cada mandato)"
+  ],
+  "notes": "Se actualiza A MANO cuando cambia el Gobierno. Fechas: día de toma de posesión. 'end' null = sigue en el cargo a la fecha de 'updated'. Solo nivel nacional por ahora; el esquema admite autonómico y municipal.",
+  "parties": {
+    "UCD": {"name": "Unión de Centro Democrático", "aliases": ["UCD", "Unión de Centro Democrático"]},
+    "PSOE": {
+      "name": "Partido Socialista Obrero Español",
+      "aliases": ["PSOE", "Partido Socialista", "Partido Socialista Obrero Español", "socialistas"]
+    },
+    "PP": {"name": "Partido Popular", "aliases": ["PP", "Partido Popular", "populares"]},
+    "Unidas Podemos": {"name": "Unidas Podemos", "aliases": ["Unidas Podemos", "Unidos Podemos", "Podemos"]},
+    "Sumar": {"name": "Sumar", "aliases": ["Sumar", "Movimiento Sumar"]}
+  },
+  "governments": [
+    {
+      "id": "es-1976-suarez",
+      "level": "nacional",
+      "territory": "España",
+      "president": "Adolfo Suárez",
+      "parties": ["UCD"],
+      "start": "1976-07-05",
+      "end": "1981-02-26",
+      "coalition_partners": [],
+      "caretaker": [],
+      "appointment": "RD 1561/1976 (BOE 5-7-1976); RD 681/1979",
+      "notes": "Nombrado el 3 de julio de 1976. La UCD se constituyó en 1977; hasta entonces no tenía partido."
+    },
+    {
+      "id": "es-1981-calvo-sotelo",
+      "level": "nacional",
+      "territory": "España",
+      "president": "Leopoldo Calvo-Sotelo",
+      "parties": ["UCD"],
+      "start": "1981-02-26",
+      "end": "1982-12-02",
+      "coalition_partners": [],
+      "caretaker": [],
+      "appointment": "RD 250/1981, de 25 de febrero"
+    },
+    {
+      "id": "es-1982-gonzalez",
+      "level": "nacional",
+      "territory": "España",
+      "president": "Felipe González",
+      "parties": ["PSOE"],
+      "start": "1982-12-02",
+      "end": "1996-05-05",
+      "coalition_partners": [],
+      "caretaker": [],
+      "appointment": "RD 3285/1982; RD 1514/1986; RD 1452/1989; RD 1106/1993"
+    },
+    {
+      "id": "es-1996-aznar",
+      "level": "nacional",
+      "territory": "España",
+      "president": "José María Aznar",
+      "parties": ["PP"],
+      "start": "1996-05-05",
+      "end": "2004-04-17",
+      "coalition_partners": [],
+      "caretaker": [],
+      "appointment": "RD 757/1996; RD 555/2000"
+    },
+    {
+      "id": "es-2004-zapatero",
+      "level": "nacional",
+      "territory": "España",
+      "president": "José Luis Rodríguez Zapatero",
+      "parties": ["PSOE"],
+      "start": "2004-04-17",
+      "end": "2011-12-21",
+      "coalition_partners": [],
+      "caretaker": [],
+      "appointment": "RD 552/2004; RD 431/2008"
+    },
+    {
+      "id": "es-2011-rajoy",
+      "level": "nacional",
+      "territory": "España",
+      "president": "Mariano Rajoy",
+      "parties": ["PP"],
+      "start": "2011-12-21",
+      "end": "2018-06-02",
+      "coalition_partners": [],
+      "caretaker": [{"start": "2015-12-21", "end": "2016-10-31"}],
+      "appointment": "RD 1822/2011; RD 1168/2015 (continuidad en funciones); RD 414/2016, de 30 de octubre"
+    },
+    {
+      "id": "es-2018-sanchez",
+      "level": "nacional",
+      "territory": "España",
+      "president": "Pedro Sánchez",
+      "parties": ["PSOE"],
+      "start": "2018-06-02",
+      "end": null,
+      "coalition_partners": [
+        {"party": "Unidas Podemos", "start": "2020-01-13", "end": "2023-11-21"},
+        {"party": "Sumar", "start": "2023-11-21", "end": null}
+      ],
+      "caretaker": [
+        {"start": "2019-04-29", "end": "2020-01-08"},
+        {"start": "2023-07-24", "end": "2023-11-17"}
+      ],
+      "appointment": "RD 354/2018, de 1 de junio; RD 336/2019 (continuidad en funciones); RD 1/2020; RD 828/2023"
+    }
+  ]
+}

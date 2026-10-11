@@ -1,8 +1,9 @@
 # Secrets
 .env
 
-# Local videos, audio and job outputs
-data/
+# Local videos, audio and job outputs (the knowledge base is versioned)
+data/*
+!data/knowledge/
 
 # Python
 __pycache__/
