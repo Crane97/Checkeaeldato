@@ -54,8 +54,11 @@ que no haya que reescribir al pasar de fase.
   `LLM_BACKEND=claude-code` (suscripción local vía `claude -p`, solo para pruebas en local:
   sin herramientas, sin MCP, desde una carpeta vacía y sin `ANTHROPIC_API_KEY`). Modelo configurable con `ANTHROPIC_MODEL` y, por
   paso, `ANTHROPIC_MODEL_DETECTION` / `ANTHROPIC_MODEL_VERDICT`; nunca hardcodeado. Para
-  la demo local: detección con `claude-haiku-5-5` y **veredicto con `claude-opus-5-5`**
-  (`ANTHROPIC_MODEL_VERDICT`), por rigor con las cifras.
+  la demo local: detección con `claude-haiku-5-5` y **veredicto y contexto con
+  `claude-sonnet-5-5`** (`ANTHROPIC_MODEL_VERDICT`): en la evaluación del 2026-10-11 acertó
+  lo mismo que Opus 5.5 (17/17) a la mitad de coste. El veredicto es ~96 % del gasto: se le
+  envían como máximo 8 fuentes (oficiales y verificadores primero) con extractos de 2.500
+  caracteres.
 - **Transcripción:** proveedor en la nube detrás de una interfaz `Transcriber`. Elegido:
   **ElevenLabs Scribe v2** (por lotes, diarización incluida). Requisitos: español,
   diarización, timestamps por palabra o segmento.
@@ -140,7 +143,12 @@ Decididas por el responsable del proyecto (2026-10-10). Claude decide el **vered
 - **verdad_a_medias** — solo para afirmaciones **generales sin cifra** ("ha subido los
   impuestos a las familias") que la evidencia respalda en parte y contradice en parte. Una
   sola categoría (no "verdad a medias" / "falso a medias"): decidir hacia qué lado se
-  inclina sería una valoración subjetiva. La explicación detalla ambas partes.
+  inclina sería una valoración subjetiva. La explicación detalla ambas partes. Si las
+  medidas de un sentido **pesan claramente más** (personas afectadas e importe), el
+  veredicto es el de ese sentido. En afirmaciones sobre un grupo amplio ("las familias"),
+  una medida que afecta a una pequeña minoría pesa poco, en los dos sentidos.
+- Las proposiciones, enmiendas e intervenciones de grupos parlamentarios y partidos son
+  posturas, no evidencia, aunque se publiquen en webs oficiales.
 - **confusion** — el contenido es correcto pero una referencia secundaria está mal (número
   de artículo o ley, nombre de la norma u organismo, fecha del documento) sin cambiar el
   sentido: "el artículo 32 de la Constitución dice que el Rey es el Jefe del Estado" (es el
