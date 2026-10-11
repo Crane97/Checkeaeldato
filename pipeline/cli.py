@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated, cast
 
 import typer
+from pydantic import TypeAdapter, ValidationError
 
 from pipeline.audio import AudioError
 from pipeline.claims import ClaimsError
@@ -14,7 +15,7 @@ from pipeline.email_report import EmailError, email_report, is_valid_email
 from pipeline.evidence.base import EvidenceError
 from pipeline.jobs import JobError
 from pipeline.llm import LLMError
-from pipeline.models import STEPS, StepName
+from pipeline.models import STEPS, SpeakerInfo, StepName
 from pipeline.report import ReportError
 from pipeline.run import LiveDeps, run_job
 from pipeline.text_input import InputError
@@ -59,6 +60,19 @@ def _parse_speakers(value: str | None) -> dict[str, str] | None:
     return speakers
 
 
+def _parse_speakers_file(path: Path | None) -> dict[str, SpeakerInfo] | None:
+    if path is None:
+        return None
+    try:
+        return TypeAdapter(dict[str, SpeakerInfo]).validate_json(path.read_bytes())
+    except (OSError, ValidationError) as exc:
+        raise typer.BadParameter(
+            f"no se pudo leer {path}: debe ser un JSON como "
+            '{"SPEAKER_0": {"name": "Ana Ruiz", "party": "PSOE", "role": "candidata"}}',
+            param_hint="--speakers",
+        ) from exc
+
+
 def _parse_step(value: str | None) -> StepName | None:
     if value is not None and value not in STEPS:
         raise typer.BadParameter(f"paso desconocido; usa uno de: {', '.join(STEPS)}")
@@ -81,6 +95,13 @@ def main(
     fecha: Annotated[
         str, typer.Option("--fecha", help="Fecha del discurso o artículo (AAAA-MM-DD)")
     ],
+    speakers_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--speakers",
+            help='JSON con quién es cada orador: {"SPEAKER_0": {"name": …, "party": …, "role": …}}',
+        ),
+    ] = None,
     oradores: Annotated[
         str | None,
         typer.Option(help='Nombres de los oradores: "speaker_0=Nombre,speaker_1=Nombre"'),
@@ -102,6 +123,7 @@ def main(
     speech_date = _parse_date(fecha)
     speakers = _parse_speakers(oradores)
     step = _parse_step(from_step)
+    speaker_info = _parse_speakers_file(speakers_file)
     if email is not None and not is_valid_email(email):
         raise typer.BadParameter("la dirección de correo no es válida", param_hint="--email")
     _setup_logging(verbose)
@@ -115,6 +137,7 @@ def main(
             deps=LiveDeps(settings),
             speakers=speakers,
             author=autor,
+            speaker_info=speaker_info,
             from_step=step,
             purge_audio=purge_audio,
         )

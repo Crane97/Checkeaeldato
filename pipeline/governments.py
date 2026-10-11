@@ -215,15 +215,18 @@ class Governments:
                 ranges.append(DateRange(start=max(partner.start, term.start), end=end))
         return self._merge(ranges)
 
-    def president_periods(self, name: str, until: dt.date) -> list[DateRange]:
+    def president_terms(self, name: str) -> list[GovernmentTerm]:
+        """Terms of the president whose name contains all the words of `name`
+        (titles like "señor" are ignored, so "señor Zapatero" works)."""
         wanted = _tokens(name)
-        if not wanted:
-            return []
+        return [t for t in self.terms if wanted and wanted <= _tokens(t.president)]
+
+    def president_periods(self, name: str, until: dt.date) -> list[DateRange]:
         return self._merge(
             [
                 DateRange(start=t.start, end=min(t.end or until, until))
-                for t in self.terms
-                if t.start < until and wanted <= _tokens(t.president)
+                for t in self.president_terms(name)
+                if t.start < until
             ]
         )
 

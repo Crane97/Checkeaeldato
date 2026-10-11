@@ -166,7 +166,7 @@ def test_manifest_cost_covers_current_outputs(store, prompts_dir):
     run_steps(store, rec.steps(), prompts_dir)
     run_steps(store, rec.steps(), prompts_dir, from_step="report")
     # One entry per step, not duplicated by the rerun.
-    assert store.manifest.run_cost().total_usd == pytest.approx(0.06)
+    assert store.manifest.run_cost().total_usd == pytest.approx(0.01 * len(STEPS))
 
 
 def test_unknown_from_step_and_missing_prompt_raise(store, prompts_dir):

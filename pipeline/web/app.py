@@ -25,6 +25,7 @@ from pipeline.jobs import JOB_ID_LENGTH, MANIFEST_FILE
 from pipeline.models import STEPS, Report
 from pipeline.report_html import render_report_html
 from pipeline.run import Deps, run_job
+from pipeline.speakers import parse_speaker_lines
 
 # (report, address) -> None; raises on failure.
 EmailSender = Callable[[Report, str], None]
@@ -41,6 +42,7 @@ class AnalysisRequest(BaseModel):
     fecha: str
     autor: str | None = None
     email: str | None = None
+    oradores: str | None = None  # "Nombre | Partido | Rol" per line
     recalcular: bool = False
 
 
@@ -109,6 +111,9 @@ class JobManager:
                     data_dir=self.data_dir,
                     deps=self.deps_factory(),
                     author=(request.autor or "").strip() or None,
+                    speaker_info=(
+                        parse_speaker_lines(request.oradores) if request.oradores else None
+                    ),
                     # From the start: re-reading text is free and picks up parser changes.
                     from_step="transcript" if request.recalcular else None,
                 )

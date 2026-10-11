@@ -25,6 +25,9 @@
           <input id="autor" type="text" placeholder="Nombre">
         </div>
       </div>
+      <label for="oradores" style="margin-top:16px">Quién es quién (opcional)</label>
+      <textarea id="oradores" style="min-height:70px" placeholder="Una persona por línea: Nombre | Partido | Rol&#10;Ana Ruiz | PSOE | candidata"></textarea>
+      <p class="hint">Si no lo indicas, se deduce del propio texto (presentaciones y vocativos) cuando es posible.</p>
       <div class="row">
         <div>
           <label for="email">Enviar el informe a (opcional)</label>
@@ -72,7 +75,8 @@
 <script src="/static/report.js"></script>
 <script>
 const STEP_NAMES = {
-  audio: "Extraer audio", transcript: "Preparar el texto", claims: "Detectar afirmaciones",
+  audio: "Extraer audio", transcript: "Preparar el texto", speakers: "Identificar oradores",
+  context: "Resolver contexto", claims: "Detectar afirmaciones",
   evidence: "Buscar evidencia", verdicts: "Decidir veredictos", report: "Generar informe",
 };
 const STEP_ICONS = { pending: "○", running: "◐", done: "✓", failed: "✗" };
@@ -128,7 +132,8 @@ $("form").addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         texto: $("texto").value, fecha: $("fecha").value, autor: $("autor").value,
-        email: $("email").value, recalcular: $("recalcular").checked,
+        email: $("email").value, oradores: $("oradores").value,
+        recalcular: $("recalcular").checked,
       }),
     });
     const body = await response.json();

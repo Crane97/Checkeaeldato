@@ -9,6 +9,7 @@ from pipeline.claims import DetectionResult, ExtractedClaim
 from pipeline.evidence.base import SourceResult
 from pipeline.models import AudioInfo, CostEntry, EvidenceItem, Segment, Source, Transcript
 from pipeline.run import PROMPTS_DIR, input_kind_for, run_job
+from pipeline.speakers import SpeakerIdentification
 from pipeline.verdict import VerdictAnswer
 
 DATE = dt.date(2026, 11, 20)
@@ -18,9 +19,13 @@ ARTICLE = "Hola a todos.\n\nEl paro ha bajado un 20 % este año, según el Gobie
 class FakeLLM:
     def __init__(self) -> None:
         self.calls: list[str] = []
+        self.unbilled = 0
 
     def structured(self, *, step: str, output_type: type, **kwargs: Any) -> Any:
         self.calls.append(step)
+        self.unbilled += 1
+        if output_type is SpeakerIdentification:
+            return SpeakerIdentification(speakers=[])
         if output_type is DetectionResult:
             return DetectionResult(
                 claims=[
@@ -44,7 +49,9 @@ class FakeLLM:
         )
 
     def take_costs(self) -> list[CostEntry]:
-        return [CostEntry(step="llm", provider="anthropic", model="m", usd=0.01)]
+        costs = [CostEntry(step="llm", provider="anthropic", model="m", usd=0.01)] * self.unbilled
+        self.unbilled = 0
+        return costs
 
 
 class FakeSource:
@@ -208,3 +215,25 @@ def test_live_deps_pick_the_configured_llm_backend(tmp_path):
 
     settings = Settings(_env_file=None, llm_backend="claude-code")
     assert isinstance(LiveDeps(settings).llm, ClaudeCodeLLM)
+
+
+def test_new_speaker_info_reidentifies_speakers(tmp_path):
+    from pipeline.models import SpeakerInfo
+
+    text = tmp_path / "debate.txt"
+    text.write_text("Ana Ruiz: Hola a todos.\nLuis Gómez: El paro ha bajado un 20 % este año.\n")
+    deps = FakeDeps()
+    run(text, tmp_path / "data", deps)
+    deps.llm.calls.clear()
+
+    result = run(
+        text, tmp_path / "data", deps, speaker_info={"Luis Gómez": SpeakerInfo(party="PP")}
+    )
+    assert deps.llm.calls[0] == "speakers"
+    profile = next(p for p in result.report.speaker_profiles if p.label == "Luis Gómez")
+    assert profile.party == "PP"
+    assert result.report.speakers["Luis Gómez"] == "Luis Gómez (PP)"
+
+    deps.llm.calls.clear()
+    run(text, tmp_path / "data", deps)  # None keeps the stored info: nothing to redo
+    assert deps.llm.calls == []

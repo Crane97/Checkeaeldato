@@ -14,6 +14,7 @@ from pipeline.claims import detect_claims
 from pipeline.config import ConfigError, LlmStep, Settings
 from pipeline.costs import transcription_cost
 from pipeline.evidence.base import EvidenceSource, collect_evidence
+from pipeline.governments import default_governments
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
 from pipeline.models import (
     AudioInfo,
@@ -23,11 +24,15 @@ from pipeline.models import (
     EvidenceRun,
     InputKind,
     Report,
+    SpeakerInfo,
+    SpeakerMap,
     StepName,
     Transcript,
     Verdict,
 )
 from pipeline.report import build_report, format_summary
+from pipeline.speakers import PROMPT as SPEAKERS_PROMPT
+from pipeline.speakers import identify_speakers
 from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
 from pipeline.transcribe import Transcriber
 from pipeline.verdict import PROMPT as VERDICT_PROMPT
@@ -36,6 +41,7 @@ from pipeline.verdict import FollowUpSearch, decide_verdicts
 logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+SPEAKER_INFO_FILE = "speakers_input.json"
 
 
 class Deps(Protocol):
@@ -177,6 +183,24 @@ def build_steps(
         seconds = transcript.duration or audio.duration
         return StepOutcome(cost=[transcription_cost("transcript", transcript.provider, seconds)])
 
+    def speakers_step(store: JobStore) -> StepOutcome:
+        def work() -> None:
+            info_path = store.path(SPEAKER_INFO_FILE)
+            info = (
+                store.read(SPEAKER_INFO_FILE, dict[str, SpeakerInfo]) if info_path.exists() else {}
+            )
+            speakers = identify_speakers(
+                store.read("transcript.json", Transcript),
+                speech_date=store.manifest.speech_date,
+                llm=deps.llm,
+                model=deps.model_for("detection"),
+                governments=default_governments(),
+                info=info,
+            )
+            store.write("speakers.json", speakers, SpeakerMap)
+
+        return _with_llm_costs(deps, work)
+
     def claims_step(store: JobStore) -> StepOutcome:
         def work() -> None:
             detection = detect_claims(
@@ -217,12 +241,19 @@ def build_steps(
 
     def report_step(store: JobStore) -> StepOutcome:
         evidence = store.read("evidence.json", EvidenceRun)
+        profiles = store.read("speakers.json", SpeakerMap)
+        display = {s.label: s.display() for s in profiles.speakers if s.name or s.party}
+        for label, name in store.manifest.speakers.items():  # --oradores / --autor win
+            known = profiles.get(label)
+            party = known.party if known else None
+            display[label] = f"{name} ({party})" if party else name
         report = build_report(
             job_id=store.job_id,
             source=input_path.name,
             input_kind=kind,
             speech_date=store.manifest.speech_date,
-            speakers=store.manifest.speakers,
+            speakers=display,
+            speaker_profiles=profiles.speakers,
             detection=store.read("claims.json", ClaimDetection),
             verdicts=store.read("verdicts.json", list[Verdict]),
             cost=store.manifest.run_cost(),
@@ -237,6 +268,7 @@ def build_steps(
 
     steps = [
         Step("transcript", transcript_step),
+        Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
         Step("claims", claims_step, (CLAIMS_PROMPT,)),
         Step("evidence", evidence_step),
         Step("verdicts", verdicts_step, (VERDICT_PROMPT,)),
@@ -247,6 +279,19 @@ def build_steps(
     return steps
 
 
+def _store_speaker_info(store: JobStore, info: dict[str, SpeakerInfo] | None) -> bool:
+    """Save the user's speaker data; True if it changed (speakers must be identified again).
+    None keeps whatever was given before."""
+    if info is None:
+        return False
+    path = store.path(SPEAKER_INFO_FILE)
+    previous = store.read(SPEAKER_INFO_FILE, dict[str, SpeakerInfo]) if path.exists() else {}
+    if previous == info:
+        return False
+    store.write(SPEAKER_INFO_FILE, info, dict[str, SpeakerInfo])
+    return True
+
+
 def run_job(
     input_path: Path,
     *,
@@ -255,6 +300,7 @@ def run_job(
     deps: Deps,
     prompts_dir: Path = PROMPTS_DIR,
     speakers: dict[str, str] | None = None,
+    speaker_info: dict[str, SpeakerInfo] | None = None,
     author: str | None = None,
     from_step: StepName | None = None,
     purge_audio: bool = False,
@@ -268,6 +314,8 @@ def run_job(
         speakers = {**(speakers or {}), TEXT_SPEAKER: author}
 
     store, invalidated = JobStore.open_or_create(data_dir, input_path, kind, speech_date, speakers)
+    if _store_speaker_info(store, speaker_info):
+        invalidated = earliest_step(invalidated, "speakers")
     start = earliest_step(from_step, invalidated)
     if invalidated:
         logger.info("Parámetros cambiados: se recalcula desde %s", invalidated)

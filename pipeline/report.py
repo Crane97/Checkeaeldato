@@ -9,6 +9,7 @@ from pipeline.models import (
     InputKind,
     Report,
     RunCost,
+    Speaker,
     Verdict,
 )
 
@@ -75,6 +76,7 @@ def build_report(
     speech_date: dt.date,
     speakers: dict[str, str],
     detection: ClaimDetection,
+    speaker_profiles: list[Speaker] | None = None,
     verdicts: list[Verdict],
     cost: RunCost,
     generated_at: dt.datetime,
@@ -99,6 +101,7 @@ def build_report(
         speech_date=speech_date,
         generated_at=generated_at,
         speakers=speakers,
+        speaker_profiles=speaker_profiles or [],
         claims=claims,
         cost=cost,
         warnings=[*(extra_warnings or []), *_warnings(detection, verdicts, cost)],

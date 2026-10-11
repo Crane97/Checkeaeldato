@@ -90,3 +90,18 @@ def test_email_failure_keeps_the_summary_and_explains(article, fake_deps, monkey
 def test_invalid_email_option_is_rejected(article, fake_deps):
     result = runner.invoke(cli.app, [str(article), "--fecha", "2026-11-20", "--email", "x"])
     assert result.exit_code == 2
+
+
+def test_speakers_file_is_parsed_and_bad_files_explained(article, fake_deps, tmp_path):
+    good = tmp_path / "speakers.json"
+    good.write_text('{"autor": {"name": "Ana Ruiz", "party": "PSOE"}}')
+    result = runner.invoke(
+        cli.app, [str(article), "--fecha", "2026-11-20", "--speakers", str(good)]
+    )
+    assert result.exit_code == 0, result.output
+
+    bad = tmp_path / "bad.json"
+    bad.write_text("no es json")
+    result = runner.invoke(cli.app, [str(article), "--fecha", "2026-11-20", "--speakers", str(bad)])
+    assert result.exit_code == 2
+    assert "SPEAKER_0" in result.output

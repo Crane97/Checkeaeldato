@@ -75,6 +75,7 @@ def test_analysis_runs_and_returns_the_report(client, deps):
     assert claim["sources"][0]["url"] == "https://www.ine.es/epa"
     assert [p["paso"] for p in status["pasos"]] == [
         "transcript",
+        "speakers",
         "claims",
         "evidence",
         "verdicts",
@@ -190,3 +191,10 @@ def test_interactive_report_can_be_downloaded(client):
 def test_shared_assets_are_served(client):
     assert "renderReport" in client.get("/static/report.js").text
     assert "--confusion" in client.get("/static/report.css").text
+
+
+def test_speaker_lines_from_the_form_reach_the_report(client):
+    text = "Ana Ruiz: Hola a todos.\nLuis Gómez: El paro ha bajado un 20 % este año.\n"
+    job = start(client, texto=text, oradores="Luis Gómez | PP | candidato")
+    report = client.get(f"/api/analisis/{job['job_id']}").json()["informe"]
+    assert report["speakers"]["Luis Gómez"] == "Luis Gómez (PP)"

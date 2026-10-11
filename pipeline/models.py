@@ -97,6 +97,45 @@ class Transcript(BaseModel):
         return sorted({s.speaker for s in self.segments})
 
 
+# --- Speakers ---------------------------------------------------------------
+
+SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos"]
+
+
+class SpeakerInfo(BaseModel):
+    """Identity given by the user (speakers.json or the web form)."""
+
+    name: str | None = None
+    party: str | None = None
+    role: str | None = None
+
+
+class Speaker(BaseModel):
+    """Who a transcript label is, with the evidence for it. Unknown fields stay None."""
+
+    label: str
+    name: str | None = None
+    party: str | None = None
+    role: str | None = None
+    confidence: float = Field(default=0.0, ge=0, le=1)
+    # Literal quotes from the transcript (or "speakers.json") supporting the identification.
+    evidence: list[str] = Field(default_factory=list)
+    sources: list[SpeakerSource] = Field(default_factory=list)
+
+    def display(self) -> str:
+        base = self.name or self.label
+        return f"{base} ({self.party})" if self.party else base
+
+
+class SpeakerMap(BaseModel):
+    """Output of the speakers step (speakers.json)."""
+
+    speakers: list[Speaker] = Field(default_factory=list)
+
+    def get(self, label: str) -> Speaker | None:
+        return next((s for s in self.speakers if s.label == label), None)
+
+
 # --- Claims -----------------------------------------------------------------
 
 
@@ -280,8 +319,10 @@ class Report(BaseModel):
     input_kind: InputKind
     speech_date: dt.date
     generated_at: dt.datetime
-    # Diarized label -> real name; labels without a mapping are shown as-is.
+    # Diarized label -> display name ("Ana Ruiz (PSOE)"); unmapped labels shown as-is.
     speakers: dict[str, str] = Field(default_factory=dict)
+    # Who each speaker is and on what evidence (speakers step).
+    speaker_profiles: list[Speaker] = Field(default_factory=list)
     claims: list[Claim]
     cost: RunCost
     # Problems that make the report less complete (failed blocks, rejected quotes…).
@@ -327,8 +368,16 @@ class Report(BaseModel):
 
 # --- Jobs -------------------------------------------------------------------
 
-StepName = Literal["audio", "transcript", "claims", "evidence", "verdicts", "report"]
-STEPS: tuple[StepName, ...] = ("audio", "transcript", "claims", "evidence", "verdicts", "report")
+StepName = Literal["audio", "transcript", "speakers", "claims", "evidence", "verdicts", "report"]
+STEPS: tuple[StepName, ...] = (
+    "audio",
+    "transcript",
+    "speakers",
+    "claims",
+    "evidence",
+    "verdicts",
+    "report",
+)
 
 
 class StepRecord(BaseModel):
