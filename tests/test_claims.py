@@ -44,6 +44,7 @@ def extracted(segment: int, quote: str, **overrides: Any) -> ExtractedClaim:
         "claim_type": "estadistica",
         "search_queries": ["paro EPA 2026"],
         "speaker": "",
+        "needs_context": False,
     }
     return ExtractedClaim(**data | overrides)
 
@@ -299,3 +300,25 @@ def test_alias_merging_rules():
     assert merge_speaker_aliases(["MINISTRA", "Ministra de Hacienda"]) == {
         "MINISTRA": "Ministra de Hacienda"
     }
+
+
+# --- context flag -----------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("quote", "flag", "expected"),
+    [
+        ("cuando ustedes gobernaban el paro superó el 26 %", False, True),  # caught by code
+        ("este Gobierno ha subido los impuestos un 10 %", False, True),
+        ("hace diez años el paro era del 26 %", False, True),
+        ("la deuda subió con su gobierno un 10 %", False, True),
+        ("La deuda pública supera el 100 % del PIB", False, False),
+        ("La deuda pública supera el 100 % del PIB", True, True),  # the model can flag it too
+    ],
+)
+def test_claims_with_implicit_actors_or_periods_need_context(quote, flag, expected):
+    transcript = text_transcript(quote + ".")
+    item = extracted(0, quote, needs_context=flag)
+    [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item])), kind="texto").claims
+    assert claim.needs_context is expected
+    assert claim.segment == 0

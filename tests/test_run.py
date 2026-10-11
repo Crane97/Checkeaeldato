@@ -36,6 +36,7 @@ class FakeLLM:
                         claim_type="estadistica",
                         search_queries=["tasa de paro España 2026"],
                         speaker="",
+                        needs_context=False,
                     )
                 ]
             )
@@ -102,9 +103,8 @@ class FakeDeps:
 
 
 def run(path: Path, data_dir: Path, deps: FakeDeps, **kwargs: Any):
-    return run_job(
-        path, speech_date=DATE, data_dir=data_dir, deps=deps, prompts_dir=PROMPTS_DIR, **kwargs
-    )
+    kwargs.setdefault("speech_date", DATE)
+    return run_job(path, data_dir=data_dir, deps=deps, prompts_dir=PROMPTS_DIR, **kwargs)
 
 
 @pytest.fixture
@@ -237,3 +237,90 @@ def test_new_speaker_info_reidentifies_speakers(tmp_path):
     deps.llm.calls.clear()
     run(text, tmp_path / "data", deps)  # None keeps the stored info: nothing to redo
     assert deps.llm.calls == []
+
+
+class ContextLLM(FakeLLM):
+    """Detects one "ustedes" claim in a dialogue and resolves it to the addressee."""
+
+    def __init__(self, addressee: str) -> None:
+        super().__init__()
+        self.addressee = addressee
+
+    def structured(self, *, step: str, output_type: type, **kwargs: Any) -> Any:
+        from pipeline.context import ContextAnswer
+
+        if output_type is DetectionResult:
+            self.calls.append(step)
+            self.unbilled += 1
+            return DetectionResult(
+                claims=[
+                    ExtractedClaim(
+                        segment=1,
+                        quote="cuando ustedes gobernaban el paro superó el 26 %",
+                        text_normalized="Cuando ustedes gobernaban el paro superó el 26 %.",
+                        claim_type="estadistica",
+                        search_queries=["tasa de paro EPA"],
+                        speaker="",
+                        needs_context=True,
+                    )
+                ]
+            )
+        if output_type is ContextAnswer:
+            self.calls.append(step)
+            self.unbilled += 1
+            return ContextAnswer(
+                referent="interlocutor",
+                addressee=self.addressee,
+                party="",
+                president="",
+                current_term_only=False,
+                years=[],
+                years_ago=None,
+                confidence=0.9,
+                notes="Se dirige al otro candidato.",
+                rewritten="Durante los gobiernos de {actor} ({periodo}), el paro superó el 26 %.",
+            )
+        return super().structured(step=step, output_type=output_type, **kwargs)
+
+
+DEBATE = (
+    "Luis Gómez: Nosotros creamos empleo.\n"
+    "Ana Ruiz: Señor Gómez, cuando ustedes gobernaban el paro superó el 26 %.\n"
+)
+
+
+def test_context_is_resolved_with_the_speakers_party(tmp_path):
+    from pipeline.models import SpeakerInfo
+
+    text = tmp_path / "debate.txt"
+    text.write_text(DEBATE)
+    deps = FakeDeps()
+    deps.llm = ContextLLM(addressee="Luis Gómez")
+    result = run(
+        text,
+        tmp_path / "data",
+        deps,
+        speech_date=dt.date(2023, 7, 10),
+        speaker_info={"Luis Gómez": SpeakerInfo(party="PP"), "Ana Ruiz": SpeakerInfo(party="PSOE")},
+    )
+    [claim] = result.report.claims
+    assert claim.context_status == "resuelto"
+    assert claim.resolved_actor.startswith("PP")
+    assert [r.start.year for r in claim.time_scope] == [1996, 2011]
+    assert claim.text_normalized.startswith("Durante los gobiernos de PP")
+    # Both speakers were fully given, so no identification call is needed.
+    assert deps.llm.calls == ["claims", "context", "verdicts"]
+
+
+def test_unresolved_context_skips_evidence_and_is_no_verificable(tmp_path):
+    text = tmp_path / "debate.txt"
+    text.write_text(DEBATE)
+    deps = FakeDeps()
+    deps.llm = ContextLLM(addressee="")
+    result = run(text, tmp_path / "data", deps, speech_date=dt.date(2023, 7, 10))
+    [claim] = result.report.claims
+    assert claim.context_status == "no_resuelto"
+    assert claim.verdict == "no_verificable"
+    assert "interlocutor" in claim.explanation
+    assert deps.source.calls == 0  # no searches spent on it
+    assert "verdicts" not in deps.llm.calls

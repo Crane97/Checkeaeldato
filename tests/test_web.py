@@ -77,6 +77,7 @@ def test_analysis_runs_and_returns_the_report(client, deps):
         "transcript",
         "speakers",
         "claims",
+        "context",
         "evidence",
         "verdicts",
         "report",

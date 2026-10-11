@@ -12,6 +12,8 @@ from pipeline.audio import extract_audio, purge_audio
 from pipeline.claims import PROMPT as CLAIMS_PROMPT
 from pipeline.claims import detect_claims
 from pipeline.config import ConfigError, LlmStep, Settings
+from pipeline.context import PROMPT as CONTEXT_PROMPT
+from pipeline.context import resolve_context
 from pipeline.costs import transcription_cost
 from pipeline.evidence.base import EvidenceSource, collect_evidence
 from pipeline.governments import default_governments
@@ -19,6 +21,7 @@ from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
 from pipeline.models import (
     AudioInfo,
     ClaimDetection,
+    ClaimEvidence,
     DetectedClaim,
     EvidenceItem,
     EvidenceRun,
@@ -214,13 +217,41 @@ def build_steps(
 
         return _with_llm_costs(deps, work)
 
+    def context_step(store: JobStore) -> StepOutcome:
+        def work() -> None:
+            resolved = resolve_context(
+                store.read("claims.json", ClaimDetection),
+                store.read("transcript.json", Transcript),
+                store.read("speakers.json", SpeakerMap),
+                speech_date=store.manifest.speech_date,
+                llm=deps.llm,
+                # Interpreting who "ustedes" is needs the careful model.
+                model=deps.model_for("verdict"),
+                governments=default_governments(),
+            )
+            store.write("context.json", resolved, ClaimDetection)
+
+        return _with_llm_costs(deps, work)
+
     def evidence_step(store: JobStore) -> StepOutcome:
-        claims = store.read("claims.json", ClaimDetection).claims
+        claims = store.read("context.json", ClaimDetection).claims
+        # Unresolved claims are no_verificable anyway: don't spend searches on them.
+        searchable = [c for c in claims if c.context_status != "no_resuelto"]
+        found = (
+            {
+                e.claim_id: e
+                for e in collect_evidence(
+                    searchable, deps.evidence_sources, store.manifest.speech_date
+                )
+            }
+            if searchable
+            else {}
+        )
         sources = deps.evidence_sources
         run = EvidenceRun(
             sources_used=[s.name for s in sources],
             sources_disabled=deps.disabled_sources,
-            claims=collect_evidence(claims, sources, store.manifest.speech_date),
+            claims=[found.get(c.id, ClaimEvidence(claim_id=c.id)) for c in claims],
         )
         store.write("evidence.json", run, EvidenceRun)
         return StepOutcome()
@@ -228,7 +259,7 @@ def build_steps(
     def verdicts_step(store: JobStore) -> StepOutcome:
         def work() -> None:
             verdicts = decide_verdicts(
-                store.read("claims.json", ClaimDetection).claims,
+                store.read("context.json", ClaimDetection).claims,
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
@@ -254,7 +285,7 @@ def build_steps(
             speech_date=store.manifest.speech_date,
             speakers=display,
             speaker_profiles=profiles.speakers,
-            detection=store.read("claims.json", ClaimDetection),
+            detection=store.read("context.json", ClaimDetection),
             verdicts=store.read("verdicts.json", list[Verdict]),
             cost=store.manifest.run_cost(),
             generated_at=dt.datetime.now(dt.UTC),
@@ -270,6 +301,7 @@ def build_steps(
         Step("transcript", transcript_step),
         Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
         Step("claims", claims_step, (CLAIMS_PROMPT,)),
+        Step("context", context_step, (CONTEXT_PROMPT,)),
         Step("evidence", evidence_step),
         Step("verdicts", verdicts_step, (VERDICT_PROMPT,)),
         Step("report", report_step),

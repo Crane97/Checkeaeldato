@@ -90,7 +90,7 @@ def build_report(
             raise ReportError(f"Falta el veredicto de la afirmación {detected.id}")
         claims.append(
             Claim(
-                **detected.model_dump(exclude={"search_queries"}),
+                **detected.model_dump(exclude={"search_queries", "needs_context"}),
                 **verdict.model_dump(exclude={"claim_id", "basis", "category"}),
             )
         )

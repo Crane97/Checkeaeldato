@@ -263,3 +263,40 @@ def test_follow_up_queries_are_capped_and_need_a_searcher():
 
     [v] = run([claim()], [evidence(OF)], FakeLLM(first))  # no searcher: single round
     assert v.verdict == "no_verificable"
+
+
+def test_unresolved_context_is_no_verificable_with_the_reason_and_no_call():
+    unresolved = claim().model_copy(
+        update={
+            "context_status": "no_resuelto",
+            "resolution_notes": (
+                "No se puede saber a quién se refiere: no se ha identificado al interlocutor."
+            ),
+        }
+    )
+    llm = FakeLLM()
+    [v] = run([unresolved], [evidence(OF)], llm)
+    assert llm.calls == []
+    assert v.verdict == "no_verificable"
+    assert "interlocutor" in v.explanation
+
+
+def test_resolved_periods_and_actor_reach_the_model():
+    from pipeline.models import DateRange
+
+    resolved = claim().model_copy(
+        update={
+            "context_status": "resuelto",
+            "resolved_actor": "PP (gobiernos de José María Aznar y Mariano Rajoy)",
+            "time_scope": [
+                DateRange(start=dt.date(1996, 5, 5), end=dt.date(2004, 4, 17)),
+                DateRange(start=dt.date(2011, 12, 21), end=dt.date(2018, 6, 2)),
+            ],
+        }
+    )
+    content = format_claim(resolved, evidence(OF), DATE)
+    assert (
+        "<actor_resuelto>PP (gobiernos de José María Aznar y Mariano Rajoy)</actor_resuelto>"
+        in content
+    )
+    assert "<periodos>05/05/1996–17/04/2004; 21/12/2011–02/06/2018</periodos>" in content

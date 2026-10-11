@@ -71,6 +71,13 @@ function renderClaim(claim, speakers) {
     el("p", { class: "normalized" }, claim.text_normalized),
     el("p", { class: "explanation" }, claim.explanation),
   );
+  if (claim.context_status === "resuelto") {
+    const periods = claim.time_scope.map((r) => `${r.start} – ${r.end}`).join("; ");
+    card.append(el("p", { class: "meta" }, `Contexto: ${claim.resolved_actor} · ${periods}`,
+      claim.resolution_notes ? ` — ${claim.resolution_notes}` : ""));
+  } else if (claim.context_status === "no_resuelto") {
+    card.append(el("p", { class: "note" }, `Contexto no resuelto: ${claim.resolution_notes || ""}`));
+  }
   if (claim.sources.length) {
     card.append(el("ul", { class: "sources" }, ...claim.sources.map((s) => el("li", {},
       `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));

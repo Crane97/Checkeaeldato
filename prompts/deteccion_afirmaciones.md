@@ -65,10 +65,14 @@ resultado normal.
   aparezca tal cual en el texto se descarta.
 - `text_normalized`: la afirmación reescrita en una sola frase en español, comprensible sin
   contexto: qué se afirma, en qué ámbito (España, una comunidad autónoma, la Unión
-  Europea…), con la cifra y el periodo. Resuelve pronombres y referencias usando el
-  contexto, y las fechas relativas usando `<fecha>` ("este año", "el año pasado"). **No
-  añadas datos que no estén en el texto o en el contexto**: si el ámbito o el periodo no se
-  pueden deducir, déjalos sin precisar. No incluyas el nombre del orador ni valoraciones.
+  Europea…), con la cifra y el periodo. Resuelve las referencias a datos usando el
+  contexto ("esa cifra", "el dato anterior") y las fechas de calendario usando `<fecha>`
+  ("este año", "el año pasado"). **No resuelvas las referencias a actores políticos**
+  ("ustedes", "nosotros", "su partido", "este Gobierno", "el Gobierno anterior", "cuando
+  gobernaban", "con el señor X", "hace diez años"): déjalas tal como aparecen y marca
+  `needs_context`; otro paso las resolverá con una tabla oficial de gobiernos. **No añadas
+  datos que no estén en el texto o en el contexto**: si el ámbito o el periodo no se pueden
+  deducir, déjalos sin precisar. No incluyas el nombre del orador ni valoraciones.
 - `claim_type`: uno de los cinco tipos anteriores.
 - `search_queries`: de 2 a 4 búsquedas cortas (de 3 a 8 palabras) en español para
   encontrar en fuentes oficiales los datos que permitan **confirmar o refutar** la
@@ -79,6 +83,9 @@ resultado normal.
   Puedes mencionar el organismo que lo publica si es evidente (INE, Eurostat, BOE, Banco
   de España…). Deben tratar sobre los datos, no sobre la persona que habla.
 
+- `needs_context`: true si la afirmación depende de saber a qué partido, Gobierno,
+  presidente o momento se refiere una expresión implícita (las de la lista anterior); false
+  en caso contrario.
 - `speaker`: quién hace la afirmación según el texto, solo cuando el segmento es del
   `autor` y el texto recoge lo que **dijo una persona concreta** ("La ministra de Hacienda
   afirmó que…", "Según declaró Ana Pérez, …"). Escribe su nombre o cargo tal como aparece
@@ -110,7 +117,8 @@ Una afirmación:
 
 - `segment`: 4
 - `quote`: "Desde que gobernamos, el paro ha bajado un 20 %"
-- `text_normalized`: "El paro en España ha bajado un 20 % desde que el partido de quien habla llegó al Gobierno."
+- `text_normalized`: "El paro en España ha bajado un 20 % desde que gobernamos."
+- `needs_context`: true ("desde que gobernamos")
 - `claim_type`: `estadistica`
 - `search_queries`: ["evolución tasa de paro España EPA", "número de parados España 2026",
   "tasa de paro EPA serie trimestral INE"]

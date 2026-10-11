@@ -93,6 +93,15 @@ def format_claim(
         f"<afirmacion>{html.escape(claim.text_normalized, quote=False)}</afirmacion>",
         f"<cita_original>{html.escape(claim.text_original, quote=False)}</cita_original>",
         f"<tipo>{claim.claim_type}</tipo>",
+        *(
+            [
+                f"<actor_resuelto>{html.escape(claim.resolved_actor or '', quote=False)}"
+                "</actor_resuelto>",
+                f"<periodos>{'; '.join(r.label() for r in claim.time_scope)}</periodos>",
+            ]
+            if claim.context_status == "resuelto"
+            else []
+        ),
         *(_evidence_block(item) for item in evidence.items),
     ]
     if final:
@@ -108,6 +117,17 @@ def _no_evidence(claim: DetectedClaim, evidence: ClaimEvidence) -> Verdict:
         verdict="no_verificable",
         confidence=0.0,
         explanation=SEARCH_FAILED if evidence.errors else NO_EVIDENCE,
+        evidence_errors=evidence.errors,
+    )
+
+
+def _unresolved_context(claim: DetectedClaim, evidence: ClaimEvidence) -> Verdict:
+    reason = claim.resolution_notes or "No se ha podido resolver el contexto."
+    return Verdict(
+        claim_id=claim.id,
+        verdict="no_verificable",
+        confidence=0.0,
+        explanation=f"No se puede verificar sin saber a quién o a qué periodo se refiere. {reason}",
         evidence_errors=evidence.errors,
     )
 
@@ -222,6 +242,9 @@ def decide_verdicts(
         evidence = by_claim.get(claim.id)
         if evidence is None:
             raise VerdictError(f"Falta la evidencia de la afirmación {claim.id}")
+        if claim.context_status == "no_resuelto":
+            verdicts.append(_unresolved_context(claim, evidence))
+            continue
         if not evidence.items:
             verdicts.append(_no_evidence(claim, evidence))
             continue

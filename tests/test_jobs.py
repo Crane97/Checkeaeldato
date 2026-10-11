@@ -132,6 +132,7 @@ def test_changed_prompt_reruns_from_its_step(store, prompts_dir):
 
     assert plan_steps(store.manifest, rec.steps(), prompts_dir) == [
         "claims",
+        "context",
         "evidence",
         "verdicts",
         "report",

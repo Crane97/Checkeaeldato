@@ -47,6 +47,20 @@ def _check_time_range(start: float | None, end: float | None) -> None:
         raise ValueError("end must be >= start")
 
 
+class DateRange(BaseModel):
+    start: dt.date
+    end: dt.date
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.end < self.start:
+            raise ValueError("end must be >= start")
+        return self
+
+    def label(self) -> str:
+        return f"{self.start.strftime('%d/%m/%Y')}–{self.end.strftime('%d/%m/%Y')}"
+
+
 # --- Audio ------------------------------------------------------------------
 
 
@@ -139,9 +153,13 @@ class SpeakerMap(BaseModel):
 # --- Claims -----------------------------------------------------------------
 
 
+ContextStatus = Literal["no_necesario", "resuelto", "no_resuelto"]
+
+
 class ClaimBase(BaseModel):
     id: str
     speaker: str
+    segment: int | None = None  # index of the transcript segment where the quote starts
     # Literal quote from the transcript or text; must be findable in the source.
     text_original: str = Field(min_length=1)
     text_normalized: str = Field(min_length=1)
@@ -149,6 +167,12 @@ class ClaimBase(BaseModel):
     # Seconds in the video; None for text input.
     start: float | None = None
     end: float | None = None
+    # Context resolution ("ustedes", "este Gobierno"…): who and when the claim is about.
+    context_status: ContextStatus = "no_necesario"
+    resolved_actor: str | None = None
+    time_scope: list[DateRange] = Field(default_factory=list)
+    resolution_confidence: float | None = None
+    resolution_notes: str | None = None
 
     @model_validator(mode="after")
     def _valid_range(self) -> Self:
@@ -161,6 +185,8 @@ class DetectedClaim(ClaimBase):
 
     # Short keyword queries for search-based sources; internal, not shown in the report.
     search_queries: list[str] = Field(default_factory=list)
+    # Has implicit actors or periods that the context step must resolve.
+    needs_context: bool = False
 
 
 class RejectedClaim(BaseModel):
@@ -368,12 +394,15 @@ class Report(BaseModel):
 
 # --- Jobs -------------------------------------------------------------------
 
-StepName = Literal["audio", "transcript", "speakers", "claims", "evidence", "verdicts", "report"]
+StepName = Literal[
+    "audio", "transcript", "speakers", "claims", "context", "evidence", "verdicts", "report"
+]
 STEPS: tuple[StepName, ...] = (
     "audio",
     "transcript",
     "speakers",
     "claims",
+    "context",
     "evidence",
     "verdicts",
     "report",

@@ -85,7 +85,7 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
     by_id = {v.claim_id: v for v in verdicts}
     claims = [
         Claim(
-            **d.model_dump(exclude={"search_queries"}),
+            **d.model_dump(exclude={"search_queries", "needs_context"}),
             **by_id[d.id].model_dump(exclude={"claim_id", "basis", "category"}),
         )
         for d in detected

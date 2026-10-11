@@ -16,6 +16,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
+from pipeline.models import DateRange
+
 DEFAULT_KNOWLEDGE_PATH = (
     Path(__file__).resolve().parent.parent / "data" / "knowledge" / "governments.json"
 )
@@ -25,20 +27,6 @@ Level = Literal["nacional", "autonomico", "municipal"]
 
 class KnowledgeError(RuntimeError):
     """The knowledge base is missing or inconsistent."""
-
-
-class DateRange(BaseModel):
-    start: dt.date
-    end: dt.date
-
-    @model_validator(mode="after")
-    def _ordered(self) -> Self:
-        if self.end < self.start:
-            raise ValueError("end must be >= start")
-        return self
-
-    def label(self) -> str:
-        return f"{self.start.strftime('%d/%m/%Y')}–{self.end.strftime('%d/%m/%Y')}"
 
 
 class OpenRange(BaseModel):

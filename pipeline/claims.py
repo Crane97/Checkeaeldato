@@ -32,6 +32,16 @@ MAX_SEARCH_QUERIES = 4
 
 T = TypeVar("T", bound=BaseModel)
 
+# Expressions that always need context resolution, whatever the model says.
+_CONTEXT_RE = re.compile(
+    r"\b(ustedes|vosotros|nosotros|nosotras|vuestro|vuestra|nuestro gobierno|"
+    r"su gobierno|sus gobiernos|su partido|este gobierno|el gobierno anterior|"
+    r"anterior gobierno|cuando gobernaba\w*|cuando gobernaron|cuando gobernamos|"
+    r"la última vez que gobern\w+|hace \w+ años|con el señor|con la señora|"
+    r"en su época|en su etapa|con ustedes)\b",
+    re.IGNORECASE,
+)
+
 
 class ClaimsError(RuntimeError):
     """The claims step could not produce a usable result."""
@@ -52,6 +62,8 @@ class ExtractedClaim(BaseModel):
     search_queries: list[str]
     # Who the text says made the claim, as named there; empty if it is the speaker's own.
     speaker: str
+    # Implicit actor or period ("ustedes", "este Gobierno", "hace diez años").
+    needs_context: bool
 
 
 class DetectionResult(BaseModel):
@@ -261,6 +273,9 @@ def detect_claims(
                     search_queries=[q.strip() for q in item.search_queries if q.strip()][
                         :MAX_SEARCH_QUERIES
                     ],
+                    segment=first,
+                    needs_context=item.needs_context
+                    or bool(_CONTEXT_RE.search(f"{item.quote} {item.text_normalized}")),
                 )
             except ValidationError as exc:
                 rejected.append(_reject(item, f"datos inválidos: {exc.errors()[0]['msg']}"))

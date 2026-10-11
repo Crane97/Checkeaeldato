@@ -120,6 +120,12 @@ def _html_body(report: Report, attachment: str) -> str:
             f" · {_esc(report.speaker_name(c.speaker))}</div>"
             f"<div style='font-style:italic;margin:4px 0'>«{_esc(c.text_original)}»</div>"
             f"<div>{_esc(c.explanation)}</div>"
+            + (
+                f"<div style='color:#5d6676;font-size:13px'>Contexto: {_esc(c.resolved_actor)} · "
+                f"{_esc('; '.join(r.label() for r in c.time_scope))}</div>"
+                if c.context_status == "resuelto"
+                else ""
+            )
             + (f"<ul style='margin:4px 0;font-size:14px'>{sources}</ul>" if sources else "")
             + "</div>"
         )
