@@ -158,6 +158,35 @@ Decididas por el responsable del proyecto (2026-10-10). Claude decide el **vered
 - **No exigir probar una ausencia:** si la evidencia oficial muestra medidas del sentido
   contrario para la mayoría del grupo y ninguna del sentido afirmado que afecte a una parte
   sustancial, es `falso`, no `no_verificable`.
+- **IRPF sin deflactar** (decisión del responsable del proyecto, 2026-10-13): no es una
+  subida legislada; en "han subido los impuestos" no cuenta por sí sola (se menciona como
+  contexto), en "pagamos más impuestos" / "ha subido la presión fiscal" sí cuenta.
+
+### Cómo se decide y se comprueba un veredicto (decidido 2026-10-13)
+
+- **Orden del esquema:** `evidence_used` → `analysis` (claim_parsed, evidence_assessment con
+  `stance` apoya/contradice/neutral por fuente, numeric_comparison, nuances, conclusion) →
+  `numeric_check` → `verdict` → `confidence` → `explanation`. El campo se llama `analysis` y
+  no `reasoning`: los modelos 5.5 rechazan (`reasoning_extraction`, y se cobra) las
+  peticiones de escribir su razonamiento interno en la respuesta. El análisis se guarda en
+  `verdicts.json` para auditar y **no** va al informe ni a la interfaz.
+- **Comprobaciones en código** (`pipeline/verdict.py`): un `E#` citado que no existe →
+  `needs_review` + `no_verificable`; `sources` = evidencia usada y mencionada, **fuentes
+  primarias primero** (`[primarias]` en `fuentes_oficiales.toml`); `falso` exige una fuente
+  `contradice` y `verdadero` una `apoya` (simétrico por neutralidad); una explicación o
+  conclusión que contradice la etiqueta ("coincide", "respalda", "es correcta"…, teniendo
+  en cuenta la negación) se pregunta **una vez más** y, si sigue incoherente, `needs_review`.
+- **Fuentes del propio orador:** si el orador es de un partido del Gobierno en la fecha, La
+  Moncloa y las salas de prensa de los ministerios (`*.gob.es/prensa…`) se marcan
+  `del_gobierno_del_orador` y cuentan como `neutral`. Los institutos de estadística y el BOE
+  no (publican datos, no posiciones). Pendiente: webs de partidos.
+- **Razonamiento interno** solo en el veredicto: `VERDICT_THINKING` (sin definir = lo que
+  haga el modelo), `VERDICT_EFFORT`, `VERDICT_THINKING_BUDGET`. Con la API, los modelos 4.6+
+  usan razonamiento adaptativo y la profundidad se controla con el esfuerzo (un presupuesto
+  fijo de tokens solo lo aceptan los modelos hasta 4.5; Sonnet 5.5 no puede apagarlo del
+  todo, su mínimo es `between_tools`). Con `claude-code` se traduce a `--effort`. El resumen
+  del razonamiento (API) se guarda en `verdicts.json`. Cambiar el ajuste recalcula los
+  veredictos.
 - **confusion** — el contenido es correcto pero una referencia secundaria está mal (número
   de artículo o ley, nombre de la norma u organismo, fecha del documento) sin cambiar el
   sentido: "el artículo 32 de la Constitución dice que el Rey es el Jefe del Estado" (es el
@@ -236,9 +265,10 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 - **Texto** (`.txt` / `.md`): sin audio ni transcripción. Oradores:
   - **Diálogo** ("Nombre: texto" en varias líneas): un segmento por intervención y orador.
     Se descartan rótulos que no son personas (Fuente, Nota, Crónica…). Los párrafos sin
-    etiqueta **continúan el turno** de quien hablaba (los diarios de sesiones solo rotulan
-    el primer párrafo); un rótulo de documento ("Nota:", "Crónica:") devuelve el texto al
-    `autor`, igual que lo anterior a la primera etiqueta.
+    etiqueta **continúan el turno** de quien hablaba cuando los turnos van separados por
+    líneas en blanco (los diarios de sesiones solo rotulan el primer párrafo); en un diálogo
+    compacto (un turno por línea), una línea en blanco devuelve el texto al `autor`. Un
+    rótulo de documento ("Nota:", "Crónica:") también lo devuelve al `autor`.
   - **Prosa**: todo es del `autor` (nombre real con `--autor`), salvo que el texto recoja lo
     que **dijo una persona concreta** ("la ministra afirmó que…"): entonces la detección le
     atribuye la afirmación. Citar una fuente de datos ("según el INE") no cambia el orador.
@@ -364,6 +394,9 @@ TAVILY_API_KEY=
 TAVILY_SEARCH_DEPTH=basic       # basic (1 crédito) | advanced (2)
 TAVILY_MAX_RESULTS=5            # 1–20
 TAVILY_CACHE_DAYS=30            # días que se reutiliza una búsqueda guardada
+VERDICT_THINKING=               # opcional: true/false; sin definir = defecto del modelo
+VERDICT_EFFORT=                 # low | medium | high | xhigh | max
+VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
 ```
 
