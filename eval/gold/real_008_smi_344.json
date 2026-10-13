@@ -1,0 +1,35 @@
+{
+  "id": "real-008-smi-344",
+  "descripcion": "Afirmación c020 del debate del Senado de 2023-02-21 (sesión de control): el bug en el que la explicación coincidía con la cifra pero el veredicto era falso. Texto literal del debate, recortado.",
+  "sintetico": false,
+  "fecha": "2023-02-21",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Sr. Núñez Feijóo: Mire, señor Sánchez, ¿de verdad que usted va a seguir presumiendo de subir el salario mínimo interprofesional?\n\nPresidente: Gracias, señora presidenta, señor presidente. Nunca imaginé, señorías, que el reconocer derechos a minorías, en este caso al colectivo trans, fuera molestar a la gente de bien, señor Feijóo. Nunca lo imaginé De todas formas, simplemente para su información, señoría, por supuesto que el Gobierno de España tiene potestad de fijar el salario mínimo interprofesional. Con este gobierno lo hemos subido, durante todo este tiempo, 344 € al mes. Cuando ustedes estaban en el gobierno, se subió solamente 94 € durante los siete años al frente del Ejecutivo.\n"
+  },
+  "afirmaciones": [
+    {
+      "cita": "Con este gobierno lo hemos subido, durante todo este tiempo, 344 € al mes",
+      "orador": "Pedro Sánchez",
+      "veredicto_esperado": "verdadero",
+      "actor_esperado": "PSOE",
+      "periodos_esperados": [
+        {
+          "start": "2018-06-02",
+          "end": "2023-02-21"
+        }
+      ],
+      "notas": "SMI de 735,90 €/mes en 2018 (RD 1077/2017) y de 1.080 € en 2023 (RD 99/2023, BOE 15/02/2023): +344,10 €. Decisión del responsable del proyecto: verdadero."
+    },
+    {
+      "cita": "Cuando ustedes estaban en el gobierno, se subió solamente 94 € durante los siete años al frente del Ejecutivo",
+      "orador": "Pedro Sánchez",
+      "veredicto_esperado": "verdadero",
+      "actor_esperado": "PP",
+      "notas": "SMI de 641,40 €/mes en 2011 (RD 1795/2010) a 735,90 € en 2018 (RD 1077/2017): +94,50 € durante los gobiernos de Mariano Rajoy (2011-2018)."
+    }
+  ],
+  "no_afirmaciones": [
+    "¿de verdad que usted va a seguir presumiendo de subir el salario mínimo interprofesional?"
+  ]
+}
