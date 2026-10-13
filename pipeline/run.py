@@ -14,14 +14,17 @@ from pipeline.claims import detect_claims
 from pipeline.config import ConfigError, LlmStep, Settings
 from pipeline.context import PROMPT as CONTEXT_PROMPT
 from pipeline.context import resolve_context
-from pipeline.costs import transcription_cost
+from pipeline.costs import search_cost, transcription_cost
 from pipeline.evidence.base import EvidenceSource, collect_evidence
+from pipeline.evidence.search_cache import SearchCache
+from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
 from pipeline.models import (
     AudioInfo,
     ClaimDetection,
     ClaimEvidence,
+    CostEntry,
     DetectedClaim,
     EvidenceItem,
     EvidenceRun,
@@ -62,18 +65,28 @@ class Deps(Protocol):
     transcriber: Transcriber
     evidence_sources: list[EvidenceSource]
     disabled_sources: list[str]
+    # Web searches of this run, all steps (for the summary at the end).
+    searches: SearchStats
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
 
     def model_for(self, step: LlmStep) -> str: ...
 
+    def take_search_cost(self, step: str) -> list[CostEntry]: ...
+
 
 class LiveDeps:
     """Real clients built from settings, only when a step needs them."""
 
-    def __init__(self, settings: Settings, prompts_dir: Path = PROMPTS_DIR) -> None:
+    def __init__(
+        self, settings: Settings, prompts_dir: Path = PROMPTS_DIR, *, use_cache: bool = True
+    ) -> None:
         self.settings = settings
         self.prompts_dir = prompts_dir
+        # False (--no-cache): searches skip the disk cache but still refresh it.
+        self.use_cache = use_cache
+        # Searches of this run (all steps), for the summary at the end.
+        self.searches = SearchStats()
 
     def model_for(self, step: LlmStep) -> str:
         return self.settings.model_for(step)
@@ -95,10 +108,38 @@ class LiveDeps:
         return make_transcriber(self.settings)
 
     @cached_property
+    def tavily(self) -> TavilyClient | None:
+        if not self.settings.tavily_api_key:
+            return None
+
+        cache = SearchCache(
+            self.settings.data_dir / "cache" / "search",
+            max_age_days=self.settings.tavily_cache_days,
+            read=self.use_cache,
+        )
+        return TavilyClient(
+            self.settings.secret("tavily_api_key"),
+            search_depth=self.settings.tavily_search_depth,
+            max_results=self.settings.tavily_max_results,
+            cache=cache,
+        )
+
+    def take_search_cost(self, step: str) -> list[CostEntry]:
+        """Tavily searches made since the last call, as a cost entry of `step`."""
+        if "tavily" not in self.__dict__ or self.tavily is None:
+            return []
+        stats = self.tavily.take_stats()
+        if not (stats.real or stats.cached):
+            return []
+        self.searches.real += stats.real
+        self.searches.cached += stats.cached
+        self.searches.credits += stats.credits
+        return [search_cost(step, real=stats.real, cached=stats.cached, credits=stats.credits)]
+
+    @cached_property
     def _sources(self) -> tuple[list[EvidenceSource], list[str]]:
         from pipeline.evidence.factcheck_api import FactCheckSource
         from pipeline.evidence.oficiales import OfficialSearchSource
-        from pipeline.evidence.tavily import TavilyClient
         from pipeline.evidence.web import WebSearchSource
 
         sources: list[EvidenceSource] = []
@@ -107,9 +148,8 @@ class LiveDeps:
             sources.append(FactCheckSource(self.settings.secret("google_factcheck_api_key")))
         else:
             disabled.append("factcheck")
-        if self.settings.tavily_api_key:
-            tavily = TavilyClient(self.settings.secret("tavily_api_key"))
-            sources += [OfficialSearchSource(tavily), WebSearchSource(tavily)]
+        if self.tavily is not None:
+            sources += [OfficialSearchSource(self.tavily), WebSearchSource(self.tavily)]
         else:
             disabled += ["oficial", "web"]
         if not sources:
@@ -129,12 +169,11 @@ class LiveDeps:
 
     @cached_property
     def speaker_search(self) -> SpeakerSearch | None:
-        if not self.settings.tavily_api_key:
+        if self.tavily is None:
             return None
         from pipeline.evidence.speaker_search import TavilySpeakerSearch
-        from pipeline.evidence.tavily import TavilyClient
 
-        return TavilySpeakerSearch(TavilyClient(self.settings.secret("tavily_api_key")))
+        return TavilySpeakerSearch(self.tavily)
 
 
 @dataclass(frozen=True)
@@ -149,15 +188,23 @@ def input_kind_for(path: Path) -> InputKind:
     return "texto" if path.suffix.lower() in SUPPORTED_SUFFIXES else "video"
 
 
-def _with_llm_costs(deps: Deps, work: Callable[[], bool]) -> StepOutcome:
-    """Run an LLM step and return its cost, attaching it to the error if it fails.
-    `work` returns whether every item succeeded; if not, the step is retried next run."""
+def _with_costs(
+    deps: Deps, step: StepName, work: Callable[[], bool], *, uses_llm: bool = True
+) -> StepOutcome:
+    """Run a step and return what it spent (Claude and web searches), attaching it to the
+    error if it fails. `work` returns whether every item succeeded; if not, the step is
+    retried next run."""
+
+    def spent() -> list[CostEntry]:
+        llm = deps.llm.take_costs() if uses_llm else []
+        return [*llm, *deps.take_search_cost(step)]
+
     try:
         complete = work()
     except Exception as exc:
-        exc.step_costs = deps.llm.take_costs()  # type: ignore[attr-defined]
+        exc.step_costs = spent()  # type: ignore[attr-defined]
         raise
-    return StepOutcome(cost=deps.llm.take_costs(), complete=complete)
+    return StepOutcome(cost=spent(), complete=complete)
 
 
 def follow_up_search(deps: Deps, speech_date: dt.date) -> FollowUpSearch:
@@ -223,7 +270,7 @@ def build_steps(
             store.write("speakers.json", speakers, SpeakerMap)
             return not speakers.errors
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "speakers", work)
 
     def speaker_research_step(store: JobStore) -> StepOutcome:
         speakers = store.read("speakers.json", SpeakerMap)
@@ -244,7 +291,7 @@ def build_steps(
             store.write(SPEAKERS_FILE, researched, SpeakerMap)
             return len(researched.errors) == len(speakers.errors)
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "speaker_research", work)
 
     def claims_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
@@ -258,7 +305,7 @@ def build_steps(
             store.write("claims.json", detection, ClaimDetection)
             return not detection.failed_blocks
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "claims", work)
 
     def context_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
@@ -275,9 +322,12 @@ def build_steps(
             store.write("context.json", resolved, ClaimDetection)
             return not resolved.context_errors
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "context", work)
 
     def evidence_step(store: JobStore) -> StepOutcome:
+        return _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
+
+    def _evidence(store: JobStore) -> bool:
         claims = store.read("context.json", ClaimDetection).claims
         # Unresolved claims are no_verificable anyway: don't spend searches on them.
         # Promises are assessed for feasibility, which does not depend on who made them.
@@ -299,7 +349,7 @@ def build_steps(
             claims=[found.get(c.id, ClaimEvidence(claim_id=c.id)) for c in claims],
         )
         store.write("evidence.json", run, EvidenceRun)
-        return StepOutcome()
+        return True
 
     def verdicts_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
@@ -318,7 +368,7 @@ def build_steps(
             store.write("verdicts.json", verdicts, list[Verdict])
             return not any(v.analysis_error for v in verdicts)
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "verdicts", work)
 
     def promises_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
@@ -336,7 +386,7 @@ def build_steps(
             store.write("promises.json", results, list[PromiseVerdict])
             return not any(r.analysis_error for r in results)
 
-        return _with_llm_costs(deps, work)
+        return _with_costs(deps, "promises", work)
 
     def report_step(store: JobStore) -> StepOutcome:
         evidence = store.read("evidence.json", EvidenceRun)

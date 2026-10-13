@@ -4,7 +4,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LlmStep = Literal["detection", "verdict"]
@@ -37,6 +37,11 @@ class Settings(BaseSettings):
 
     google_factcheck_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
+    # "basic" costs 1 credit per search, "advanced" 2.
+    tavily_search_depth: Literal["basic", "advanced"] = "basic"
+    tavily_max_results: int = Field(default=5, ge=1, le=20)
+    # Searches older than this are repeated (statistics get updated).
+    tavily_cache_days: int = Field(default=30, ge=0)
 
     # Sending reports by email (any SMTP provider; Gmail needs an app password).
     smtp_host: str | None = None

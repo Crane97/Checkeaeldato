@@ -14,7 +14,6 @@ from pipeline.models import DetectedClaim
 # Tavily relevance below this is treated as "not found". To be tuned with the eval.
 MIN_SCORE = 0.4
 MAX_QUERIES = 3
-MAX_RESULTS = 5
 
 
 def _load(path: Path | None) -> dict[str, dict[str, str]]:
@@ -95,9 +94,7 @@ class OfficialSearchSource:
         found = SourceResult()
         for query in queries_for(claim, self._max_queries):
             try:
-                results = self._tavily.search(
-                    query, include_domains=self._search_domains, max_results=MAX_RESULTS
-                )
+                results = self._tavily.search(query, include_domains=self._search_domains)
             except EvidenceConfigError:
                 raise
             except EvidenceError as exc:

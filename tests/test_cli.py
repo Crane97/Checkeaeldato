@@ -20,7 +20,7 @@ def article(tmp_path: Path) -> Path:
 def fake_deps(monkeypatch, tmp_path):
     from pipeline.config import Settings
 
-    monkeypatch.setattr(cli, "LiveDeps", lambda settings: FakeDeps())
+    monkeypatch.setattr(cli, "LiveDeps", lambda settings, **kwargs: FakeDeps())
     monkeypatch.setattr(
         cli, "get_settings", lambda: Settings(_env_file=None, data_dir=tmp_path / "data")
     )
@@ -31,6 +31,25 @@ def test_text_run_prints_summary(article, fake_deps):
     assert result.exit_code == 0, result.output
     assert "Afirmaciones verificables: 1" in result.output
     assert "Ana" in result.output
+    assert "Búsquedas Tavily en esta ejecución: 0 reales" in result.output
+
+
+def test_no_cache_flag_reaches_the_dependencies(article, monkeypatch, tmp_path):
+    from pipeline.config import Settings
+
+    seen = {}
+
+    def live_deps(settings, **kwargs):
+        seen.update(kwargs)
+        return FakeDeps()
+
+    monkeypatch.setattr(cli, "LiveDeps", live_deps)
+    monkeypatch.setattr(cli, "get_settings", lambda: Settings(data_dir=tmp_path / "data"))
+    args = [str(article), "--fecha", "2026-11-20", "--no-cache"]
+    result = runner.invoke(cli.app, args)
+    assert result.exit_code == 0, result.output
+    assert seen == {"use_cache": False}
+    assert "--no-cache" in result.output
 
 
 @pytest.mark.parametrize(

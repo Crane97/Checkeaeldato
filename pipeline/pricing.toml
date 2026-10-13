@@ -33,3 +33,8 @@ cache_read_per_mtok = 0.01
 # Transcripción: elevenlabs.io/pricing/api (consultada 2026-10-10), Scribe v2 por lotes.
 [transcription.elevenlabs]
 usd_per_hour = 0.22
+
+# Búsquedas Tavily: 1 crédito por búsqueda basic, 2 por advanced. Plan gratuito (1.000
+# créditos/mes): 0. Si se pasa a un plan de pago, poner aquí su precio por crédito.
+[search.tavily]
+usd_per_credit = 0.0

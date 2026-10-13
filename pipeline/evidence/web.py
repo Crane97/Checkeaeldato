@@ -4,7 +4,6 @@ import datetime as dt
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
 from pipeline.evidence.oficiales import (
-    MAX_RESULTS,
     MIN_SCORE,
     label_results,
     load_official_domains,
@@ -39,7 +38,7 @@ class WebSearchSource:
         found = SourceResult()
         [query] = queries_for(claim, 1)
         try:
-            results = self._tavily.search(query, country="spain", max_results=MAX_RESULTS)
+            results = self._tavily.search(query, country="spain")
         except EvidenceConfigError:
             raise
         except EvidenceError as exc:

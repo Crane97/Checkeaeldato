@@ -394,6 +394,10 @@ class CostEntry(BaseModel):
     cache_write_tokens: int = 0
     cache_read_tokens: int = 0
     audio_seconds: float = 0
+    # Web searches (Tavily): paid ones, ones served from the disk cache, credits spent.
+    searches: int = 0
+    cached_searches: int = 0
+    credits: int = 0
     usd: float = Field(ge=0)
     # False when the model/provider is missing from pricing.toml (usd is then 0).
     priced: bool = True

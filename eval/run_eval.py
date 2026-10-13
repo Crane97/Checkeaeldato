@@ -128,7 +128,7 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
         generated_at=dt.datetime.now(dt.UTC),
         claims=claims,
         promises=promises,
-        cost=RunCost(entries=deps.llm.take_costs()),
+        cost=RunCost(entries=[*deps.llm.take_costs(), *deps.take_search_cost("evidence")]),
     )
 
 
@@ -172,6 +172,9 @@ def _print_case(result: CaseResult) -> None:
 def main(
     modo: Annotated[str, typer.Option(help="completo | veredicto")] = "completo",
     caso: Annotated[list[str] | None, typer.Option(help="Solo estos ids de caso")] = None,
+    no_cache: Annotated[
+        bool, typer.Option("--no-cache", help="No reutiliza búsquedas guardadas")
+    ] = False,
 ) -> None:
     if modo not in ("completo", "veredicto"):
         raise typer.BadParameter("modo debe ser 'completo' o 'veredicto'")
@@ -182,7 +185,7 @@ def main(
     cases = [c for c in load_gold_cases(GOLD_DIR) if not caso or c.id in caso]
     if not cases:
         raise typer.BadParameter("no hay casos que evaluar")
-    deps = LiveDeps(get_settings())
+    deps = LiveDeps(get_settings(), use_cache=not no_cache)
     runner = _run_full if modo == "completo" else _run_verdict_only
 
     results = [score_case(c, runner(c, deps)) for c in cases]
@@ -204,6 +207,10 @@ def main(
             f"valoración {_rate(summary.promise_accuracy)} "
             f"({summary.promises_correct}/{summary.promises_checked})"
         )
+    typer.echo(
+        f"Búsquedas Tavily: {deps.searches.real} reales ({deps.searches.credits} créditos), "
+        f"{deps.searches.cached} desde caché"
+    )
     if any(r.synthetic for r in results):
         typer.echo("Aviso: hay casos sintéticos; sus métricas no miden calidad real.")
 

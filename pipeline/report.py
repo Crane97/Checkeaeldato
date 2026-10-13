@@ -7,6 +7,7 @@ from pipeline.models import (
     PROMISE_LABELS,
     Claim,
     ClaimDetection,
+    CostEntry,
     InputKind,
     Promise,
     PromiseVerdict,
@@ -144,6 +145,18 @@ def build_report(
     )
 
 
+def format_searches(entries: list[CostEntry], label: str = "Búsquedas Tavily") -> str:
+    real = sum(e.searches for e in entries)
+    cached = sum(e.cached_searches for e in entries)
+    credits = sum(e.credits for e in entries)
+    usd = sum(e.usd for e in entries)
+    price = f", {usd:.4f} $" if usd else ""
+    return (
+        f"{label}: {_plural(real, 'real', 'reales')} "
+        f"({_plural(credits, 'crédito', 'créditos')}{price}), {cached} desde caché"
+    )
+
+
 def format_summary(report: Report, report_path: str) -> str:
     """Plain-text summary for the terminal."""
     lines = [
@@ -174,13 +187,18 @@ def format_summary(report: Report, report_path: str) -> str:
     claude = [e for e in report.cost.entries if e.provider in CLAUDE_PROVIDERS]
     llm = sum(e.usd for e in claude)
     calls = len(claude)
-    audio = sum(e.usd for e in report.cost.entries if e.provider not in CLAUDE_PROVIDERS)
+    audio = sum(
+        e.usd for e in report.cost.entries if e.provider not in (*CLAUDE_PROVIDERS, "tavily")
+    )
     lines += [
         "",
         f"Coste estimado: {report.cost.total_usd:.4f} $ "
         f"(Claude: {llm:.4f} $ en {_plural(calls, 'llamada', 'llamadas')}; "
         f"transcripción: {audio:.4f} $)",
     ]
+    searches = [e for e in report.cost.entries if e.provider == "tavily"]
+    if searches:
+        lines.append(f"  {format_searches(searches)}")
     if any(e.provider == "claude-code" for e in claude):
         lines.append(
             "  (Claude vía Claude Code: coste equivalente orientativo, cubierto por tu plan)"

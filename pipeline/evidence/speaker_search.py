@@ -2,7 +2,6 @@
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
 from pipeline.evidence.oficiales import (
-    MAX_RESULTS,
     MIN_SCORE,
     label_results,
     load_official_domains,
@@ -31,11 +30,9 @@ class TavilySpeakerSearch:
         found = SourceResult()
         try:
             if official:
-                results = self._tavily.search(
-                    query, include_domains=self._search_domains, max_results=MAX_RESULTS
-                )
+                results = self._tavily.search(query, include_domains=self._search_domains)
             else:
-                results = self._tavily.search(query, country="spain", max_results=MAX_RESULTS)
+                results = self._tavily.search(query, country="spain")
         except EvidenceConfigError:
             raise
         except EvidenceError as exc:

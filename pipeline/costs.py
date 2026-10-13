@@ -24,9 +24,14 @@ class AudioPrice(BaseModel):
     usd_per_hour: float
 
 
+class SearchPrice(BaseModel):
+    usd_per_credit: float
+
+
 class Pricing(BaseModel):
     anthropic: dict[str, TokenPrice]
     transcription: dict[str, AudioPrice]
+    search: dict[str, SearchPrice] = {}
 
 
 def load_pricing(path: Path | None = None) -> Pricing:
@@ -85,4 +90,27 @@ def transcription_cost(
         usd = audio_seconds / 3600 * price.usd_per_hour
     return CostEntry(
         step=step, provider=provider, audio_seconds=audio_seconds, usd=usd, priced=priced
+    )
+
+
+def search_cost(
+    step: str,
+    *,
+    real: int,
+    cached: int,
+    credits: int,
+    usd_per_credit: float | None = None,
+    pricing: Pricing | None = None,
+) -> CostEntry:
+    """Tavily searches of one step; cached ones are free."""
+    if usd_per_credit is None:
+        price = (pricing or default_pricing()).search.get("tavily")
+        usd_per_credit = price.usd_per_credit if price else 0.0
+    return CostEntry(
+        step=step,
+        provider="tavily",
+        searches=real,
+        cached_searches=cached,
+        credits=credits,
+        usd=credits * usd_per_credit,
     )

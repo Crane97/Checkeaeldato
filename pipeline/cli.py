@@ -117,6 +117,10 @@ def main(
     email: Annotated[
         str | None, typer.Option("--email", help="Envía el informe a esta dirección")
     ] = None,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="No reutiliza búsquedas guardadas (sí guarda las nuevas)"),
+    ] = False,
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Más detalle")] = False,
 ) -> None:
     """Analiza un vídeo o texto y genera data/<job_id>/report.json."""
@@ -129,12 +133,13 @@ def main(
     _setup_logging(verbose)
 
     settings = get_settings()
+    deps = LiveDeps(settings, use_cache=not no_cache)
     try:
         result = run_job(
             entrada,
             speech_date=speech_date,
             data_dir=settings.data_dir,
-            deps=LiveDeps(settings),
+            deps=deps,
             speakers=speakers,
             author=autor,
             speaker_info=speaker_info,
@@ -151,6 +156,12 @@ def main(
         raise typer.Exit(code=1) from exc
 
     typer.echo("\n" + result.summary)
+    searches = deps.searches
+    typer.echo(
+        f"Búsquedas Tavily en esta ejecución: {searches.real} reales "
+        f"({searches.credits} créditos), {searches.cached} desde caché"
+        + (" (caché sin leer: --no-cache)" if no_cache else "")
+    )
     if email:
         try:
             email_report(result.report, email, settings)

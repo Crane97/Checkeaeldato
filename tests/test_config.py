@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from pipeline.config import ConfigError, Settings
 
@@ -71,3 +72,15 @@ def test_llm_backend_defaults_to_api_and_accepts_claude_code(monkeypatch):
     assert make_settings().llm_backend == "api"
     monkeypatch.setenv("LLM_BACKEND", "claude-code")
     assert make_settings().llm_backend == "claude-code"
+
+
+def test_search_settings_have_cheap_defaults_and_are_validated(monkeypatch):
+    settings = Settings()
+    assert (settings.tavily_search_depth, settings.tavily_max_results) == ("basic", 5)
+    assert settings.tavily_cache_days == 30
+    monkeypatch.setenv("TAVILY_SEARCH_DEPTH", "advanced")
+    monkeypatch.setenv("TAVILY_MAX_RESULTS", "8")
+    assert Settings().tavily_max_results == 8
+    monkeypatch.setenv("TAVILY_MAX_RESULTS", "50")
+    with pytest.raises(ValidationError):
+        Settings()

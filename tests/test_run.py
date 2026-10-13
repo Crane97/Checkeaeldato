@@ -3,13 +3,18 @@ import json
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
+import respx
 
 from pipeline.claims import DetectionResult, ExtractedClaim
+from pipeline.config import Settings
 from pipeline.evidence.base import SourceResult
+from pipeline.evidence.tavily import API_URL as TAVILY_URL
+from pipeline.evidence.tavily import SearchStats
 from pipeline.models import AudioInfo, CostEntry, EvidenceItem, Segment, Source, Transcript
 from pipeline.promises import PromiseAnswer
-from pipeline.run import PROMPTS_DIR, input_kind_for, run_job
+from pipeline.run import PROMPTS_DIR, LiveDeps, input_kind_for, run_job
 from pipeline.speakers import SpeakerIdentification
 from pipeline.verdict import VerdictAnswer
 
@@ -99,9 +104,13 @@ class FakeDeps:
         self.evidence_sources = [self.source]
         self.disabled_sources = ["factcheck"]
         self.speaker_search = None
+        self.searches = SearchStats()
 
     def model_for(self, step: str) -> str:
         return "claude-haiku-5-5"
+
+    def take_search_cost(self, step: str) -> list[CostEntry]:
+        return []
 
 
 def run(path: Path, data_dir: Path, deps: FakeDeps, **kwargs: Any):
@@ -404,3 +413,34 @@ def test_promises_go_to_their_own_section(tmp_path: Path):
     assert sum(report["by_category"].values()) == 1  # promises are not counted as claims
     assert deps.llm.calls == ["claims", "verdicts", "promises"]
     assert "Promesas: 1" in result.summary
+
+
+@respx.mock
+def test_live_deps_share_one_cached_tavily_client_and_report_searches(tmp_path: Path):
+    respx.post(TAVILY_URL).mock(return_value=httpx.Response(200, json={"results": []}))
+    settings = Settings(tavily_api_key="tvly-k", data_dir=tmp_path, tavily_max_results=3)
+    deps = LiveDeps(settings)
+    assert deps.speaker_search is not None
+    assert deps.evidence_sources[1]._tavily is deps.tavily  # oficial uses the shared client
+
+    deps.tavily.search("paro")
+    deps.tavily.search("paro")
+    [entry] = deps.take_search_cost("evidence")
+    assert (entry.step, entry.searches, entry.cached_searches, entry.credits) == (
+        "evidence",
+        1,
+        1,
+        1,
+    )
+    assert deps.take_search_cost("verdicts") == []
+    assert (deps.searches.real, deps.searches.cached) == (1, 1)
+    assert list((tmp_path / "cache" / "search").rglob("*.json"))
+
+    fresh = LiveDeps(settings, use_cache=False)
+    fresh.tavily.search("paro")
+    assert fresh.searches.real == 0 and fresh.take_search_cost("x")[0].searches == 1
+
+
+def test_without_tavily_key_there_is_no_search_cost(tmp_path: Path):
+    deps = LiveDeps(Settings(data_dir=tmp_path))
+    assert deps.tavily is None and deps.take_search_cost("evidence") == []
