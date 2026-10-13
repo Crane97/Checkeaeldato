@@ -35,6 +35,23 @@ def load_search_domains(path: Path | None = None) -> dict[str, str]:
     return dict(_load(path)["dominios"])
 
 
+def load_primary_sources(path: Path | None = None) -> list[str]:
+    """Domains (optionally "domain/path") that publish original data or legal texts."""
+    return list(_load(path).get("primarias", {}))
+
+
+def is_primary(url: str, primary: list[str]) -> bool:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    for entry in primary:
+        domain, _, path = entry.partition("/")
+        if (host == domain or host.endswith("." + domain)) and parsed.path.lstrip("/").startswith(
+            path
+        ):
+            return True
+    return False
+
+
 def official_organization(url: str, domains: dict[str, str]) -> str | None:
     """Organization for an official URL (most specific domain wins), else None."""
     host = (urlparse(url).hostname or "").lower()

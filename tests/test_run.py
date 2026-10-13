@@ -16,7 +16,7 @@ from pipeline.models import AudioInfo, CostEntry, EvidenceItem, Segment, Source,
 from pipeline.promises import PromiseAnswer
 from pipeline.run import PROMPTS_DIR, LiveDeps, input_kind_for, run_job
 from pipeline.speakers import SpeakerIdentification
-from pipeline.verdict import VerdictAnswer
+from tests.test_verdict import answer as verdict_answer
 
 DATE = dt.date(2026, 11, 20)
 ARTICLE = "Hola a todos.\n\nEl paro ha bajado un 20 % este año, según el Gobierno.\n"
@@ -46,13 +46,11 @@ class FakeLLM:
                     )
                 ]
             )
-        return VerdictAnswer(
+        return verdict_answer(
             verdict="falso",
             confidence=0.8,
             explanation="Según la EPA, el paro bajó un 15 %, no un 20 %.",
             cited_evidence=["E1"],
-            matched_factcheck=None,
-            follow_up_queries=[],
         )
 
     def take_costs(self) -> list[CostEntry]:
@@ -444,3 +442,11 @@ def test_live_deps_share_one_cached_tavily_client_and_report_searches(tmp_path: 
 def test_without_tavily_key_there_is_no_search_cost(tmp_path: Path):
     deps = LiveDeps(Settings(data_dir=tmp_path))
     assert deps.tavily is None and deps.take_search_cost("evidence") == []
+
+
+def test_report_has_the_explanation_but_not_the_audit_analysis(article: Path, tmp_path: Path):
+    result = run(article, tmp_path / "data", FakeDeps())
+    [claim] = json.loads(result.report_path.read_text())["claims"]
+    assert claim["explanation"] and "analysis" not in claim and "evidence_used" not in claim
+    [verdict] = json.loads((result.report_path.parent / "verdicts.json").read_text())
+    assert verdict["analysis"]["conclusion"] and verdict["evidence_used"] == ["E1"]

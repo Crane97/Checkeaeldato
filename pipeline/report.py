@@ -78,6 +78,12 @@ def _warnings(
             f"{_plural(unassessed, 'promesa sin analizar', 'promesas sin analizar')} "
             "por un error del análisis (marcadas con analysis_error)"
         )
+    review = sum(1 for v in verdicts if v.needs_review)
+    if review:
+        warnings.append(
+            f"{_plural(review, 'afirmación pendiente', 'afirmaciones pendientes')} de revisión "
+            "humana: el análisis automático no fue coherente (marcadas con needs_review)"
+        )
     searches = sum(1 for v in verdicts if v.evidence_errors)
     if searches:
         warnings.append(
@@ -127,7 +133,11 @@ def build_report(
         claims.append(
             Claim(
                 **detected.model_dump(exclude={"search_queries", "needs_context"}),
-                **verdict.model_dump(exclude={"claim_id", "basis", "category"}),
+                # The analysis stays in verdicts.json for auditing; the report shows the
+                # explanation only.
+                **verdict.model_dump(
+                    exclude={"claim_id", "basis", "category", *Verdict.AUDIT_FIELDS}
+                ),
             )
         )
     return Report(

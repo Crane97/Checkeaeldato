@@ -122,3 +122,26 @@
 "gov.il" = "Gobierno de Israel"
 "gov.ua" = "Gobierno de Ucrania"
 "gov.ru" = "Gobierno de Rusia"
+
+# Fuentes PRIMARIAS: publican la norma o el dato original (boletines, estadísticas,
+# registros). En las fuentes de un veredicto van primero; el resto de fuentes oficiales
+# (informes, notas de prensa) son secundarias. "dominio/ruta" limita a esa ruta.
+[primarias]
+"boe.es" = "BOE"
+"ine.es" = "INE"
+"bde.es" = "Banco de España"
+"seg-social.es" = "Seguridad Social"
+"sepe.es" = "SEPE"
+"datos.gob.es" = "datos.gob.es"
+"idescat.cat" = "Idescat"
+"eustat.eus" = "Eustat"
+"cis.es" = "CIS"
+"airef.es" = "AIReF"
+"congreso.es" = "Congreso de los Diputados"
+"senado.es" = "Senado"
+"eur-lex.europa.eu" = "EUR-Lex"
+"ec.europa.eu/eurostat" = "Eurostat"
+"destatis.de" = "Destatis"
+"insee.fr" = "INSEE"
+"istat.it" = "Istat"
+"ine.pt" = "INE Portugal"

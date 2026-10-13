@@ -48,7 +48,7 @@ from pipeline.text_input import SUPPORTED_SUFFIXES, TEXT_SPEAKER, load_text
 from pipeline.text_input import VERSION as TRANSCRIPT_VERSION
 from pipeline.transcribe import Transcriber
 from pipeline.verdict import PROMPT as VERDICT_PROMPT
-from pipeline.verdict import FollowUpSearch, decide_verdicts
+from pipeline.verdict import FollowUpSearch, decide_verdicts, own_source_checker
 
 logger = logging.getLogger(__name__)
 
@@ -364,6 +364,11 @@ def build_steps(
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
                 follow_up=follow_up_search(deps, store.manifest.speech_date),
+                own_source=own_source_checker(
+                    store.read(SPEAKERS_FILE, SpeakerMap),
+                    default_governments(),
+                    store.manifest.speech_date,
+                ),
             )
             store.write("verdicts.json", verdicts, list[Verdict])
             return not any(v.analysis_error for v in verdicts)

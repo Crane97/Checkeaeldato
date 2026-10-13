@@ -1,7 +1,7 @@
 """Modelos pydantic compartidos por todos los pasos del pipeline."""
 
 import datetime as dt
-from typing import Literal, Self
+from typing import ClassVar, Literal, Self
 
 from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 
@@ -283,6 +283,28 @@ class EvidenceRun(BaseModel):
 # --- Verdicts ---------------------------------------------------------------
 
 
+Stance = Literal["apoya", "contradice", "neutral"]
+
+
+class EvidenceAssessment(BaseModel):
+    id: str  # "E3"
+    says: str  # what that source states about the claim, briefly
+    stance: Stance
+
+
+class VerdictAnalysis(BaseModel):
+    """Auditable analysis the verdict rests on (verdicts.json only, never shown in the UI).
+
+    Named "analysis" rather than "reasoning": Claude 5.5 models refuse requests that ask
+    them to write out their internal reasoning in the response (reasoning_extraction)."""
+
+    claim_parsed: str  # figure, unit, period and actor of the claim
+    evidence_assessment: list[EvidenceAssessment]
+    numeric_comparison: str
+    nuances: str  # nuances found and whether they change the conclusion, and why
+    conclusion: str
+
+
 class VerdictFields(BaseModel):
     verdict: VerdictLabel
     confidence: float = Field(ge=0, le=1)
@@ -295,6 +317,10 @@ class VerdictFields(BaseModel):
     evidence_errors: list[str] = Field(default_factory=list)
     # Extra searches requested when the first evidence could not settle the claim.
     follow_up_queries: list[str] = Field(default_factory=list)
+    # Set when the checks after the verdict failed twice (invented source ids, a label that
+    # contradicts its own explanation…): the verdict is then no_verificable until reviewed.
+    needs_review: bool = False
+    review_reasons: list[str] = Field(default_factory=list)
 
     @computed_field
     @property
@@ -333,6 +359,20 @@ class VerdictFields(BaseModel):
 
 class Verdict(VerdictFields):
     claim_id: str
+    # Audit trail kept in verdicts.json and left out of the report.
+    evidence_used: list[str] = Field(default_factory=list)
+    analysis: VerdictAnalysis | None = None
+    numeric_check: str = ""
+    thinking_summary: str | None = None  # API summary of Claude's thinking, when enabled
+    attempts: int = 1
+
+    AUDIT_FIELDS: ClassVar[set[str]] = {
+        "evidence_used",
+        "analysis",
+        "numeric_check",
+        "thinking_summary",
+        "attempts",
+    }
 
 
 class Claim(ClaimBase, VerdictFields):

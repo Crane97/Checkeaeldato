@@ -3,14 +3,28 @@
 import datetime as dt
 import html
 import logging
+import re
 from collections.abc import Callable
+from functools import lru_cache
 from typing import Protocol, TypeVar
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from pipeline.evidence.base import settled_by_factcheck
+from pipeline.evidence.oficiales import is_primary, load_primary_sources
+from pipeline.governments import Governments
 from pipeline.llm import LLMConfigError, LLMError
-from pipeline.models import ClaimEvidence, DetectedClaim, EvidenceItem, Verdict, VerdictLabel
+from pipeline.models import (
+    ClaimEvidence,
+    DetectedClaim,
+    EvidenceItem,
+    Source,
+    SpeakerMap,
+    Verdict,
+    VerdictAnalysis,
+    VerdictLabel,
+)
 from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 logger = logging.getLogger(__name__)
@@ -28,6 +42,23 @@ _KIND_PRIORITY = {"factcheck": 0, "oficial": 1, "web": 2}
 
 # (claim, queries, first evidence number) -> (new items numbered from it, errors)
 FollowUpSearch = Callable[[DetectedClaim, list[str], int], tuple[list[EvidenceItem], list[str]]]
+# (claim, source) -> True if the source speaks for the claim's speaker or their Government
+# (e.g. La Moncloa when the president speaks): neutral, it never counts for the verdict.
+OwnSource = Callable[[DetectedClaim, Source], bool]
+
+_EVIDENCE_ID_RE = re.compile(r"\bE\d+\b")
+# Wording that says the evidence matches the claim, or that it does not. A negation right
+# before a positive phrase ("no coincide") turns it into a negative one.
+_POSITIVE_RE = re.compile(
+    r"\b(coincide[n]?|respalda[n]?|es correct[ao]|son correct[ao]s|se ajusta[n]?)\b",
+    re.IGNORECASE,
+)
+_NEGATIVE_RE = re.compile(
+    r"\b(contradice[n]?|es fals[ao]|es incorrect[ao]|no coincide[n]?|no respalda[n]?|"
+    r"no se ajusta[n]?|no es correct[ao])\b",
+    re.IGNORECASE,
+)
+_NEGATION_BEFORE_RE = re.compile(r"\b(no|ni|tampoco|nunca)\s+(\w+\s+)?$", re.IGNORECASE)
 
 NO_EVIDENCE = "No se ha encontrado evidencia sobre esta afirmación en las fuentes consultadas."
 SEARCH_FAILED = (
@@ -51,12 +82,15 @@ class StructuredLLM(Protocol):
     ) -> T: ...
 
 
-# Schema of Claude's answer (see prompts/veredicto.md).
+# Schema of Claude's answer (see prompts/veredicto.md). The order matters: the model
+# writes the evidence it relies on and its analysis before the label.
 class VerdictAnswer(BaseModel):
+    evidence_used: list[str]
+    analysis: VerdictAnalysis
+    numeric_check: str
     verdict: VerdictLabel
     confidence: float = Field(ge=0, le=1)
     explanation: str
-    cited_evidence: list[str]
     matched_factcheck: str | None
     # Only with no_verificable: searches for the specific data that would settle it.
     follow_up_queries: list[str]
@@ -70,7 +104,39 @@ class VerdictAnswer(BaseModel):
         return v
 
 
-def _evidence_block(item: EvidenceItem) -> str:
+# The Government speaking for itself: La Moncloa and ministries' press rooms. Statistics
+# offices and official gazettes are not included (they publish data, not positions).
+_GOVERNMENT_HOSTS = ("lamoncloa.gob.es",)
+_PRESS_PATH_RE = re.compile(
+    r"/(prensa|notas?[ _%20-]*de[ _%20-]*prensa|comunicacion|gabinete[ _-]*de[ _-]*prensa)(/|$)",
+    re.IGNORECASE,
+)
+
+
+def is_government_voice(url: str) -> bool:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if any(host == h or host.endswith("." + h) for h in _GOVERNMENT_HOSTS):
+        return True
+    return host.endswith(".gob.es") and bool(_PRESS_PATH_RE.search(parsed.path))
+
+
+def own_source_checker(
+    speakers: SpeakerMap, governments: Governments, speech_date: dt.date
+) -> OwnSource:
+    """Sources that speak for the claim's speaker: the Government's own communication when
+    the speaker belongs to a party in that Government on the speech date."""
+    term = governments.at(speech_date)
+    governing = set(term.parties if term else []) | set(governments.partners_at(speech_date))
+
+    def check(claim: DetectedClaim, source: Source) -> bool:
+        speaker = speakers.get(claim.speaker)
+        return bool(speaker and speaker.party in governing and is_government_voice(source.url))
+
+    return check
+
+
+def _evidence_block(item: EvidenceItem, own: bool = False) -> str:
     source = item.source
     attrs = {
         "id": item.id,
@@ -79,6 +145,8 @@ def _evidence_block(item: EvidenceItem) -> str:
         "fecha": source.date.isoformat() if source.date else "desconocida",
         "url": source.url,
     }
+    if own:
+        attrs["del_gobierno_del_orador"] = "sí"
     attr_text = " ".join(f'{k}="{html.escape(v, quote=True)}"' for k, v in attrs.items())
     lines = [f"título: {source.title}"]
     if item.claim_reviewed:
@@ -107,8 +175,11 @@ def format_claim(
     speech_date: dt.date,
     final: bool = False,
     prefer: list[str] | None = None,
+    own_ids: frozenset[str] = frozenset(),
+    warning: str | None = None,
 ) -> str:
-    """User message for one claim. The speaker is left out on purpose (neutrality)."""
+    """User message for one claim. The speaker is left out on purpose (neutrality); only
+    sources from the speaker's own Government are flagged, so they are not used as proof."""
     parts = [
         f"<fecha>{speech_date.isoformat()}</fecha>",
         f"<afirmacion>{html.escape(claim.text_normalized, quote=False)}</afirmacion>",
@@ -123,8 +194,13 @@ def format_claim(
             if claim.context_status == "resuelto"
             else []
         ),
-        *(_evidence_block(item) for item in _selected_items(evidence, prefer or [])),
+        *(
+            _evidence_block(item, item.id in own_ids)
+            for item in _selected_items(evidence, prefer or [])
+        ),
     ]
+    if warning:
+        parts.append(f"<aviso>{html.escape(warning, quote=False)}</aviso>")
     if final:
         parts.append(
             "<ronda_final>No habrá más búsquedas: decide con esta evidencia.</ronda_final>"
@@ -164,18 +240,124 @@ def _failed(claim: DetectedClaim, evidence: ClaimEvidence, error: str) -> Verdic
     )
 
 
+@lru_cache
+def _primary_sources() -> tuple[str, ...]:
+    return tuple(load_primary_sources())
+
+
+def _source_rank(item: EvidenceItem) -> int:
+    """Primary sources (legal texts, statistics) first, then other official, fact-checks, web."""
+    if item.source.kind == "oficial":
+        return 0 if is_primary(item.source.url, list(_primary_sources())) else 1
+    return {"factcheck": 2, "web": 3}.get(item.source.kind, 4)
+
+
+def _mentioned_ids(answer: VerdictAnswer) -> list[str]:
+    analysis = answer.analysis
+    texts = [
+        answer.explanation,
+        answer.numeric_check,
+        analysis.claim_parsed,
+        analysis.numeric_comparison,
+        analysis.nuances,
+        analysis.conclusion,
+        *(a.says for a in analysis.evidence_assessment),
+    ]
+    ids = [a.id for a in analysis.evidence_assessment]
+    ids += [m for t in texts for m in _EVIDENCE_ID_RE.findall(t)]
+    return list(dict.fromkeys(ids))
+
+
+def _polarity(text: str) -> tuple[bool, bool]:
+    """(says it matches, says it does not), with negated positives counted as negative."""
+    negative = bool(_NEGATIVE_RE.search(text))
+    positive = False
+    for match in _POSITIVE_RE.finditer(text):
+        if _NEGATION_BEFORE_RE.search(text[: match.start()]):
+            negative = True
+        else:
+            positive = True
+    return positive, negative
+
+
+def _incoherences(answer: VerdictAnswer, used: list[str], own_ids: frozenset[str]) -> list[str]:
+    """Reasons why the label does not follow from the analysis and the explanation."""
+    reasons: list[str] = []
+    stances = {
+        a.id: ("neutral" if a.id in own_ids else a.stance)
+        for a in answer.analysis.evidence_assessment
+    }
+    counted = [stances.get(i, "neutral") for i in used]  # own sources count as neutral
+    if answer.verdict == "falso" and "contradice" not in counted:
+        reasons.append(
+            "el veredicto es falso, pero ninguna fuente usada contradice la afirmación "
+            "(stance «contradice»)"
+        )
+    if answer.verdict == "verdadero" and "apoya" not in counted:
+        reasons.append(
+            "el veredicto es verdadero, pero ninguna fuente usada apoya la afirmación "
+            "(stance «apoya»)"
+        )
+    positive, negative = _polarity(f"{answer.explanation} {answer.analysis.conclusion}")
+    if answer.verdict == "falso" and positive and not negative:
+        reasons.append(
+            "la explicación dice que la evidencia coincide con la afirmación, pero el "
+            "veredicto es falso"
+        )
+    if answer.verdict == "verdadero" and negative and not positive:
+        reasons.append(
+            "la explicación dice que la evidencia contradice la afirmación, pero el "
+            "veredicto es verdadero"
+        )
+    return reasons
+
+
+def _review(claim: DetectedClaim, evidence: ClaimEvidence, reasons: list[str], **extra) -> Verdict:
+    logger.warning("%s necesita revisión: %s", claim.id, "; ".join(reasons))
+    return Verdict(
+        claim_id=claim.id,
+        verdict="no_verificable",
+        confidence=0.0,
+        explanation=(
+            "El análisis automático no fue coherente y queda pendiente de revisión; "
+            "por ahora no se puede dar un veredicto."
+        ),
+        evidence_errors=evidence.errors,
+        needs_review=True,
+        review_reasons=reasons,
+        **extra,
+    )
+
+
 def _apply_rules(
     claim: DetectedClaim,
     evidence: ClaimEvidence,
     answer: VerdictAnswer,
     follow_up_queries: list[str] | None = None,
+    *,
+    own_ids: frozenset[str] = frozenset(),
+    attempts: int = 1,
+    thinking: str | None = None,
 ) -> Verdict:
-    """Turn Claude's answer into a Verdict that respects CLAUDE.md's principles."""
+    """Turn Claude's answer into a Verdict that respects CLAUDE.md's principles.
+    Incoherent answers are not handled here: see `_incoherences`."""
     by_id = {item.id: item for item in evidence.items}
-    cited = [by_id[i] for i in dict.fromkeys(answer.cited_evidence) if i in by_id]
-    unknown = [i for i in answer.cited_evidence if i not in by_id]
+    audit = {
+        "evidence_used": answer.evidence_used,
+        "analysis": answer.analysis,
+        "numeric_check": answer.numeric_check,
+        "thinking_summary": thinking,
+        "attempts": attempts,
+        "follow_up_queries": follow_up_queries or [],
+    }
+    unknown = [i for i in [*answer.evidence_used, *_mentioned_ids(answer)] if i not in by_id]
     if unknown:
-        logger.warning("%s cita evidencia inexistente: %s", claim.id, unknown)
+        ids = ", ".join(dict.fromkeys(unknown))
+        return _review(claim, evidence, [f"cita evidencia que no existe: {ids}"], **audit)
+
+    # Sources: what the answer says it used, plus any other evidence it mentions, by rank.
+    used = list(dict.fromkeys([*answer.evidence_used, *_mentioned_ids(answer)]))
+    cited = sorted((by_id[i] for i in used), key=_source_rank)
 
     verdict, confidence, explanation = answer.verdict, answer.confidence, answer.explanation
     if verdict != "no_verificable" and not cited:
@@ -199,7 +381,7 @@ def _apply_rules(
         sources=[item.source for item in cited],
         matched_factcheck=matched,
         evidence_errors=evidence.errors,
-        follow_up_queries=follow_up_queries or [],
+        **audit,
     )
 
 
@@ -210,21 +392,75 @@ def _decide(
     llm: StructuredLLM,
     model: str,
     follow_up: FollowUpSearch | None,
+    own_source: OwnSource | None = None,
+    thinking: bool | None = None,
 ) -> Verdict:
-    def ask(ev: ClaimEvidence, final: bool, prefer: list[str] | None = None) -> VerdictAnswer:
+    def own(ev: ClaimEvidence) -> frozenset[str]:
+        if own_source is None:
+            return frozenset()
+        return frozenset(i.id for i in ev.items if own_source(claim, i.source))
+
+    def ask(
+        ev: ClaimEvidence, final: bool, prefer: list[str] | None = None, warning: str | None = None
+    ) -> VerdictAnswer:
+        content = format_claim(
+            claim, ev, speech_date, final=final, prefer=prefer, own_ids=own(ev), warning=warning
+        )
+        kwargs = {"thinking": thinking} if thinking is not None else {}
         return llm.structured(
             step="verdicts",
             model=model,
             prompt=PROMPT,
-            user_content=format_claim(claim, ev, speech_date, final=final, prefer=prefer),
+            user_content=content,
             output_type=VerdictAnswer,
+            **kwargs,
+        )
+
+    def checked(
+        ev: ClaimEvidence,
+        first: VerdictAnswer,
+        final: bool,
+        prefer: list[str] | None = None,
+        queries: list[str] | None = None,
+    ) -> Verdict:
+        """Apply the rules; an incoherent answer is asked once more, then sent to review."""
+        own_ids = own(ev)
+        answer, attempts = first, 1
+        reasons = _incoherences(answer, answer.evidence_used, own_ids)
+        if reasons and not _unknown_ids(answer, ev):
+            logger.info("%s: respuesta incoherente, se repite: %s", claim.id, "; ".join(reasons))
+            warning = (
+                "Tu respuesta anterior era incoherente: " + "; ".join(reasons) + ". Revisa la "
+                "evidencia y decide de nuevo; el veredicto debe derivarse de tu conclusión."
+            )
+            answer, attempts = ask(ev, final=final, prefer=prefer, warning=warning), 2
+            reasons = _incoherences(answer, answer.evidence_used, own_ids)
+            if reasons and not _unknown_ids(answer, ev):
+                return _review(
+                    claim,
+                    ev,
+                    reasons,
+                    evidence_used=answer.evidence_used,
+                    analysis=answer.analysis,
+                    numeric_check=answer.numeric_check,
+                    attempts=attempts,
+                    follow_up_queries=queries or [],
+                )
+        return _apply_rules(
+            claim,
+            ev,
+            answer,
+            queries,
+            own_ids=own_ids,
+            attempts=attempts,
+            thinking=getattr(llm, "last_thinking", None),
         )
 
     answer = ask(evidence, final=follow_up is None)
     queries = [q.strip() for q in answer.follow_up_queries if q.strip()][:MAX_FOLLOW_UP_QUERIES]
     settled = settled_by_factcheck(claim, evidence.items)
     if answer.verdict != "no_verificable" or not queries or follow_up is None or settled:
-        return _apply_rules(claim, evidence, answer)
+        return checked(evidence, answer, final=follow_up is None)
 
     logger.info("%s: búsqueda adicional (%s)", claim.id, "; ".join(queries))
     items, errors = follow_up(claim, queries, len(evidence.items) + 1)
@@ -234,9 +470,15 @@ def _decide(
         update={"items": [*evidence.items, *items], "errors": [*evidence.errors, *errors]}
     )
     if not items:
-        return _apply_rules(claim, extended, answer, queries)
-    final = ask(extended, final=True, prefer=[i.id for i in items])
-    return _apply_rules(claim, extended, final, queries)
+        return checked(extended, answer, final=True, queries=queries)
+    prefer = [i.id for i in items]
+    final = ask(extended, final=True, prefer=prefer)
+    return checked(extended, final, final=True, prefer=prefer, queries=queries)
+
+
+def _unknown_ids(answer: VerdictAnswer, evidence: ClaimEvidence) -> bool:
+    known = {i.id for i in evidence.items}
+    return any(i not in known for i in [*answer.evidence_used, *_mentioned_ids(answer)])
 
 
 def decide_verdicts(
@@ -247,6 +489,8 @@ def decide_verdicts(
     llm: StructuredLLM,
     model: str,
     follow_up: FollowUpSearch | None = None,
+    own_source: OwnSource | None = None,
+    thinking: bool | None = None,
 ) -> list[Verdict]:
     """One verdict per claim, based only on that claim's retrieved evidence.
 
@@ -275,7 +519,9 @@ def decide_verdicts(
         attempted += 1
         logger.info("Veredicto de %s (%d/%d)", claim.id, len(verdicts) + 1, len(claims))
         try:
-            verdicts.append(_decide(claim, evidence, speech_date, llm, model, follow_up))
+            verdicts.append(
+                _decide(claim, evidence, speech_date, llm, model, follow_up, own_source, thinking)
+            )
         except LLMConfigError:
             raise
         except (LLMError, ValidationError) as exc:

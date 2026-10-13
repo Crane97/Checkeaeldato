@@ -90,6 +90,9 @@ function renderClaim(claim, speakers) {
     card.append(el("ul", { class: "sources" }, ...claim.sources.map((s) => el("li", {},
       `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));
   }
+  if (claim.needs_review) {
+    card.append(el("p", { class: "note" }, "Pendiente de revisión humana: el análisis automático no fue coherente."));
+  }
   if (claim.analysis_error) card.append(el("p", { class: "note" }, `El análisis falló: ${claim.analysis_error}`));
   if (claim.evidence_errors.length) {
     card.append(el("p", { class: "note" }, `Búsquedas con errores: ${claim.evidence_errors.join("; ")}`));

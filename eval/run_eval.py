@@ -29,7 +29,7 @@ from pipeline.evaluation import (
 )
 from pipeline.evidence.base import collect_evidence
 from pipeline.jobs import prompt_hash
-from pipeline.models import Claim, DetectedClaim, Promise, Report, RunCost
+from pipeline.models import Claim, DetectedClaim, Promise, Report, RunCost, Verdict
 from pipeline.promises import assess_promises
 from pipeline.report import format_summary
 from pipeline.run import PROMPTS_DIR, LiveDeps, follow_up_search, run_job
@@ -87,7 +87,9 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
     claims = [
         Claim(
             **d.model_dump(exclude={"search_queries", "needs_context"}),
-            **by_id[d.id].model_dump(exclude={"claim_id", "basis", "category"}),
+            **by_id[d.id].model_dump(
+                exclude={"claim_id", "basis", "category", *Verdict.AUDIT_FIELDS}
+            ),
         )
         for d in detected
     ]

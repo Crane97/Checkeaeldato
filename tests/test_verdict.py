@@ -13,6 +13,8 @@ from pipeline.verdict import (
     VerdictError,
     decide_verdicts,
     format_claim,
+    is_government_voice,
+    own_source_checker,
 )
 
 DATE = dt.date(2026, 11, 20)
@@ -58,11 +60,28 @@ def evidence(*items: EvidenceItem, cid: str = "c001", errors: list[str] | None =
 
 
 def answer(**overrides: Any) -> VerdictAnswer:
+    """A model answer; `cited_evidence` fills evidence_used, and each used item gets the
+    stance that matches the verdict unless `stances` says otherwise."""
+    used = overrides.pop("cited_evidence", ["E2"])
+    stances = overrides.pop("stances", {})
+    verdict = overrides.get("verdict", "falso")
+    default = {"falso": "contradice", "verdadero": "apoya"}.get(verdict, "neutral")
     data = {
-        "verdict": "falso",
+        "evidence_used": used,
+        "analysis": {
+            "claim_parsed": "Cifra: 20 %; indicador: paro; periodo: desde 2024; actor: —",
+            "evidence_assessment": [
+                {"id": i, "says": f"Lo que dice {i}", "stance": stances.get(i, default)}
+                for i in used
+            ],
+            "numeric_comparison": "20 % afirmado frente a 8 % en la EPA",
+            "nuances": "Ninguno que cambie la conclusión.",
+            "conclusion": overrides.pop("conclusion", "Conclusión basada en la evidencia."),
+        },
+        "numeric_check": "20 ≠ 8",
+        "verdict": verdict,
         "confidence": 0.9,
         "explanation": "La EPA muestra que el paro bajó un 8 % en ese periodo.",
-        "cited_evidence": ["E2"],
         "matched_factcheck": None,
         "follow_up_queries": [],
     }
@@ -137,12 +156,136 @@ def test_verdict_maps_cited_ids_to_sources():
     assert llm.calls[0]["step"] == "verdicts"
 
 
-def test_unknown_ids_are_dropped_and_no_valid_source_downgrades():
-    [v] = run([claim()], [evidence(OF)], FakeLLM(answer(cited_evidence=["E9"])))
-    assert v.verdict == "no_verificable"
-    assert v.confidence == 0.0
-    assert v.sources == []
-    assert "sin citar evidencia válida" in v.explanation
+def test_citing_evidence_that_does_not_exist_needs_review():
+    llm = FakeLLM(answer(cited_evidence=["E9"]))
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert (v.verdict, v.confidence, v.needs_review) == ("no_verificable", 0.0, True)
+    assert any("E9" in r for r in v.review_reasons)
+    assert len(llm.calls) == 1  # an invented source is not retried
+
+
+def test_inexistent_id_mentioned_only_in_the_explanation_also_needs_review():
+    bad = answer(explanation="Según E7, el paro bajó un 8 %.")
+    [v] = run([claim()], [evidence(OF)], FakeLLM(bad))
+    assert v.needs_review and v.verdict == "no_verificable"
+    assert any("E7" in r for r in v.review_reasons)
+
+
+def test_existing_ids_mentioned_in_the_text_join_the_sources():
+    text = answer(explanation="La EPA (E2) y Maldita (E1) muestran que bajó un 8 %.")
+    [v] = run([claim()], [evidence(FC, OF)], FakeLLM(text))
+    assert {s.url for s in v.sources} == {"https://www.ine.es/epa", "https://maldita.es/a"}
+    assert not v.needs_review
+
+
+def test_sources_come_from_evidence_used_primary_sources_first():
+    secondary = item("E4", "oficial", "https://www.dsca.gob.es/informe.pdf")
+    boe = item("E5", "oficial", "https://www.boe.es/eli/es/rd/2023/02/14/99")
+    used = ["E3", "E1", "E4", "E2", "E5"]
+    llm = FakeLLM(answer(cited_evidence=used, stances={"E3": "neutral", "E1": "neutral"}))
+    [v] = run([claim()], [evidence(FC, OF, WEB, secondary, boe)], llm)
+    assert [s.url for s in v.sources] == [
+        "https://www.ine.es/epa",
+        "https://www.boe.es/eli/es/rd/2023/02/14/99",
+        "https://www.dsca.gob.es/informe.pdf",
+        "https://maldita.es/a",
+        "https://periodico.es/n",
+    ]
+
+
+def test_false_needs_a_contradicting_source_or_is_asked_again():
+    unsupported = answer(stances={"E2": "apoya"})
+    fixed = answer(verdict="no_verificable", cited_evidence=[], explanation="No basta.")
+    llm = FakeLLM(unsupported, fixed)
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert len(llm.calls) == 2
+    assert "contradice" in llm.calls[1]["user_content"]  # the retry says what was wrong
+    assert v.verdict == "no_verificable" and not v.needs_review
+
+
+def test_false_without_contradicting_source_twice_needs_review():
+    unsupported = answer(stances={"E2": "neutral"})
+    llm = FakeLLM(unsupported, unsupported)
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert (v.verdict, v.needs_review) == ("no_verificable", True)
+    assert any("contradice" in r for r in v.review_reasons)
+
+
+def test_true_needs_a_supporting_source_too():
+    unsupported = answer(verdict="verdadero", stances={"E2": "neutral"})
+    llm = FakeLLM(unsupported, unsupported)
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert v.needs_review and v.verdict == "no_verificable"
+
+
+def test_explanation_that_supports_a_false_label_is_asked_again():
+    smi = answer(explanation="La subida es de 344,10 € y coincide con los 344 € afirmados.")
+    coherent = answer(verdict="verdadero", explanation="La subida es de 344,10 €, como se afirma.")
+    llm = FakeLLM(smi, coherent)
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert len(llm.calls) == 2
+    assert v.verdict == "verdadero" and not v.needs_review
+
+
+def test_incoherent_twice_needs_review():
+    smi = answer(explanation="El cálculo respalda la cifra: es correcta.")
+    [v] = run([claim()], [evidence(OF)], FakeLLM(smi, smi))
+    assert (v.verdict, v.needs_review) == ("no_verificable", True)
+
+
+@pytest.mark.parametrize(
+    "explanation",
+    [
+        "La cifra no coincide con la EPA, que da un 8 %.",
+        "El dato del paro coincide, pero el periodo no se ajusta y la EPA lo contradice.",
+    ],
+)
+def test_negated_or_mixed_wording_is_not_incoherent(explanation):
+    llm = FakeLLM(answer(explanation=explanation))
+    [v] = run([claim()], [evidence(OF)], llm)
+    assert len(llm.calls) == 1 and v.verdict == "falso"
+
+
+def test_true_with_an_explanation_that_contradicts_is_asked_again():
+    wrong = answer(verdict="verdadero", explanation="La EPA contradice la cifra: es falsa.")
+    llm = FakeLLM(wrong, answer())
+    run([claim()], [evidence(OF)], llm)
+    assert len(llm.calls) == 2
+
+
+def test_sources_from_the_speakers_own_government_are_neutral():
+    moncloa = item("E4", "oficial", "https://www.lamoncloa.gob.es/presidente/x.aspx")
+    only_own = answer(verdict="verdadero", cited_evidence=["E4"])
+    llm = FakeLLM(only_own, only_own)
+    [v] = decide_verdicts(
+        [claim()],
+        [evidence(moncloa)],
+        speech_date=DATE,
+        llm=llm,
+        model=MODEL,
+        own_source=lambda c, source: "lamoncloa.gob.es" in source.url,
+    )
+    assert 'del_gobierno_del_orador="sí"' in llm.calls[0]["user_content"]
+    assert v.needs_review and v.verdict == "no_verificable"  # it did not count as support
+
+
+def test_analysis_is_kept_for_auditing():
+    [v] = run([claim()], [evidence(OF)], FakeLLM(answer()))
+    assert v.evidence_used == ["E2"]
+    assert v.analysis is not None
+    assert v.analysis.evidence_assessment[0].stance == "contradice"
+    assert v.numeric_check == "20 ≠ 8"
+
+
+def test_answer_fields_are_ordered_evidence_first_and_verdict_after_the_analysis():
+    assert list(VerdictAnswer.model_fields)[:6] == [
+        "evidence_used",
+        "analysis",
+        "numeric_check",
+        "verdict",
+        "confidence",
+        "explanation",
+    ]
 
 
 def test_matched_factcheck_requires_a_cited_factcheck_item():
@@ -333,3 +476,37 @@ def test_no_follow_up_search_when_a_published_check_settles_the_claim():
     follow_up = FollowUp(items=[POP])
     run([claim()], [evidence(matching)], FakeLLM(first), follow_up)
     assert follow_up.calls == []
+
+
+@pytest.mark.parametrize(
+    ("url", "voice"),
+    [
+        ("https://www.lamoncloa.gob.es/presidente/actividades/x.aspx", True),
+        ("https://www.hacienda.gob.es/es-ES/Prensa/Notas%20de%20prensa/x.aspx", True),
+        ("https://www.mites.gob.es/es/prensa/notas/x.htm", True),
+        ("https://www.hacienda.gob.es/es-ES/Estadisticas/x.aspx", False),
+        ("https://www.ine.es/prensa/epa.pdf", False),  # statistics office, not the Government
+        ("https://www.boe.es/x", False),
+    ],
+)
+def test_government_voice_is_la_moncloa_and_ministry_press_rooms(url, voice):
+    assert is_government_voice(url) is voice
+
+
+def test_own_source_only_for_speakers_of_a_governing_party():
+    from pipeline.governments import default_governments
+    from pipeline.models import Speaker, SpeakerMap
+
+    speakers = SpeakerMap(
+        speakers=[
+            Speaker(label="Presidente", name="Pedro Sánchez", party="PSOE"),
+            Speaker(label="Feijóo", name="Alberto Núñez Feijóo", party="PP"),
+        ]
+    )
+    check = own_source_checker(speakers, default_governments(), dt.date(2023, 2, 21))
+    moncloa = item("E1", "oficial", "https://www.lamoncloa.gob.es/x").source
+    gov = claim().model_copy(update={"speaker": "Presidente"})
+    opp = claim().model_copy(update={"speaker": "Feijóo"})
+    assert check(gov, moncloa) is True
+    assert check(opp, moncloa) is False
+    assert check(gov, OF.source) is False
