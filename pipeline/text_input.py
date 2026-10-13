@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 TEXT_SPEAKER = "autor"
 # Bump when the way text is split into segments or turns changes: cached jobs redo it.
-VERSION = "2"
+VERSION = "3"
 SUPPORTED_SUFFIXES = (".txt", ".md")
 
 _PARAGRAPH_BREAK_RE = re.compile(r"\n\s*\n")
@@ -123,9 +123,10 @@ def _document_label(line: str) -> bool:
 def _labelled_segments(text: str) -> list[Segment] | None:
     """Segments per speaker turn if the text is a dialogue ("Nombre: …" lines), else None.
 
-    Transcripts (e.g. the Diario de Sesiones) label only the first paragraph of each
-    intervention, so unlabelled lines and paragraphs continue the current turn, each paragraph
-    as its own segment. Text before the first label and after a document label ("Nota:",
+    Transcripts (e.g. the Diario de Sesiones) separate turns with blank lines and label only
+    the first paragraph of each intervention, so there unlabelled paragraphs continue the
+    current turn, each as its own segment. In a compact dialogue (one turn per line) a blank
+    line ends the turn instead. Text before the first label and after a document label ("Nota:",
     "Crónica:") belongs to the author. The same name written in another case ("ANA PÉREZ" /
     "Ana Pérez") is one speaker.
     """
@@ -134,6 +135,12 @@ def _labelled_segments(text: str) -> list[Segment] | None:
     if len(labels) < 2:
         return None
 
+    # Transcripts that separate turns with blank lines (the Diario de Sesiones) continue a
+    # turn across paragraphs; compact dialogues (one turn per line) end at a blank line.
+    paragraph_turns = any(
+        _speaker_label(line) and i > 0 and not lines[i - 1].strip()
+        for i, line in enumerate(lines)
+    )
     canonical: dict[str, str] = {}
     segments: list[Segment] = []
     speaker, buffer = TEXT_SPEAKER, []
@@ -152,7 +159,9 @@ def _labelled_segments(text: str) -> list[Segment] | None:
             speaker = canonical.setdefault(name.casefold(), name)
             buffer.append(rest)
         elif not line.strip():
-            flush()  # a new paragraph of the same turn
+            flush()  # a new paragraph: same turn in a transcript, the author's otherwise
+            if not paragraph_turns:
+                speaker = TEXT_SPEAKER
         elif _document_label(line):
             flush()
             speaker = TEXT_SPEAKER

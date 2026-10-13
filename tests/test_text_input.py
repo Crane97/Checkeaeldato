@@ -125,3 +125,19 @@ def test_paragraphs_without_label_continue_the_current_turn(tmp_path: Path):
         ("Presidente", "Muchas gracias, señoría."),
         ("Presidente", "Hemos creado 500.000 empleos."),
     ]
+
+
+def test_in_a_compact_dialogue_a_paragraph_after_a_blank_line_is_the_authors(tmp_path: Path):
+    # Turns on consecutive lines: a blank line marks the end of the dialogue, as in a
+    # chronicle that follows the transcript (gold case real-003).
+    text = (
+        "Moderadora: Buenas noches.\n"
+        "Candidata A: El paro bajó.\n"
+        "Moderadora: Pasamos al siguiente bloque.\n"
+        "\n"
+        "Crónica posterior al debate.\n"
+        "\n"
+        "El portavoz del Gobierno aseguró que la deuda superó el 100 % del PIB.\n"
+    )
+    segments = load_text(write(tmp_path, "a.txt", text.encode())).segments
+    assert [s.speaker for s in segments[-2:]] == ["autor", "autor"]
