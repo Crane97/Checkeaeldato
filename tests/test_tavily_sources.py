@@ -14,6 +14,7 @@ from pipeline.evidence.base import (
 from pipeline.evidence.oficiales import (
     OfficialSearchSource,
     load_official_domains,
+    load_search_domains,
     official_organization,
 )
 from pipeline.evidence.tavily import API_URL, TavilyClient
@@ -72,6 +73,32 @@ def test_bundled_official_domains_load():
 )
 def test_official_organization_matches_whole_domains(url, org):
     assert official_organization(url, DOMAINS) == org
+
+
+@pytest.mark.parametrize(
+    ("url", "org"),
+    [
+        ("https://eur-lex.europa.eu/legal-content/ES/TXT/", "Unión Europea"),
+        ("https://www.bls.gov/cps/", "Estados Unidos"),
+        ("https://www.ons.gov.uk/employment", "Reino Unido"),
+        ("https://www.legifrance.gouv.fr/x", "Francia"),
+        ("https://www.destatis.de/x", "Alemania"),
+        ("https://www.who.int/data", "Organización Mundial de la Salud"),
+        ("https://www.coe.int/x", "Consejo de Europa"),
+        ("https://www.nato.int/x", "Organismo internacional"),
+        ("https://www.ilo.org/x", "Organización Internacional del Trabajo"),
+        ("https://www.government.gov.example.com/x", None),
+    ],
+)
+def test_foreign_governments_and_international_bodies_are_official(url, org):
+    found = official_organization(url, load_official_domains())
+    assert (found is None) if org is None else (org in found)
+
+
+def test_generic_suffixes_are_not_sent_as_search_domains():
+    domains = load_search_domains()
+    assert "ine.es" in domains and "destatis.de" in domains
+    assert "gov" not in domains and "int" not in domains and "gouv.fr" not in domains
 
 
 # --- Tavily client ----------------------------------------------------------

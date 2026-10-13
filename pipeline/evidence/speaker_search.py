@@ -1,7 +1,13 @@
 """Búsqueda sobre un orador (partido y cargo): dominios oficiales o web general."""
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
-from pipeline.evidence.oficiales import MAX_RESULTS, MIN_SCORE, label_results, load_official_domains
+from pipeline.evidence.oficiales import (
+    MAX_RESULTS,
+    MIN_SCORE,
+    label_results,
+    load_official_domains,
+    load_search_domains,
+)
 from pipeline.evidence.passages import query_terms
 from pipeline.evidence.tavily import TavilyClient
 from pipeline.models import EvidenceItem
@@ -18,6 +24,7 @@ class TavilySpeakerSearch:
     ) -> None:
         self._tavily = tavily
         self._domains = domains if domains is not None else load_official_domains()
+        self._search_domains = list(domains if domains is not None else load_search_domains())
         self._min_score = min_score
 
     def __call__(self, query: str, *, official: bool) -> tuple[list[EvidenceItem], list[str]]:
@@ -25,7 +32,7 @@ class TavilySpeakerSearch:
         try:
             if official:
                 results = self._tavily.search(
-                    query, include_domains=list(self._domains), max_results=MAX_RESULTS
+                    query, include_domains=self._search_domains, max_results=MAX_RESULTS
                 )
             else:
                 results = self._tavily.search(query, country="spain", max_results=MAX_RESULTS)

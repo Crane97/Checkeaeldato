@@ -17,13 +17,23 @@ MAX_QUERIES = 3
 MAX_RESULTS = 5
 
 
-def load_official_domains(path: Path | None = None) -> dict[str, str]:
-    """Domain -> organization name, from fuentes_oficiales.toml."""
+def _load(path: Path | None) -> dict[str, dict[str, str]]:
     if path:
         text = path.read_text()
     else:
         text = files("pipeline.evidence").joinpath("fuentes_oficiales.toml").read_text()
-    return dict(tomllib.loads(text)["dominios"])
+    return tomllib.loads(text)
+
+
+def load_official_domains(path: Path | None = None) -> dict[str, str]:
+    """Domain or suffix -> organization name: every page that counts as official."""
+    data = _load(path)
+    return {**data.get("sufijos", {}), **data["dominios"]}
+
+
+def load_search_domains(path: Path | None = None) -> dict[str, str]:
+    """The domains official searches are restricted to (no generic suffixes like "gov")."""
+    return dict(_load(path)["dominios"])
 
 
 def official_organization(url: str, domains: dict[str, str]) -> str | None:
@@ -77,6 +87,7 @@ class OfficialSearchSource:
     ) -> None:
         self._tavily = tavily
         self._domains = domains if domains is not None else load_official_domains()
+        self._search_domains = list(domains if domains is not None else load_search_domains())
         self._min_score = min_score
         self._max_queries = max_queries
 
@@ -85,7 +96,7 @@ class OfficialSearchSource:
         for query in queries_for(claim, self._max_queries):
             try:
                 results = self._tavily.search(
-                    query, include_domains=list(self._domains), max_results=MAX_RESULTS
+                    query, include_domains=self._search_domains, max_results=MAX_RESULTS
                 )
             except EvidenceConfigError:
                 raise

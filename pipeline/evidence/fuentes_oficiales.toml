@@ -1,8 +1,9 @@
 # Dominios cuyas páginas se consideran fuente OFICIAL (tipo `oficial` en el informe).
 # Editable: añade o quita dominios sin tocar el código. Cada dominio incluye sus
 # subdominios (p. ej. "europa.eu" cubre ec.europa.eu/eurostat y ecb.europa.eu).
-# Criterio: organismos públicos, estadísticos, reguladores e instituciones
-# internacionales; nunca partidos, medios ni fundaciones.
+# Criterio: organismos públicos (de España y de cualquier país), estadísticos, reguladores e
+# instituciones internacionales; nunca partidos, medios ni fundaciones (decisión del
+# responsable del proyecto, 2026-10-13).
 
 [dominios]
 # Estadística y datos
@@ -34,7 +35,90 @@
 "poderjudicial.es" = "Consejo General del Poder Judicial"
 
 # Instituciones internacionales
-"europa.eu" = "Unión Europea (Eurostat, Comisión, BCE…)"
+"europa.eu" = "Unión Europea (Eurostat, Comisión, BCE, EUR-Lex…)"
 "oecd.org" = "OCDE"
 "imf.org" = "Fondo Monetario Internacional"
 "worldbank.org" = "Banco Mundial"
+"un.org" = "Naciones Unidas"
+"ilo.org" = "Organización Internacional del Trabajo"
+"who.int" = "Organización Mundial de la Salud"
+"wto.org" = "Organización Mundial del Comercio"
+"bis.org" = "Banco de Pagos Internacionales"
+"fao.org" = "Organización de las Naciones Unidas para la Alimentación (FAO)"
+"unesco.org" = "UNESCO"
+"unhcr.org" = "ACNUR"
+"iea.org" = "Agencia Internacional de la Energía"
+"coe.int" = "Consejo de Europa"
+
+# Otros países: estadística, bancos centrales y parlamentos fuera de sus dominios
+# gubernamentales (los gubernamentales se reconocen por los sufijos de abajo)
+"destatis.de" = "Oficina Federal de Estadística de Alemania (Destatis)"
+"bundesbank.de" = "Bundesbank (Alemania)"
+"bundestag.de" = "Bundestag (Alemania)"
+"insee.fr" = "Instituto Nacional de Estadística de Francia (INSEE)"
+"banque-france.fr" = "Banco de Francia"
+"assemblee-nationale.fr" = "Asamblea Nacional (Francia)"
+"senat.fr" = "Senado (Francia)"
+"istat.it" = "Instituto Nacional de Estadística de Italia (Istat)"
+"bancaditalia.it" = "Banco de Italia"
+"camera.it" = "Cámara de Diputados (Italia)"
+"ine.pt" = "Instituto Nacional de Estadística de Portugal"
+"bportugal.pt" = "Banco de Portugal"
+"parlamento.pt" = "Asamblea de la República (Portugal)"
+"cbs.nl" = "Oficina Central de Estadística de los Países Bajos (CBS)"
+"statistik.at" = "Estadística de Austria"
+"bfs.admin.ch" = "Oficina Federal de Estadística de Suiza"
+"parliament.uk" = "Parlamento del Reino Unido"
+"bankofengland.co.uk" = "Banco de Inglaterra"
+"inegi.org.mx" = "Instituto Nacional de Estadística y Geografía (México)"
+"indec.gob.ar" = "Instituto Nacional de Estadística y Censos (Argentina)"
+"ibge.gov.br" = "Instituto Brasileño de Geografía y Estadística"
+"federalreserve.gov" = "Reserva Federal (Estados Unidos)"
+
+# Sufijos de administraciones públicas de otros países y de organismos internacionales.
+# Solo sirven para reconocer un resultado como oficial: no se envían como filtro de búsqueda.
+[sufijos]
+"int" = "Organismo internacional"
+"gov" = "Administración de Estados Unidos"
+"gov.uk" = "Gobierno del Reino Unido"
+"gouv.fr" = "Gobierno de Francia"
+"bund.de" = "Gobierno federal de Alemania"
+"bundesregierung.de" = "Gobierno federal de Alemania"
+"gov.it" = "Gobierno de Italia"
+"governo.it" = "Gobierno de Italia"
+"gov.pt" = "Gobierno de Portugal"
+"portugal.gov.pt" = "Gobierno de Portugal"
+"admin.ch" = "Administración federal de Suiza"
+"gv.at" = "Gobierno de Austria"
+"overheid.nl" = "Gobierno de los Países Bajos"
+"rijksoverheid.nl" = "Gobierno de los Países Bajos"
+"belgium.be" = "Gobierno de Bélgica"
+"gov.ie" = "Gobierno de Irlanda"
+"gov.pl" = "Gobierno de Polonia"
+"government.se" = "Gobierno de Suecia"
+"regeringen.se" = "Gobierno de Suecia"
+"regeringen.dk" = "Gobierno de Dinamarca"
+"valtioneuvosto.fi" = "Gobierno de Finlandia"
+"gov.gr" = "Gobierno de Grecia"
+"gc.ca" = "Gobierno de Canadá"
+"canada.ca" = "Gobierno de Canadá"
+"gov.au" = "Gobierno de Australia"
+"govt.nz" = "Gobierno de Nueva Zelanda"
+"go.jp" = "Gobierno de Japón"
+"gob.mx" = "Gobierno de México"
+"gob.ar" = "Gobierno de Argentina"
+"gov.br" = "Gobierno de Brasil"
+"gob.cl" = "Gobierno de Chile"
+"gov.co" = "Gobierno de Colombia"
+"gob.pe" = "Gobierno de Perú"
+"gub.uy" = "Gobierno de Uruguay"
+"gob.ve" = "Gobierno de Venezuela"
+"gob.ec" = "Gobierno de Ecuador"
+"gov.ma" = "Gobierno de Marruecos"
+"gov.cn" = "Gobierno de China"
+"gov.in" = "Gobierno de la India"
+"gov.za" = "Gobierno de Sudáfrica"
+"gov.tr" = "Gobierno de Turquía"
+"gov.il" = "Gobierno de Israel"
+"gov.ua" = "Gobierno de Ucrania"
+"gov.ru" = "Gobierno de Rusia"
