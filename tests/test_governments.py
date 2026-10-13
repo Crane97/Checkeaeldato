@@ -161,3 +161,20 @@ def test_party_written_with_its_acronym_in_brackets():
     governments = default_governments()
     assert governments.canonical_party("Partido Popular (PP)") == "PP"
     assert governments.canonical_party("el Partido Socialista Obrero Español (PSOE)") == "PSOE"
+
+
+def test_describe_period_splits_the_term_by_coalition_partners():
+    gov = default_governments()
+    term = gov.at(dt.date(2023, 2, 21))
+    text = gov.describe_period(term, dt.date(2018, 6, 2), dt.date(2023, 2, 21))
+    assert text == (
+        "Gobierno de Pedro Sánchez (PSOE en solitario del 02/06/2018 al 13/01/2020; "
+        "PSOE en coalición con Unidas Podemos del 13/01/2020 al 21/02/2023)"
+    )
+
+
+def test_describe_period_without_partner_changes_is_one_stretch():
+    gov = default_governments()
+    term = gov.at(dt.date(2019, 1, 1))
+    text = gov.describe_period(term, dt.date(2018, 6, 2), dt.date(2019, 6, 1))
+    assert text == "Gobierno de Pedro Sánchez (PSOE en solitario)"

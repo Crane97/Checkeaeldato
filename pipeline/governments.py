@@ -171,6 +171,37 @@ class Governments:
             details += ", en funciones"
         return f"Gobierno de {term.president} ({details})"
 
+    def describe_period(self, term: GovernmentTerm, start: dt.date, end: dt.date) -> str:
+        """The term over [start, end], one stretch per change of coalition partners:
+        "Gobierno de X (A en solitario del … al …; A en coalición con B del … al …)"."""
+        start, end = max(start, term.start), min(end, term.end or end)
+        cuts = sorted(
+            {start, end}
+            | {
+                d
+                for p in term.coalition_partners
+                for d in (p.start, p.end)
+                if d and start < d < end
+            }
+        )
+        stretches: list[tuple[str, dt.date, dt.date]] = []
+        for a, b in zip(cuts, cuts[1:], strict=False):
+            partners = [
+                p.party
+                for p in term.coalition_partners
+                if p.start <= a and (p.end is None or a < p.end)
+            ]
+            label = ", ".join(term.parties)
+            label += f" en coalición con {' y '.join(partners)}" if partners else " en solitario"
+            if stretches and stretches[-1][0] == label:
+                stretches[-1] = (label, stretches[-1][1], b)
+            else:
+                stretches.append((label, a, b))
+        if len(stretches) == 1:
+            return f"Gobierno de {term.president} ({stretches[0][0]})"
+        parts = [f"{label} del {a:%d/%m/%Y} al {b:%d/%m/%Y}" for label, a, b in stretches]
+        return f"Gobierno de {term.president} ({'; '.join(parts)})"
+
     # --- periods ------------------------------------------------------------
 
     @staticmethod

@@ -138,8 +138,7 @@ def _labelled_segments(text: str) -> list[Segment] | None:
     # Transcripts that separate turns with blank lines (the Diario de Sesiones) continue a
     # turn across paragraphs; compact dialogues (one turn per line) end at a blank line.
     paragraph_turns = any(
-        _speaker_label(line) and i > 0 and not lines[i - 1].strip()
-        for i, line in enumerate(lines)
+        _speaker_label(line) and i > 0 and not lines[i - 1].strip() for i, line in enumerate(lines)
     )
     canonical: dict[str, str] = {}
     segments: list[Segment] = []

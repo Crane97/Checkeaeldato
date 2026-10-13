@@ -158,7 +158,11 @@ def test_este_gobierno():
     llm = FakeLLM(answer(referent="gobierno_actual", addressee=""))
     c = resolve(claim("este Gobierno ha subido los impuestos", "SPEAKER_2"), llm)
     assert scope(c) == [(D(2018, 6, 2), DATE)]
-    assert c.resolved_actor == "Gobierno de Pedro Sánchez (PSOE, en coalición con Unidas Podemos)"
+    assert c.resolved_actor == (
+        "Gobierno de Pedro Sánchez (PSOE en solitario del 02/06/2018 al 13/01/2020; "
+        "PSOE en coalición con Unidas Podemos del 13/01/2020 al 10/07/2023)"
+    )
+    assert "PSOE en solitario del 02/06/2018 al 13/01/2020" in c.text_normalized
 
 
 def test_gobierno_anterior():

@@ -106,7 +106,8 @@
         {"start": "2019-04-29", "end": "2020-01-08"},
         {"start": "2023-07-24", "end": "2023-11-17"}
       ],
-      "appointment": "RD 354/2018, de 1 de junio; RD 336/2019 (continuidad en funciones); RD 1/2020; RD 828/2023"
+      "appointment": "RD 354/2018, de 1 de junio; RD 336/2019 (continuidad en funciones); RD 1/2020; RD 828/2023",
+      "notes": "Del 02/06/2018 al 13/01/2020, Gobierno del PSOE en solitario (Sánchez I); coalición con Unidas Podemos desde el 13/01/2020 y con Sumar desde el 21/11/2023. Los textos de actor se describen por tramos (Governments.describe_period)."
     }
   ]
 }

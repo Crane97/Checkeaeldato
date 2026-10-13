@@ -249,13 +249,14 @@ def _resolve(
         if term is None:
             raise _Unresolved("No hay Gobierno en la tabla para la fecha del discurso.")
         scope = [DateRange(start=term.start, end=speech_date)]
-        actor = short = gov.describe(term, speech_date)
+        # By stretches: who governed with whom changed within the term.
+        actor = short = gov.describe_period(term, term.start, speech_date)
     elif answer.referent == "gobierno_anterior":
         term = gov.previous(speech_date)
         if term is None or term.end is None:
             raise _Unresolved("No hay Gobierno anterior en la tabla.")
         scope = [DateRange(start=term.start, end=term.end)]
-        actor = short = gov.describe(term, term.end - dt.timedelta(days=1))
+        actor = short = gov.describe_period(term, term.start, term.end)
     elif answer.referent == "momento":
         if not windows:
             raise _Unresolved("La frase alude a un momento sin año identificable.")
