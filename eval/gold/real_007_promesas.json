@@ -1,0 +1,36 @@
+{
+  "id": "real-007-promesas",
+  "descripcion": "Promesas definidas a partir de los ejemplos del responsable del proyecto (2026-10-13): una meta irrealista según los datos, dos que chocan con el derecho de la UE, una viable por la vía ordinaria y una vaga que no se debe extraer. No procede de un verificador publicado.",
+  "sintetico": false,
+  "fecha": "2026-10-13",
+  "entrada": {
+    "tipo": "texto",
+    "texto": "Candidato: Si gobernamos, bajaremos el paro al 0 % en esta legislatura.\nCandidata: Nosotros subiremos el salario mínimo interprofesional un 3 % el próximo año.\nCandidato: Prohibiremos la venta en España de fruta importada de otros países de la Unión Europea.\nCandidata: Recuperaremos la peseta sin salir de la Unión Europea.\nCandidato: Haremos una España mejor para todos."
+  },
+  "afirmaciones": [],
+  "promesas": [
+    {
+      "cita": "bajaremos el paro al 0 % en esta legislatura",
+      "valoracion_esperada": "inviable",
+      "notas": "La tasa de paro de la EPA nunca ha bajado del 7,9 % (2007); ninguna economía tiene paro cero."
+    },
+    {
+      "cita": "subiremos el salario mínimo interprofesional un 3 % el próximo año",
+      "valoracion_esperada": "viable",
+      "notas": "El Gobierno fija el SMI cada año por real decreto (art. 27 del Estatuto de los Trabajadores); subidas mayores ya se han aprobado."
+    },
+    {
+      "cita": "Prohibiremos la venta en España de fruta importada de otros países de la Unión Europea",
+      "valoracion_esperada": "inviable",
+      "notas": "Contradice la libre circulación de mercancías del mercado interior (arts. 28-36 TFUE)."
+    },
+    {
+      "cita": "Recuperaremos la peseta sin salir de la Unión Europea",
+      "valoracion_esperada": "inviable",
+      "notas": "España forma parte de la zona del euro; los tratados no prevén abandonar el euro permaneciendo en la UE (art. 3 y 140 TFUE)."
+    }
+  ],
+  "no_afirmaciones": [
+    "Haremos una España mejor para todos"
+  ]
+}

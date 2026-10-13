@@ -10,6 +10,11 @@ from pipeline.neutrality import FORBIDDEN_WORDS_RE
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
 VerdictLabel = Literal["verdadero", "verdad_a_medias", "confusion", "falso", "no_verificable"]
 SourceKind = Literal["factcheck", "oficial", "web"]
+# "promesa": a concrete commitment about the future; assessed for feasibility, not truth.
+ClaimKind = Literal["afirmacion", "promesa"]
+PromiseLabel = Literal["viable", "dudosa", "inviable", "no_evaluable"]
+PROMISE_LABELS: tuple[PromiseLabel, ...] = ("viable", "dudosa", "inviable", "no_evaluable")
+ObstacleKind = Literal["legal", "competencias", "presupuesto", "datos", "otro"]
 InputKind = Literal["video", "texto"]
 
 VERDICT_LABELS: tuple[VerdictLabel, ...] = (
@@ -172,6 +177,7 @@ ContextStatus = Literal["no_necesario", "resuelto", "no_resuelto"]
 class ClaimBase(BaseModel):
     id: str
     speaker: str
+    kind: ClaimKind = "afirmacion"
     segment: int | None = None  # index of the transcript segment where the quote starts
     # Literal quote from the transcript or text; must be findable in the source.
     text_original: str = Field(min_length=1)
@@ -333,6 +339,49 @@ class Claim(ClaimBase, VerdictFields):
     """Final, verified claim as it appears in the report."""
 
 
+class PromiseFields(BaseModel):
+    """Feasibility of a promise, based only on the retrieved evidence."""
+
+    assessment: PromiseLabel
+    confidence: float = Field(ge=0, le=1)
+    explanation: str  # why it is (not) feasible: legal framework, data, budget
+    obstacles: list[ObstacleKind] = Field(default_factory=list)
+    # Consequences stated by the cited sources ("" if they state none).
+    consequences_sourced: str = ""
+    # The model's own brief reasoning, always labelled as such ("" if none).
+    consequences_reasoning: str = ""
+    sources: list[Source] = Field(default_factory=list)
+    analysis_error: str | None = None
+    evidence_errors: list[str] = Field(default_factory=list)
+
+    @computed_field
+    @property
+    def basis(self) -> SourceKind | None:
+        kinds = {s.kind for s in self.sources}
+        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+
+    @field_validator("explanation", "consequences_sourced", "consequences_reasoning")
+    @classmethod
+    def _neutral_wording(cls, v: str) -> str:
+        if FORBIDDEN_WORDS_RE.search(v):
+            raise ValueError("text uses forbidden wording")
+        return v
+
+    @model_validator(mode="after")
+    def _consistent_sources(self) -> Self:
+        if self.assessment != "no_evaluable" and not self.sources:
+            raise ValueError("an assessment other than no_evaluable needs at least one source")
+        return self
+
+
+class PromiseVerdict(PromiseFields):
+    claim_id: str
+
+
+class Promise(ClaimBase, PromiseFields):
+    """Final, assessed promise as it appears in the report."""
+
+
 # --- Cost and report --------------------------------------------------------
 
 
@@ -370,6 +419,8 @@ class Report(BaseModel):
     # Who each speaker is and on what evidence (speakers step).
     speaker_profiles: list[Speaker] = Field(default_factory=list)
     claims: list[Claim]
+    # Shown in their own section; not counted in the claim totals.
+    promises: list[Promise] = Field(default_factory=list)
     cost: RunCost
     # Problems that make the report less complete (failed blocks, rejected quotes…).
     warnings: list[str] = Field(default_factory=list)
@@ -403,6 +454,14 @@ class Report(BaseModel):
 
     @computed_field
     @property
+    def by_promise(self) -> dict[str, int]:
+        counts = dict.fromkeys(PROMISE_LABELS, 0)
+        for p in self.promises:
+            counts[p.assessment] += 1
+        return counts
+
+    @computed_field
+    @property
     def by_speaker(self) -> dict[str, dict[str, int]]:
         """Counts per speaker and category."""
         result: dict[str, dict[str, int]] = {}
@@ -423,6 +482,7 @@ StepName = Literal[
     "context",
     "evidence",
     "verdicts",
+    "promises",
     "report",
 ]
 STEPS: tuple[StepName, ...] = (
@@ -434,6 +494,7 @@ STEPS: tuple[StepName, ...] = (
     "context",
     "evidence",
     "verdicts",
+    "promises",
     "report",
 )
 

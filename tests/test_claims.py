@@ -322,3 +322,20 @@ def test_claims_with_implicit_actors_or_periods_need_context(quote, flag, expect
     [claim] = run(transcript, FakeLLM(DetectionResult(claims=[item])), kind="texto").claims
     assert claim.needs_context is expected
     assert claim.segment == 0
+
+
+def run_detect(transcript: Transcript, item: ExtractedClaim):
+    llm = FakeLLM(DetectionResult(claims=[item]))
+    return detect_claims(transcript, speech_date=DATE, input_kind="video", llm=llm, model=MODEL)
+
+
+def test_promises_are_kept_with_their_kind():
+    transcript = video_transcript("Bajaremos el paro al 0 % en dos años.")
+    item = extracted(0, "Bajaremos el paro al 0 % en dos años", kind="promesa")
+    assert [c.kind for c in run_detect(transcript, item).claims] == ["promesa"]
+
+
+def test_claims_are_statements_by_default():
+    transcript = video_transcript("El paro bajó un 15 %.")
+    detection = run_detect(transcript, extracted(0, "El paro bajó un 15 %"))
+    assert detection.claims[0].kind == "afirmacion"

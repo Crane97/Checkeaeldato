@@ -4,9 +4,12 @@ import datetime as dt
 
 from pipeline.models import (
     CATEGORIES,
+    PROMISE_LABELS,
     Claim,
     ClaimDetection,
     InputKind,
+    Promise,
+    PromiseVerdict,
     Report,
     RunCost,
     Speaker,
@@ -21,6 +24,12 @@ CATEGORY_NAMES = {
     "no_verificable": "No verificable",
     "falso_sin_fuente_oficial": "Falso sin fuente oficial",
     "falso_con_fuente_oficial": "Falso con fuente oficial",
+}
+PROMISE_NAMES = {
+    "viable": "Viable",
+    "dudosa": "Dudosa",
+    "inviable": "Inviable",
+    "no_evaluable": "No evaluable",
 }
 CLAUDE_PROVIDERS = ("anthropic", "claude-code")
 BASIS_NAMES = {
@@ -39,7 +48,12 @@ def _plural(n: int, singular: str, plural: str) -> str:
     return f"{n} {singular if n == 1 else plural}"
 
 
-def _warnings(detection: ClaimDetection, verdicts: list[Verdict], cost: RunCost) -> list[str]:
+def _warnings(
+    detection: ClaimDetection,
+    verdicts: list[Verdict],
+    cost: RunCost,
+    promises: list[PromiseVerdict],
+) -> list[str]:
     warnings = [
         f"{_plural(1, 'bloque', 'bloques')} del texto sin analizar "
         f"(segmentos {f.segments[0]}-{f.segments[-1]}): {f.error}"
@@ -55,6 +69,12 @@ def _warnings(detection: ClaimDetection, verdicts: list[Verdict], cost: RunCost)
     if failed:
         warnings.append(
             f"{_plural(failed, 'afirmación sin analizar', 'afirmaciones sin analizar')} "
+            "por un error del análisis (marcadas con analysis_error)"
+        )
+    unassessed = sum(1 for p in promises if p.analysis_error)
+    if unassessed:
+        warnings.append(
+            f"{_plural(unassessed, 'promesa sin analizar', 'promesas sin analizar')} "
             "por un error del análisis (marcadas con analysis_error)"
         )
     searches = sum(1 for v in verdicts if v.evidence_errors)
@@ -79,13 +99,27 @@ def build_report(
     detection: ClaimDetection,
     speaker_profiles: list[Speaker] | None = None,
     verdicts: list[Verdict],
+    promises: list[PromiseVerdict] | None = None,
     cost: RunCost,
     generated_at: dt.datetime,
     extra_warnings: list[str] | None = None,
 ) -> Report:
     by_claim = {v.claim_id: v for v in verdicts}
+    by_promise = {p.claim_id: p for p in promises or []}
     claims: list[Claim] = []
+    assessed: list[Promise] = []
     for detected in detection.claims:
+        if detected.kind == "promesa":
+            found = by_promise.get(detected.id)
+            if found is None:
+                raise ReportError(f"Falta el análisis de la promesa {detected.id}")
+            assessed.append(
+                Promise(
+                    **detected.model_dump(exclude={"search_queries", "needs_context"}),
+                    **found.model_dump(exclude={"claim_id", "basis"}),
+                )
+            )
+            continue
         verdict = by_claim.get(detected.id)
         if verdict is None:
             raise ReportError(f"Falta el veredicto de la afirmación {detected.id}")
@@ -104,8 +138,9 @@ def build_report(
         speakers=speakers,
         speaker_profiles=speaker_profiles or [],
         claims=claims,
+        promises=assessed,
         cost=cost,
-        warnings=[*(extra_warnings or []), *_warnings(detection, verdicts, cost)],
+        warnings=[*(extra_warnings or []), *_warnings(detection, verdicts, cost, promises or [])],
     )
 
 
@@ -118,6 +153,10 @@ def format_summary(report: Report, report_path: str) -> str:
         f"Afirmaciones verificables: {len(report.claims)}",
     ]
     lines += [f"  {CATEGORY_NAMES[k]:<30}{report.by_category[k]:>4}" for k in CATEGORIES]
+
+    if report.promises:
+        lines += ["", f"Promesas: {len(report.promises)}"]
+        lines += [f"  {PROMISE_NAMES[k]:<30}{report.by_promise[k]:>4}" for k in PROMISE_LABELS]
 
     if report.by_speaker:
         lines += ["", "Por orador:"]

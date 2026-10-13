@@ -11,7 +11,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ValidationError, model_validator
 from rapidfuzz import fuzz
 
-from pipeline.models import Claim, DateRange, Report, VerdictLabel
+from pipeline.models import Claim, DateRange, Promise, PromiseLabel, Report, VerdictLabel
 
 GOLD_DIR = Path(__file__).resolve().parent.parent / "eval" / "gold"
 # Minimum fuzzy similarity (0-100) between a gold quote and a detected quote.
@@ -52,6 +52,14 @@ class GoldClaim(BaseModel):
     notas: str | None = None
 
 
+class GoldPromise(BaseModel):
+    cita: str  # literal quote as it appears in the input
+    inicio: float | None = None
+    fin: float | None = None
+    valoracion_esperada: PromiseLabel | None = None  # None: only detection is checked
+    notas: str | None = None
+
+
 class GoldCase(BaseModel):
     id: str
     descripcion: str
@@ -60,7 +68,9 @@ class GoldCase(BaseModel):
     sintetico: bool = False
     entrada: GoldInput
     afirmaciones: list[GoldClaim]
-    # Opinions, promises… present in the input that must NOT be detected.
+    # Concrete promises that must be detected as promises (and assessed).
+    promesas: list[GoldPromise] = []
+    # Opinions, vague promises… present in the input that must NOT be detected.
     no_afirmaciones: list[str] = []
 
 
@@ -82,7 +92,7 @@ def _similarity(a: str, b: str) -> float:
     return fuzz.partial_ratio(_norm(a), _norm(b))
 
 
-def _times_compatible(gold: GoldClaim, detected: Claim) -> bool:
+def _times_compatible(gold: GoldClaim | GoldPromise, detected: Claim | Promise) -> bool:
     if None in (gold.inicio, gold.fin, detected.start, detected.end):
         return True
     return (
@@ -91,7 +101,9 @@ def _times_compatible(gold: GoldClaim, detected: Claim) -> bool:
     )
 
 
-def match_claims(gold: list[GoldClaim], detected: list[Claim]) -> dict[int, str]:
+def match_claims(
+    gold: list[GoldClaim] | list[GoldPromise], detected: list[Claim] | list[Promise]
+) -> dict[int, str]:
     """Gold index -> detected claim id, one-to-one, best similarity first."""
     candidates = sorted(
         (
@@ -130,6 +142,12 @@ class CaseResult:
     context_checked: int = 0
     context_correct: int = 0
     wrong_context: list[str] = field(default_factory=list)
+    promises_gold: int = 0
+    promises_matched: int = 0
+    promises_checked: int = 0
+    promises_correct: int = 0
+    missed_promises: list[str] = field(default_factory=list)
+    wrong_promises: list[str] = field(default_factory=list)  # "quote: expected -> got"
 
 
 def _periods_match(expected: list[DateRange], got: list[DateRange]) -> bool:
@@ -199,12 +217,31 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
         else:
             wrong.append(f"{case.afirmaciones[gi].cita}: {expected} -> {got}")
 
+    promise_matches = match_claims(case.promesas, report.promises)
+    promises = {p.id: p for p in report.promises}
+    promises_checked = promises_correct = 0
+    wrong_promises: list[str] = []
+    for gi, pid in promise_matches.items():
+        expected_assessment = case.promesas[gi].valoracion_esperada
+        if expected_assessment is None:
+            continue
+        promises_checked += 1
+        got_assessment = promises[pid].assessment
+        if got_assessment == expected_assessment:
+            promises_correct += 1
+        else:
+            wrong_promises.append(
+                f"{case.promesas[gi].cita}: {expected_assessment} -> {got_assessment}"
+            )
+
     unmatched = [c for c in report.claims if c.id not in set(matches.values())]
-    false_positives = sum(
-        1
-        for c in unmatched
-        if any(_similarity(n, c.text_original) >= MATCH_THRESHOLD for n in case.no_afirmaciones)
-    )
+    unmatched_promises = [p for p in report.promises if p.id not in set(promise_matches.values())]
+
+    def listed_as_non_claim(quote: str) -> bool:
+        return any(_similarity(n, quote) >= MATCH_THRESHOLD for n in case.no_afirmaciones)
+
+    false_positives = sum(1 for c in unmatched if listed_as_non_claim(c.text_original))
+    false_positives += sum(1 for p in unmatched_promises if listed_as_non_claim(p.text_original))
     return CaseResult(
         case_id=case.id,
         synthetic=case.sintetico,
@@ -222,6 +259,12 @@ def score_case(case: GoldCase, report: Report) -> CaseResult:
         context_checked=context_checked,
         context_correct=context_correct,
         wrong_context=wrong_context,
+        promises_gold=len(case.promesas),
+        promises_matched=len(promise_matches),
+        promises_checked=promises_checked,
+        promises_correct=promises_correct,
+        missed_promises=[g.cita for gi, g in enumerate(case.promesas) if gi not in promise_matches],
+        wrong_promises=wrong_promises,
     )
 
 
@@ -237,6 +280,14 @@ class Summary:
     verdicts_checked: int = 0
     context_checked: int = 0
     context_correct: int = 0
+    promises_gold: int = 0
+    promises_matched: int = 0
+    promises_checked: int = 0
+    promises_correct: int = 0
+
+    @property
+    def promise_accuracy(self) -> float | None:
+        return self.promises_correct / self.promises_checked if self.promises_checked else None
 
     @property
     def coverage(self) -> float | None:
@@ -266,4 +317,8 @@ def summarize(results: list[CaseResult]) -> Summary:
         verdicts_checked=sum(r.verdicts_checked for r in results),
         context_checked=sum(r.context_checked for r in results),
         context_correct=sum(r.context_correct for r in results),
+        promises_gold=sum(r.promises_gold for r in results),
+        promises_matched=sum(r.promises_matched for r in results),
+        promises_checked=sum(r.promises_checked for r in results),
+        promises_correct=sum(r.promises_correct for r in results),
     )

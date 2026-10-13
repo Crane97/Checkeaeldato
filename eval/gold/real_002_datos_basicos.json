@@ -35,7 +35,12 @@
   ],
   "no_afirmaciones": [
     "Esto demuestra que vamos en la buena dirección",
-    "Vamos a crear un millón de empleos en la próxima legislatura",
     "¿De verdad alguien se cree que la sanidad pública está mejor que nunca?"
+  ],
+  "promesas": [
+    {
+      "cita": "Vamos a crear un millón de empleos en la próxima legislatura",
+      "notas": "Promesa concreta (meta medible): se detecta; su valoración no se comprueba en este caso."
+    }
   ]
 }

@@ -26,6 +26,7 @@ from pipeline.models import (
     EvidenceItem,
     EvidenceRun,
     InputKind,
+    PromiseVerdict,
     Report,
     SpeakerInfo,
     SpeakerMap,
@@ -33,6 +34,8 @@ from pipeline.models import (
     Transcript,
     Verdict,
 )
+from pipeline.promises import PROMPT as PROMISES_PROMPT
+from pipeline.promises import assess_promises
 from pipeline.report import build_report, format_summary
 from pipeline.speaker_research import PROMPT as RESEARCH_PROMPT
 from pipeline.speaker_research import SpeakerSearch, research_speakers
@@ -277,7 +280,8 @@ def build_steps(
     def evidence_step(store: JobStore) -> StepOutcome:
         claims = store.read("context.json", ClaimDetection).claims
         # Unresolved claims are no_verificable anyway: don't spend searches on them.
-        searchable = [c for c in claims if c.context_status != "no_resuelto"]
+        # Promises are assessed for feasibility, which does not depend on who made them.
+        searchable = [c for c in claims if c.kind == "promesa" or c.context_status != "no_resuelto"]
         found = (
             {
                 e.claim_id: e
@@ -300,7 +304,11 @@ def build_steps(
     def verdicts_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
             verdicts = decide_verdicts(
-                store.read("context.json", ClaimDetection).claims,
+                [
+                    c
+                    for c in store.read("context.json", ClaimDetection).claims
+                    if c.kind != "promesa"
+                ],
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
@@ -309,6 +317,24 @@ def build_steps(
             )
             store.write("verdicts.json", verdicts, list[Verdict])
             return not any(v.analysis_error for v in verdicts)
+
+        return _with_llm_costs(deps, work)
+
+    def promises_step(store: JobStore) -> StepOutcome:
+        def work() -> bool:
+            results = assess_promises(
+                [
+                    c
+                    for c in store.read("context.json", ClaimDetection).claims
+                    if c.kind == "promesa"
+                ],
+                store.read("evidence.json", EvidenceRun).claims,
+                speech_date=store.manifest.speech_date,
+                llm=deps.llm,
+                model=deps.model_for("verdict"),
+            )
+            store.write("promises.json", results, list[PromiseVerdict])
+            return not any(r.analysis_error for r in results)
 
         return _with_llm_costs(deps, work)
 
@@ -329,6 +355,7 @@ def build_steps(
             speaker_profiles=profiles.speakers,
             detection=store.read("context.json", ClaimDetection),
             verdicts=store.read("verdicts.json", list[Verdict]),
+            promises=store.read("promises.json", list[PromiseVerdict]),
             cost=store.manifest.run_cost(),
             generated_at=dt.datetime.now(dt.UTC),
             extra_warnings=[
@@ -347,6 +374,7 @@ def build_steps(
         Step("context", context_step, (CONTEXT_PROMPT,)),
         Step("evidence", evidence_step),
         Step("verdicts", verdicts_step, (VERDICT_PROMPT,)),
+        Step("promises", promises_step, (PROMISES_PROMPT,)),
         Step("report", report_step),
     ]
     if kind == "video":

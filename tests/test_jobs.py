@@ -122,7 +122,7 @@ def test_from_step_reruns_that_step_and_later(store, prompts_dir):
     rec.calls.clear()
 
     run_steps(store, rec.steps(), prompts_dir, from_step="evidence")
-    assert rec.calls == ["evidence", "verdicts", "report"]
+    assert rec.calls == ["evidence", "verdicts", "promises", "report"]
 
 
 def test_changed_prompt_reruns_from_its_step(store, prompts_dir):
@@ -135,6 +135,7 @@ def test_changed_prompt_reruns_from_its_step(store, prompts_dir):
         "context",
         "evidence",
         "verdicts",
+        "promises",
         "report",
     ]
 
@@ -159,7 +160,7 @@ def test_failure_is_recorded_and_resume_starts_at_failed_step(store, prompts_dir
     rec.fail_on = None
     rec.calls.clear()
     run_steps(reloaded, rec.steps(), prompts_dir)
-    assert rec.calls == ["evidence", "verdicts", "report"]
+    assert rec.calls == ["evidence", "verdicts", "promises", "report"]
 
 
 def test_manifest_cost_covers_current_outputs(store, prompts_dir):
@@ -223,7 +224,7 @@ def test_partial_step_is_kept_but_retried_on_the_next_run(store, prompts_dir):
     rec.calls.clear()
     outcomes.clear()
     run_steps(store, steps(), prompts_dir)
-    assert rec.calls == ["verdicts", "report"]
+    assert rec.calls == ["verdicts", "promises", "report"]
     assert store.manifest.steps["verdicts"].status == "done"
 
 

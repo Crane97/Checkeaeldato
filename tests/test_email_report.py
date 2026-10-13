@@ -6,7 +6,7 @@ import pytest
 
 from pipeline.config import ConfigError, Settings
 from pipeline.email_report import build_email, is_valid_email, send_email
-from pipeline.models import Claim, Report, RunCost, Source
+from pipeline.models import Claim, Promise, Report, RunCost, Source
 from pipeline.neutrality import FORBIDDEN_WORDS_RE
 from pipeline.report_html import render_report_html
 
@@ -169,3 +169,28 @@ def test_missing_smtp_settings_explain_what_to_configure(report):
     message = build_email(report, to="ana@example.com", sender="x@example.com")
     with pytest.raises(ConfigError, match="SMTP_HOST"):
         send_email(message, Settings(_env_file=None))
+
+
+def test_promises_appear_in_their_own_section(report):
+    promise = Promise(
+        id="c004",
+        speaker="Candidato B",
+        kind="promesa",
+        text_original="Bajaremos el paro al 0 %",
+        text_normalized="Se promete reducir el paro al 0 %.",
+        claim_type="estadistica",
+        assessment="inviable",
+        confidence=0.8,
+        explanation="El paro nunca ha bajado del 7,9 % (EPA).",
+        obstacles=["datos"],
+        consequences_reasoning="Razonamiento propio (no procede de las fuentes): sin precedentes.",
+        sources=[INE],
+    )
+    report = report.model_copy(update={"promises": [promise]})
+    message = build_email(report, to="ana@example.com", sender="verificador@example.com")
+    text = message.get_body(("plain",)).get_content()
+    assert "Promesas: 1" in text and "[Promesa: Inviable]" in text
+    assert "Razonamiento propio" in text
+    html = message.get_body(("html",)).get_content()
+    assert "1 promesas" in html or "promesas</h3>" in html
+    assert "Inviable" in html

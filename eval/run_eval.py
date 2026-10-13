@@ -29,7 +29,8 @@ from pipeline.evaluation import (
 )
 from pipeline.evidence.base import collect_evidence
 from pipeline.jobs import prompt_hash
-from pipeline.models import Claim, DetectedClaim, Report, RunCost
+from pipeline.models import Claim, DetectedClaim, Promise, Report, RunCost
+from pipeline.promises import assess_promises
 from pipeline.report import format_summary
 from pipeline.run import PROMPTS_DIR, LiveDeps, follow_up_search, run_job
 from pipeline.verdict import decide_verdicts
@@ -90,6 +91,35 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
         )
         for d in detected
     ]
+    gold_promises = [
+        DetectedClaim(
+            id=f"p{n:03d}",
+            speaker="gold",
+            kind="promesa",
+            text_original=g.cita,
+            text_normalized=g.cita,
+            claim_type="otro",
+            start=g.inicio,
+            end=g.fin,
+            search_queries=[g.cita],
+        )
+        for n, g in enumerate(case.promesas, start=1)
+    ]
+    assessed = assess_promises(
+        gold_promises,
+        collect_evidence(gold_promises, deps.evidence_sources, case.fecha),
+        speech_date=case.fecha,
+        llm=deps.llm,
+        model=deps.model_for("verdict"),
+    )
+    by_promise = {a.claim_id: a for a in assessed}
+    promises = [
+        Promise(
+            **d.model_dump(exclude={"search_queries", "needs_context"}),
+            **by_promise[d.id].model_dump(exclude={"claim_id", "basis"}),
+        )
+        for d in gold_promises
+    ]
     return Report(
         job_id=f"eval-{case.id}",
         source=case.id,
@@ -97,6 +127,7 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
         speech_date=case.fecha,
         generated_at=dt.datetime.now(dt.UTC),
         claims=claims,
+        promises=promises,
         cost=RunCost(entries=deps.llm.take_costs()),
     )
 
@@ -123,6 +154,15 @@ def _print_case(result: CaseResult) -> None:
         typer.echo(f"  orador incorrecto: {wrong}")
     for quote in result.missed:
         typer.echo(f"  no detectada: «{quote}»")
+    if result.promises_gold:
+        typer.echo(
+            f"  promesas detectadas {result.promises_matched}/{result.promises_gold}, "
+            f"valoración correcta {result.promises_correct}/{result.promises_checked}"
+        )
+    for quote in result.missed_promises:
+        typer.echo(f"  promesa no detectada: «{quote}»")
+    for wrong in result.wrong_promises:
+        typer.echo(f"  promesa mal valorada: {wrong}")
     for (expected, got), n in sorted(result.confusion.items()):
         if expected != got:
             typer.echo(f"  esperado {expected}, obtenido {got}: {n}")
@@ -158,6 +198,12 @@ def main(
         f"({summary.context_correct}/{summary.context_checked}), "
         f"opiniones detectadas por error {summary.false_positives}"
     )
+    if summary.promises_gold:
+        typer.echo(
+            f"Promesas: detectadas {summary.promises_matched}/{summary.promises_gold}, "
+            f"valoración {_rate(summary.promise_accuracy)} "
+            f"({summary.promises_correct}/{summary.promises_checked})"
+        )
     if any(r.synthetic for r in results):
         typer.echo("Aviso: hay casos sintéticos; sus métricas no miden calidad real.")
 
@@ -183,6 +229,9 @@ def main(
                     "correctas": summary.correct,
                     "opiniones_detectadas": summary.false_positives,
                     "extra": summary.extra_detected,
+                    "promesas_gold": summary.promises_gold,
+                    "promesas_detectadas": summary.promises_matched,
+                    "precision_promesas": summary.promise_accuracy,
                 },
                 "casos": [
                     {

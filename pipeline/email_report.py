@@ -11,8 +11,8 @@ import smtplib
 from email.message import EmailMessage
 
 from pipeline.config import ConfigError, Settings
-from pipeline.models import CATEGORIES, Report
-from pipeline.report import CATEGORY_NAMES
+from pipeline.models import CATEGORIES, PROMISE_LABELS, Report
+from pipeline.report import CATEGORY_NAMES, PROMISE_NAMES
 from pipeline.report_html import render_report_html, report_subtitle
 
 SMTP_TIMEOUT_SECONDS = 30
@@ -25,6 +25,10 @@ COLORS = {
     "no_verificable": "#6b7280",
     "falso_sin_fuente_oficial": "#c2610f",
     "falso_con_fuente_oficial": "#c53030",
+    "viable": "#1f8a4c",
+    "dudosa": "#a16207",
+    "inviable": "#c53030",
+    "no_evaluable": "#6b7280",
 }
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -63,6 +67,24 @@ def _plain_body(report: Report, attachment: str) -> str:
             *(f"  - {s.organization}: {s.url}" for s in c.sources),
             "",
         ]
+    if report.promises:
+        lines += [f"Promesas: {len(report.promises)}"]
+        lines += [f"  {PROMISE_NAMES[k]}: {report.by_promise[k]}" for k in PROMISE_LABELS]
+        lines.append("")
+        for pr in report.promises:
+            lines += [
+                f"[Promesa: {PROMISE_NAMES[pr.assessment]}] {report.speaker_name(pr.speaker)}",
+                f"  «{pr.text_original}»",
+                f"  {pr.explanation}",
+                *(
+                    [f"  Consecuencias según las fuentes: {pr.consequences_sourced}"]
+                    if pr.consequences_sourced
+                    else []
+                ),
+                *([f"  {pr.consequences_reasoning}"] if pr.consequences_reasoning else []),
+                *(f"  - {s.organization}: {s.url}" for s in pr.sources),
+                "",
+            ]
     if report.warnings:
         lines += ["Avisos:", *(f"  - {w}" for w in report.warnings)]
     return "\n".join(lines)
@@ -130,6 +152,46 @@ def _html_body(report: Report, attachment: str) -> str:
             + (f"<ul style='margin:4px 0;font-size:14px'>{sources}</ul>" if sources else "")
             + "</div>"
         )
+    if report.promises:
+        counts = " · ".join(
+            f"<span style='color:{_count_color(k, report.by_promise[k])}'>"
+            f"{_esc(PROMISE_NAMES[k])}: {report.by_promise[k]}</span>"
+            for k in PROMISE_LABELS
+        )
+        parts += [
+            f"<h3 style='margin:24px 0 6px'>{len(report.promises)} promesas</h3>",
+            "<p style='color:#5d6676;font-size:14px'>Una promesa no es verdadera ni falsa: se "
+            "valora si se puede cumplir (marco legal de España y la UE, datos, presupuesto).</p>",
+            f"<p>{counts}</p>",
+        ]
+        for pr in report.promises:
+            color = COLORS[pr.assessment]
+            sources = "".join(
+                f"<li><a href='{_esc(s.url)}' style='color:#2f5bd3'>{_esc(s.title)}</a> "
+                f"({_esc(s.organization)})</li>"
+                for s in pr.sources
+            )
+            parts.append(
+                f"<div style='border-left:4px solid {color};padding:6px 12px;margin:14px 0'>"
+                f"<div><strong style='color:{color}'>{_esc(PROMISE_NAMES[pr.assessment])}</strong>"
+                f" · {_esc(report.speaker_name(pr.speaker))}</div>"
+                f"<div style='font-style:italic;margin:4px 0'>«{_esc(pr.text_original)}»</div>"
+                f"<div>{_esc(pr.explanation)}</div>"
+                + (
+                    f"<div><strong>Consecuencias según las fuentes:</strong> "
+                    f"{_esc(pr.consequences_sourced)}</div>"
+                    if pr.consequences_sourced
+                    else ""
+                )
+                + (
+                    f"<div style='color:#5d6676;font-style:italic;font-size:14px'>"
+                    f"{_esc(pr.consequences_reasoning)}</div>"
+                    if pr.consequences_reasoning
+                    else ""
+                )
+                + (f"<ul style='margin:4px 0;font-size:14px'>{sources}</ul>" if sources else "")
+                + "</div>"
+            )
     if report.warnings:
         items = "".join(f"<li>{_esc(w)}</li>" for w in report.warnings)
         parts.append(f"<p style='color:#b7791f'>Avisos:</p><ul style='color:#b7791f'>{items}</ul>")

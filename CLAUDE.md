@@ -88,7 +88,8 @@ pipeline/
   transcribe/         # interfaz Transcriber + proveedores
   speakers.py         # etapa 1: interlocutores y lo que el texto dice de ellos, con citas
   speaker_research.py # etapa 2: partido y cargo de cada orador (oficial → web), con citas
-  claims.py           # detección y normalización de afirmaciones
+  claims.py           # detección y normalización de afirmaciones y promesas
+  promises.py         # viabilidad de las promesas y consecuencias (fuentes + razonamiento)
   governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
   context.py          # resolución de "ustedes", "este Gobierno"… → actor y periodos
   evidence/           # base.py (interfaz y recolector), factcheck_api.py, tavily.py,
@@ -116,6 +117,7 @@ data/                 # vídeos y salidas locales (en .gitignore)
 class Claim:
     id: str
     speaker: str                 # orador diarizado; mapeable a nombre real ("autor" en texto)
+    kind: Literal["afirmacion", "promesa"]  # las promesas van a Report.promises (viabilidad)
     text_original: str           # cita literal; debe poder encontrarse en el original
     start: float | None          # segundos en el vídeo; None si la entrada es texto
     end: float | None            # (los dos o ninguno)
@@ -182,6 +184,24 @@ usuario. "Fuente oficial" = organismo público o internacional **o verificador p
 | Falso sin fuente oficial | falso | solo web (confianza máx. 0,6) |
 | Falso con fuente oficial | falso | al menos una oficial o de verificador |
 
+## Promesas
+
+Decidido por el responsable del proyecto (2026-10-13). Paso `promises` (tras `verdicts`,
+prompt `promesa.md`, modelo de veredicto), con la misma evidencia en cascada. Valoración:
+
+- **viable** — cabe en el marco legal y es realista con los datos y recursos disponibles.
+- **dudosa** — no choca con la ley ni con los datos, pero depende de condiciones inciertas
+  (mayorías, financiación, acuerdos con la UE u otras administraciones).
+- **inviable** — contradice el marco legal vigente (derecho de la UE: España es Estado
+  miembro; Constitución; competencias) o es irrealista según los datos (paro del 0 %).
+- **no_evaluable** — sin evidencia suficiente; valor por defecto (como `no_verificable`).
+
+Cada promesa indica sus obstáculos (`legal`, `competencias`, `presupuesto`, `datos`,
+`otro`), las **consecuencias que señalan las fuentes** citadas y, aparte, un breve
+**razonamiento propio** del modelo, siempre marcado como tal ("Razonamiento propio (no
+procede de las fuentes): …"). No se valora si la promesa es deseable. En el informe van en
+una sección aparte y **no cuentan** en los totales de afirmaciones.
+
 En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` con
 `matched_factcheck` (desmentido publicado por un verificador reconocido).
 
@@ -196,9 +216,12 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 3. **Neutralidad.** Mismo método y mismos prompts para todos los partidos y oradores. Los
    prompts no mencionan partidos concretos. Las explicaciones describen hechos, no juzgan
    intenciones.
-4. **Opiniones y promesas no se verifican.** La detección debe descartarlas. Sí se extraen
-   las afirmaciones generales sobre acciones concretas contrastables aunque no lleven cifra
-   ("este Gobierno ha subido los impuestos a las familias", "han recortado la sanidad").
+4. **Las opiniones no se verifican; las promesas concretas se valoran aparte.** La
+   detección descarta opiniones, eslóganes y promesas vagas. Sí se extraen las afirmaciones
+   generales sobre acciones concretas contrastables aunque no lleven cifra ("este Gobierno
+   ha subido los impuestos a las familias", "han recortado la sanidad"). Las **promesas
+   concretas** (medida identificable o meta medible) se extraen con `kind="promesa"` y no
+   reciben veredicto de verdad, sino una valoración de viabilidad (ver "Promesas").
 5. **Contexto temporal.** Cada veredicto considera la fecha del discurso; las fuentes
    llevan fecha.
 6. **Trazabilidad.** Cada Claim cita literalmente la frase original y enlaza a sus
@@ -267,6 +290,12 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
    AIReF, CIS, Congreso, OCDE…) → tipo `oficial`.
 3. Búsqueda web general, solo si lo oficial no da resultados relevantes → tipo `web`
    (un resultado de dominio oficial se marca `oficial`).
+
+Son **oficiales** también los documentos de la UE, de organismos internacionales y de las
+administraciones de **cualquier país** (decisión del responsable del proyecto,
+2026-10-13): `fuentes_oficiales.toml` tiene `[dominios]` (también filtran la búsqueda
+oficial) y `[sufijos]` (`.int`, `.gov`, `gov.uk`, `gouv.fr`, `bund.de`…; solo para
+reconocer resultados como oficiales, no se envían como filtro).
 
 El informe indica en qué se apoya cada veredicto (`basis`: desmentido, oficial o solo web);
 un veredicto apoyado solo en web tiene confianza máxima 0,6. Límites por afirmación: hasta

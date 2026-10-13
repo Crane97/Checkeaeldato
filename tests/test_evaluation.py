@@ -7,12 +7,13 @@ from pipeline.evaluation import (
     GOLD_DIR,
     GoldCase,
     GoldClaim,
+    GoldPromise,
     load_gold_cases,
     match_claims,
     score_case,
     summarize,
 )
-from pipeline.models import Claim, Report, RunCost, Source
+from pipeline.models import Claim, Promise, Report, RunCost, Source
 
 DATE = dt.date(2026, 11, 20)
 INE = Source(url="https://www.ine.es/x", title="t", organization="INE", kind="oficial")
@@ -195,3 +196,48 @@ def test_context_resolution_is_measured():
     # The claim without an expected verdict does not count towards verdict accuracy.
     assert (result.verdicts_checked, result.correct) == (2, 2)
     assert summarize([result]).verdict_accuracy == pytest.approx(1.0)
+
+
+def promise(pid: str, quote: str, assessment: str) -> Promise:
+    return Promise(
+        id=pid,
+        speaker="autor",
+        kind="promesa",
+        text_original=quote,
+        text_normalized=quote,
+        claim_type="estadistica",
+        assessment=assessment,
+        confidence=0.0 if assessment == "no_evaluable" else 0.8,
+        explanation="x",
+        sources=[] if assessment == "no_evaluable" else [INE],
+    )
+
+
+def test_promises_are_scored_separately_and_vague_ones_are_false_positives():
+    case = gold(not_claims=["Haremos una España mejor"]).model_copy(
+        update={
+            "promesas": [
+                GoldPromise(cita="Bajaremos el paro al 0 %", valoracion_esperada="inviable"),
+                GoldPromise(
+                    cita="Subiremos el salario mínimo un 3 %", valoracion_esperada="viable"
+                ),
+                GoldPromise(cita="Saldremos del euro"),
+            ]
+        }
+    )
+    rep = report().model_copy(
+        update={
+            "promises": [
+                promise("p1", "bajaremos el paro al 0 %", "inviable"),
+                promise("p2", "Subiremos el salario mínimo un 3 %", "dudosa"),
+                promise("p3", "Haremos una España mejor", "no_evaluable"),
+            ]
+        }
+    )
+    result = score_case(case, rep)
+    assert (result.promises_gold, result.promises_matched) == (3, 2)
+    assert (result.promises_checked, result.promises_correct) == (2, 1)
+    assert result.missed_promises == ["Saldremos del euro"]
+    assert result.wrong_promises == ["Subiremos el salario mínimo un 3 %: viable -> dudosa"]
+    assert result.false_positives == 1
+    assert summarize([result]).promise_accuracy == pytest.approx(0.5)

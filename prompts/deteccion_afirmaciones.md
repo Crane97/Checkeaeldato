@@ -38,11 +38,26 @@ datos o documentos públicos. Clasifícala con uno de estos tipos:
   ("el doble que en 2018", "la más alta de la Unión Europea").
 - `otro`: otros hechos comprobables que no encajen en los anteriores.
 
+### Promesas
+
+Extrae también las **promesas concretas**: compromisos sobre el futuro con una medida
+identificable o una meta medible ("bajaremos el IVA de la luz al 5 %", "reduciremos el paro
+al 0 %", "derogaremos la ley X", "construiremos 100.000 viviendas", "saldremos del acuerdo
+Y"). Márcalas con `kind` = `promesa`; otro paso valorará si son viables (marco legal de
+España y de la UE, competencias, presupuesto, datos históricos). Todo lo demás lleva `kind`
+= `afirmacion`.
+
+No son promesas extraíbles las vagas, sin medida ni meta concreta ("haremos una España
+mejor", "vamos a luchar por el empleo"), ni las predicciones que no dependen de quien habla
+("el paro bajará el año que viene").
+
 ## Qué NO extraer
 
 - Opiniones y juicios de valor ("es una vergüenza", "lo hemos hecho muy bien").
-- Promesas y propuestas ("bajaremos los impuestos").
-- Predicciones sobre el futuro ("el paro bajará el año que viene").
+- Promesas vagas, sin medida ni meta concreta ("bajaremos los impuestos", "haremos una
+  España mejor").
+- Predicciones sobre el futuro que no son compromisos de quien habla ("el paro bajará el
+  año que viene").
 - Preguntas retóricas, insultos, eslóganes e ironía.
 - Valoraciones vagas sin un hecho comprobable ("la economía va mejor", "el país está peor",
   "muchísima gente").
@@ -89,6 +104,10 @@ resultado normal.
      desgloses por edad, territorio o periodo, o la serie con la que se compara.
   Puedes mencionar el organismo que lo publica si es evidente (INE, Eurostat, BOE, Banco
   de España…). Deben tratar sobre los datos, no sobre la persona que habla.
+  En una **promesa**, busca lo que permite valorar su viabilidad: la norma que la regula
+  (incluido el derecho de la UE si afecta a competencias europeas), el dato actual y su
+  mínimo o máximo histórico, y su coste o las estimaciones oficiales de impacto.
+- `kind`: `afirmacion` o `promesa` (ver arriba).
 
 - `needs_context`: true si la afirmación depende de saber a qué partido, Gobierno,
   presidente o momento se refiere una expresión implícita (las de la lista anterior); false
@@ -120,7 +139,7 @@ Con `<fecha>2026-11-20</fecha>`:
 [S4] speaker_1 (12:03): Desde que gobernamos, el paro ha bajado un 20 %, y eso es gracias a nuestro esfuerzo. Vamos a crear un millón de empleos.
 ```
 
-Una afirmación:
+Una afirmación y una promesa. La afirmación:
 
 - `segment`: 4
 - `quote`: "Desde que gobernamos, el paro ha bajado un 20 %"
@@ -130,9 +149,13 @@ Una afirmación:
 - `search_queries`: ["evolución tasa de paro España EPA", "número de parados España 2026",
   "tasa de paro EPA serie trimestral INE"]
 - `speaker`: "" (el segmento ya tiene orador)
+- `kind`: `afirmacion`
 
-"Eso es gracias a nuestro esfuerzo" es una opinión y "vamos a crear un millón de empleos" es
-una promesa: no se extraen.
+"Eso es gracias a nuestro esfuerzo" es una opinión: no se extrae. "Vamos a crear un millón
+de empleos" es una promesa concreta (meta medible): se extrae como segunda entrada con
+`kind` `promesa`, `quote` "Vamos a crear un millón de empleos", `text_normalized` "Se promete crear un millón de empleos en España.",
+`claim_type` `estadistica` y `search_queries` ["afiliados Seguridad Social serie histórica",
+"creación de empleo anual máximo histórico España EPA"].
 
 **Ejemplo 2** (texto)
 

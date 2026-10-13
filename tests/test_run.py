@@ -8,6 +8,7 @@ import pytest
 from pipeline.claims import DetectionResult, ExtractedClaim
 from pipeline.evidence.base import SourceResult
 from pipeline.models import AudioInfo, CostEntry, EvidenceItem, Segment, Source, Transcript
+from pipeline.promises import PromiseAnswer
 from pipeline.run import PROMPTS_DIR, input_kind_for, run_job
 from pipeline.speakers import SpeakerIdentification
 from pipeline.verdict import VerdictAnswer
@@ -349,3 +350,57 @@ def test_failed_verdicts_are_retried_on_the_next_run(article, tmp_path):
     result = run(article, tmp_path / "data", deps)
     assert deps.llm.calls == ["verdicts"]
     assert result.report.claims[0].analysis_error is None
+
+
+class PromiseLLM(FakeLLM):
+    """Detects one claim and one promise; assesses the promise as not feasible."""
+
+    def structured(self, *, step: str, output_type: type, **kwargs: Any) -> Any:
+        if output_type is DetectionResult:
+            self.calls.append(step)
+            self.unbilled += 1
+            [claim] = super().structured(step=step, output_type=output_type, **kwargs).claims
+            self.calls.pop()
+            self.unbilled -= 1
+            promise = ExtractedClaim(
+                segment=1,
+                quote="Bajaremos el paro al 0 %",
+                text_normalized="Se promete reducir la tasa de paro de España al 0 %.",
+                claim_type="estadistica",
+                search_queries=["tasa de paro mínima histórica España"],
+                speaker="",
+                needs_context=False,
+                kind="promesa",
+            )
+            return DetectionResult(claims=[claim, promise])
+        if output_type is PromiseAnswer:
+            self.calls.append(step)
+            self.unbilled += 1
+            return PromiseAnswer(
+                assessment="inviable",
+                confidence=0.8,
+                explanation="El paro nunca ha bajado del 7,9 % en la serie de la EPA (E1).",
+                obstacles=["datos"],
+                consequences_sourced="",
+                consequences_reasoning="",
+                cited_evidence=["E1"],
+            )
+        return super().structured(step=step, output_type=output_type, **kwargs)
+
+
+def test_promises_go_to_their_own_section(tmp_path: Path):
+    path = tmp_path / "mitin.txt"
+    path.write_text("Hola.\n\nEl paro ha bajado un 20 % este año. Bajaremos el paro al 0 %.\n")
+    deps = FakeDeps()
+    deps.llm = PromiseLLM()
+    result = run(path, tmp_path / "data", deps)
+
+    report = json.loads(result.report_path.read_text())
+    assert [c["kind"] for c in report["claims"]] == ["afirmacion"]
+    [promise] = report["promises"]
+    assert promise["assessment"] == "inviable"
+    assert promise["sources"][0]["url"] == "https://www.ine.es/epa"
+    assert report["by_promise"]["inviable"] == 1
+    assert sum(report["by_category"].values()) == 1  # promises are not counted as claims
+    assert deps.llm.calls == ["claims", "verdicts", "promises"]
+    assert "Promesas: 1" in result.summary

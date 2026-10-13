@@ -13,6 +13,7 @@ from pipeline.llm import LLMConfigError, LLMError
 from pipeline.models import (
     BlockFailure,
     ClaimDetection,
+    ClaimKind,
     ClaimType,
     DetectedClaim,
     InputKind,
@@ -64,6 +65,8 @@ class ExtractedClaim(BaseModel):
     speaker: str
     # Implicit actor or period ("ustedes", "este Gobierno", "hace diez años").
     needs_context: bool
+    # "promesa" for a concrete commitment about the future (assessed for feasibility).
+    kind: ClaimKind = "afirmacion"
 
 
 class DetectionResult(BaseModel):
@@ -265,6 +268,7 @@ def detect_claims(
                 claim = DetectedClaim(
                     id="pending",
                     speaker=_attributed_speaker(segments[first], item, input_kind),
+                    kind=item.kind,
                     text_original=item.quote.strip(),
                     text_normalized=item.text_normalized.strip(),
                     claim_type=item.claim_type,

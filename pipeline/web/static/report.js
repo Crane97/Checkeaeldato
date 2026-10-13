@@ -10,12 +10,19 @@ const CATEGORIES = {
   falso_sin_fuente_oficial: "Falso sin fuente oficial",
   falso_con_fuente_oficial: "Falso con fuente oficial",
 };
+const PROMISES = {
+  viable: "Viable", dudosa: "Dudosa", inviable: "Inviable", no_evaluable: "No evaluable",
+};
+const OBSTACLES = {
+  legal: "marco legal", competencias: "competencias", presupuesto: "presupuesto", datos: "datos", otro: "otro",
+};
 const BASIS = {
   factcheck: "desmentido publicado", oficial: "fuente oficial", web: "solo web", sin_fuente: "sin fuente",
 };
 
 const $ = (id) => document.getElementById(id);
 let filter = null;
+let promiseFilter = null;
 let speakerFilter = null;
 let lastReport = null;
 
@@ -46,7 +53,7 @@ function formatTime(seconds) {
 
 function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
 
-function resetFilters() { filter = null; speakerFilter = null; }
+function resetFilters() { filter = null; speakerFilter = null; promiseFilter = null; }
 
 function renderClaim(claim, speakers) {
   const color = `var(--${claim.category})`;
@@ -88,6 +95,68 @@ function renderClaim(claim, speakers) {
     card.append(el("p", { class: "note" }, `Búsquedas con errores: ${claim.evidence_errors.join("; ")}`));
   }
   return card;
+}
+
+function renderPromise(promise, speakers) {
+  const key = promise.assessment;
+  const header = el("header", {},
+    el("span", { class: "badge", style: `background: var(--tint-${key}); color: var(--${key})` },
+      PROMISES[key]));
+  if (key !== "no_evaluable") {
+    header.append(el("span", { class: "pill" }, `confianza ${Math.round(promise.confidence * 100)} %`));
+  }
+  if (promise.basis) header.append(el("span", { class: "pill" }, BASIS[promise.basis]));
+  if (promise.obstacles.length) {
+    header.append(el("span", { class: "pill" },
+      `obstáculos: ${promise.obstacles.map((o) => OBSTACLES[o] || o).join(", ")}`));
+  }
+  header.append(el("span", { class: "pill" }, speakers[promise.speaker] || promise.speaker));
+  if (promise.start !== null && promise.start !== undefined) {
+    header.append(el("span", { class: "pill" }, formatTime(promise.start)));
+  }
+  const card = el("article", { class: "card claim", style: `border-left-color: var(--${key})` },
+    header,
+    el("blockquote", {}, `«${promise.text_original}»`),
+    el("p", { class: "normalized" }, promise.text_normalized),
+    el("p", { class: "explanation" }, promise.explanation),
+  );
+  if (promise.consequences_sourced) {
+    card.append(el("p", { class: "explanation" }, el("strong", {}, "Consecuencias según las fuentes: "),
+      promise.consequences_sourced));
+  }
+  if (promise.consequences_reasoning) {
+    card.append(el("p", { class: "reasoning" }, promise.consequences_reasoning));
+  }
+  if (promise.sources.length) {
+    card.append(el("ul", { class: "sources" }, ...promise.sources.map((s) => el("li", {},
+      `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));
+  }
+  if (promise.analysis_error) card.append(el("p", { class: "note" }, `El análisis falló: ${promise.analysis_error}`));
+  if (promise.evidence_errors.length) {
+    card.append(el("p", { class: "note" }, `Búsquedas con errores: ${promise.evidence_errors.join("; ")}`));
+  }
+  return card;
+}
+
+function renderPromises(report) {
+  const promises = report.promises || [];
+  show("promesas-wrap", promises.length > 0);
+  if (!promises.length) return;
+  $("titulo-promesas").textContent = `${promises.length} promesa${promises.length === 1 ? "" : "s"}`;
+  $("tiles-promesas").replaceChildren(...Object.entries(PROMISES).map(([key, name]) => {
+    const tile = el("button", { type: "button", class: "tile" + (promiseFilter === key ? " active" : ""),
+      style: `color: var(--${key}); background: var(--tint-${key})` },
+      el("span", { class: "n" }, report.by_promise[key]), name);
+    tile.addEventListener("click", () => {
+      promiseFilter = promiseFilter === key ? null : key;
+      renderReport(lastReport);
+    });
+    return tile;
+  }));
+  const name = (p) => report.speakers[p.speaker] || p.speaker;
+  const shown = promises.filter((p) =>
+    (!promiseFilter || p.assessment === promiseFilter) && (!speakerFilter || name(p) === speakerFilter));
+  $("promesas").replaceChildren(...shown.map((p) => renderPromise(p, report.speakers)));
 }
 
 function renderSpeakers(report) {
@@ -137,6 +206,7 @@ function renderReport(report) {
   $("filtros").textContent = active.length
     ? `Mostrando: ${active.join(" · ")} (${claims.length}). Pulsa de nuevo para quitar el filtro.` : "";
   $("afirmaciones").replaceChildren(...claims.map((c) => renderClaim(c, report.speakers)));
+  renderPromises(report);
   if (!total) {
     $("afirmaciones").append(el("p", { class: "meta" }, "No se han detectado afirmaciones verificables en el texto."));
   }

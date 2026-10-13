@@ -81,6 +81,7 @@ def test_analysis_runs_and_returns_the_report(client, deps):
         "context",
         "evidence",
         "verdicts",
+        "promises",
         "report",
     ]
     assert all(p["estado"] == "done" for p in status["pasos"])
