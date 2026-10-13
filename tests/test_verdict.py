@@ -320,3 +320,16 @@ def test_follow_up_items_are_always_sent():
     officials = [item(f"E{i}", "oficial", f"https://www.ine.es/{i}") for i in range(1, 12)]
     content = format_claim(claim(), evidence(*officials), DATE, final=True, prefer=["E11"])
     assert 'id="E11"' in content
+
+
+def test_no_follow_up_search_when_a_published_check_settles_the_claim():
+    matching = item(
+        "E1",
+        "factcheck",
+        "https://maldita.es/a",
+        claim_reviewed="El paro en España ha bajado un 20 % desde 2024",
+    )
+    first = answer(verdict="no_verificable", cited_evidence=[], follow_up_queries=["x"])
+    follow_up = FollowUp(items=[POP])
+    run([claim()], [evidence(matching)], FakeLLM(first), follow_up)
+    assert follow_up.calls == []

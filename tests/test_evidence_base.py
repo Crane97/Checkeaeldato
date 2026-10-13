@@ -7,6 +7,7 @@ from pipeline.evidence.base import (
     EvidenceError,
     SourceResult,
     collect_evidence,
+    settled_by_factcheck,
 )
 from pipeline.models import DetectedClaim, EvidenceItem, Source
 
@@ -126,3 +127,41 @@ def test_few_failures_are_recorded_without_stopping():
 
 def test_no_claims_means_no_evidence():
     assert collect_evidence([], [FakeSource("factcheck", {})], DATE) == []
+
+
+def reviewed(text: str) -> EvidenceItem:
+    return item("https://maldita.es/x").model_copy(update={"claim_reviewed": text})
+
+
+@pytest.mark.parametrize(
+    ("claim_reviewed", "settled"),
+    [
+        ("El paro en España bajó un 20 %", True),
+        ("Según el Gobierno, el paro bajó un 20 % en España", True),
+        ("El paro bajó un 15 %", False),  # another figure: another claim
+        ("La deuda pública supera el 100 % del PIB", False),
+        (None, False),
+    ],
+)
+def test_settled_by_factcheck_needs_a_similar_claim_with_the_same_figures(claim_reviewed, settled):
+    items = [reviewed(claim_reviewed) if claim_reviewed else item("https://maldita.es/x")]
+    assert settled_by_factcheck(claim("c1"), items) is settled
+
+
+def test_web_sources_are_skipped_when_a_published_check_matches():
+    factcheck = FakeSource(
+        "factcheck", {"c1": SourceResult(items=[reviewed("El paro en España bajó un 20 %")])}
+    )
+    oficial, web = FakeSource("oficial", {}), FakeSource("web", {})
+    [result] = collect_evidence([claim("c1")], [factcheck, oficial, web], DATE)
+    assert oficial.calls == [] and web.calls == []
+    assert [i.source.kind for i in result.items] == ["factcheck"]
+
+
+def test_web_sources_still_run_when_the_check_is_about_another_figure():
+    factcheck = FakeSource(
+        "factcheck", {"c1": SourceResult(items=[reviewed("El paro bajó un 15 %")])}
+    )
+    oficial = FakeSource("oficial", {})
+    collect_evidence([claim("c1")], [factcheck, oficial], DATE)
+    assert oficial.calls == ["c1"]

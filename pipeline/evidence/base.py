@@ -2,8 +2,12 @@
 
 import datetime as dt
 import logging
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Protocol
+
+from rapidfuzz import fuzz
 
 from pipeline.models import ClaimEvidence, DetectedClaim, EvidenceItem
 
@@ -11,6 +15,12 @@ logger = logging.getLogger(__name__)
 
 # Below this many searches, failing every time is not proof that a source is down.
 MIN_RUNS_TO_ABORT = 3
+# Sources that spend web-search credits; skipped when a published check settles the claim.
+WEB_SEARCH_SOURCES = frozenset({"oficial", "web"})
+# Same similarity threshold as the evaluation's quote matching (0-100).
+FACTCHECK_MATCH_THRESHOLD = 80
+_NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)*")
+_YEAR_RE = re.compile(r"^(19|20)\d\d$")
 
 
 class EvidenceError(RuntimeError):
@@ -37,6 +47,37 @@ class EvidenceSource(Protocol):
     def search(self, claim: DetectedClaim, speech_date: dt.date) -> SourceResult: ...
 
 
+def _plain(text: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return re.sub(r"\s+", " ", "".join(c for c in decomposed if not unicodedata.combining(c)))
+
+
+def _numbers(text: str) -> set[str]:
+    return {n.replace(",", ".") for n in _NUMBER_RE.findall(text)}
+
+
+def settled_by_factcheck(claim: DetectedClaim, items: list[EvidenceItem]) -> bool:
+    """True if a published fact-check reviewed this same claim: similar wording and the
+    same figures (a check of another figure or year is another claim)."""
+    claim_numbers = _numbers(claim.text_original) | _numbers(claim.text_normalized)
+    for item in items:
+        if item.source.kind != "factcheck" or not item.claim_reviewed:
+            continue
+        reviewed = item.claim_reviewed
+        similarity = max(
+            fuzz.partial_ratio(_plain(reviewed), _plain(text))
+            for text in (claim.text_original, claim.text_normalized)
+        )
+        if similarity < FACTCHECK_MATCH_THRESHOLD:
+            continue
+        reviewed_numbers = _numbers(reviewed)
+        figures = {n for n in claim_numbers if not _YEAR_RE.match(n)}
+        # Every figure must match; a year in the check must be one of the claim's years.
+        if figures <= reviewed_numbers and reviewed_numbers <= claim_numbers:
+            return True
+    return False
+
+
 def collect_evidence(
     claims: list[DetectedClaim], sources: list[EvidenceSource], speech_date: dt.date
 ) -> list[ClaimEvidence]:
@@ -60,6 +101,13 @@ def collect_evidence(
             # Fallback sources (e.g. general web) only run if earlier ones found nothing.
             skip_if_found = getattr(source, "skip_if_found", frozenset())
             if any(i.source.kind in skip_if_found for i in items):
+                continue
+            if source.name in WEB_SEARCH_SOURCES and settled_by_factcheck(claim, items):
+                logger.info(
+                    "%s: ya hay una verificación publicada; no se busca en %s",
+                    claim.id,
+                    source.name,
+                )
                 continue
             runs[source.name] += 1
             try:

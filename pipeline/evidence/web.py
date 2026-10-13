@@ -1,6 +1,7 @@
 """Búsqueda web general: último recurso si no hay evidencia oficial."""
 
 import datetime as dt
+import logging
 
 from pipeline.evidence.base import EvidenceConfigError, EvidenceError, SourceResult
 from pipeline.evidence.oficiales import (
@@ -12,6 +13,11 @@ from pipeline.evidence.oficiales import (
 from pipeline.evidence.passages import claim_terms
 from pipeline.evidence.tavily import TavilyClient
 from pipeline.models import DetectedClaim
+
+logger = logging.getLogger(__name__)
+
+# Per claim, counting the follow-up round (decision of the project owner, 2026-10-13).
+MAX_WEB_SEARCHES_PER_CLAIM = 2
 
 
 class WebSearchSource:
@@ -33,9 +39,14 @@ class WebSearchSource:
         self._tavily = tavily
         self._domains = domains if domains is not None else load_official_domains()
         self._min_score = min_score
+        self._searches: dict[str, int] = {}
 
     def search(self, claim: DetectedClaim, speech_date: dt.date) -> SourceResult:
         found = SourceResult()
+        if self._searches.get(claim.id, 0) >= MAX_WEB_SEARCHES_PER_CLAIM:
+            logger.info("%s: límite de búsquedas web alcanzado", claim.id)
+            return found
+        self._searches[claim.id] = self._searches.get(claim.id, 0) + 1
         [query] = queries_for(claim, 1)
         try:
             results = self._tavily.search(query, country="spain")

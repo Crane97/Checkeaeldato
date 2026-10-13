@@ -299,8 +299,18 @@ reconocer resultados como oficiales, no se envían como filtro).
 
 El informe indica en qué se apoya cada veredicto (`basis`: desmentido, oficial o solo web);
 un veredicto apoyado solo en web tiene confianza máxima 0,6. Límites por afirmación: hasta
-3 búsquedas oficiales y 1 web, más hasta 3 de la ronda adicional cuando hace falta
-(≈45–90 créditos de Tavily por artículo de ~15 afirmaciones).
+3 búsquedas oficiales y 1 web, más hasta 3 oficiales de la ronda adicional cuando hace falta;
+**como máximo 2 búsquedas en la web general** contando la ronda adicional. **Si la Fact Check
+API devuelve una verificación de la misma afirmación** (similitud ≥ 80 % y mismas cifras;
+`settled_by_factcheck`), no se busca en Tavily para ella, ni en la ronda adicional
+(decisiones del responsable del proyecto, 2026-10-13).
+
+**Caché de búsquedas** (`pipeline/evidence/search_cache.py`): toda búsqueda de Tavily pasa
+por `data/cache/search/` (clave: hash de la consulta normalizada y los parámetros; solo
+respuestas correctas; caduca a los `TAVILY_CACHE_DAYS`, 30 por defecto). `--no-cache` (CLI
+y evaluación) no la lee pero la actualiza. Cada paso registra en el manifest las búsquedas
+reales, las servidas desde caché y los créditos (`provider="tavily"`, precio por crédito en
+`pricing.toml`), y se muestran al terminar cada ejecución, en el informe y en la web.
 De cada página se pide el texto completo y se envían a Claude los pasajes más relevantes
 para la afirmación (≈3.500 caracteres por fuente), no solo el principio de la página. Si
 con la evidencia no puede decidir pero sabe qué dato lo resolvería, Claude pide **una
@@ -351,6 +361,9 @@ TRANSCRIPTION_PROVIDER=elevenlabs
 TRANSCRIPTION_API_KEY=
 GOOGLE_FACTCHECK_API_KEY=
 TAVILY_API_KEY=
+TAVILY_SEARCH_DEPTH=basic       # basic (1 crédito) | advanced (2)
+TAVILY_MAX_RESULTS=5            # 1–20
+TAVILY_CACHE_DAYS=30            # días que se reutiliza una búsqueda guardada
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
 ```
 
@@ -361,6 +374,7 @@ uv sync                         # instalar dependencias
 uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
+uv run verificar data/x.mp4 --fecha 2026-11-20 --no-cache  # sin reutilizar búsquedas
 uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
@@ -377,7 +391,8 @@ uv run ruff check . && uv run ruff format .
 - Si una decisión de diseño no está cubierta aquí, preguntar en vez de suponer, y
   actualizar este archivo cuando se decida.
 - Desarrollo guiado por tests (skill `tdd` en `.claude/skills/`): test que falla primero,
-  APIs siempre simuladas en tests.
+  APIs siempre simuladas en tests. `tests/conftest.py` lo impone: sin claves ni `.env`, y
+  cualquier conexión externa sin mock o `claude -p` hace fallar el test (`RealNetworkInTest`).
 
 ## Harness de Claude Code (`.claude/`)
 

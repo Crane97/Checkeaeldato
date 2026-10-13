@@ -18,7 +18,7 @@ from pipeline.evidence.oficiales import (
     official_organization,
 )
 from pipeline.evidence.tavily import API_URL, TavilyClient
-from pipeline.evidence.web import WebSearchSource
+from pipeline.evidence.web import MAX_WEB_SEARCHES_PER_CLAIM, WebSearchSource
 from pipeline.models import DetectedClaim, EvidenceItem, Source
 
 DATE = dt.date(2026, 11, 20)
@@ -311,3 +311,15 @@ def test_official_excerpt_includes_relevant_passages_from_the_full_page():
     assert item.excerpt.startswith("Portada EPA")
     assert "10,5 %" in item.excerpt
     assert "Menú de navegación" not in item.excerpt
+
+
+@respx.mock
+def test_web_source_makes_at_most_two_searches_per_claim():
+    route = respx.post(API_URL).mock(return_value=httpx.Response(200, json={"results": []}))
+    web = WebSearchSource(tavily(), DOMAINS)
+    for queries in (["primera"], ["segunda"], ["tercera"]):
+        web.search(claim().model_copy(update={"search_queries": queries}), DATE)
+    assert route.call_count == MAX_WEB_SEARCHES_PER_CLAIM == 2
+    other = claim().model_copy(update={"id": "c999"})
+    web.search(other, DATE)
+    assert route.call_count == 3  # the limit is per claim

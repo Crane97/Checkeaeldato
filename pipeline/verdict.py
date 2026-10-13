@@ -8,6 +8,7 @@ from typing import Protocol, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from pipeline.evidence.base import settled_by_factcheck
 from pipeline.llm import LLMConfigError, LLMError
 from pipeline.models import ClaimEvidence, DetectedClaim, EvidenceItem, Verdict, VerdictLabel
 from pipeline.neutrality import FORBIDDEN_WORDS_RE
@@ -221,7 +222,8 @@ def _decide(
 
     answer = ask(evidence, final=follow_up is None)
     queries = [q.strip() for q in answer.follow_up_queries if q.strip()][:MAX_FOLLOW_UP_QUERIES]
-    if answer.verdict != "no_verificable" or not queries or follow_up is None:
+    settled = settled_by_factcheck(claim, evidence.items)
+    if answer.verdict != "no_verificable" or not queries or follow_up is None or settled:
         return _apply_rules(claim, evidence, answer)
 
     logger.info("%s: búsqueda adicional (%s)", claim.id, "; ".join(queries))
