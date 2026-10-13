@@ -434,6 +434,9 @@ class CostEntry(BaseModel):
     cache_write_tokens: int = 0
     cache_read_tokens: int = 0
     audio_seconds: float = 0
+    # Claude: wall time of the call and, with thinking, how many output tokens were thinking.
+    seconds: float = 0
+    thinking_tokens: int = 0
     # Web searches (Tavily): paid ones, ones served from the disk cache, credits spent.
     searches: int = 0
     cached_searches: int = 0

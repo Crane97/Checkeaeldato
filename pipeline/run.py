@@ -20,6 +20,7 @@ from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
+from pipeline.llm import ThinkingConfig
 from pipeline.models import (
     AudioInfo,
     ClaimDetection,
@@ -67,6 +68,8 @@ class Deps(Protocol):
     disabled_sources: list[str]
     # Web searches of this run, all steps (for the summary at the end).
     searches: SearchStats
+    # Claude's thinking in the verdict step (VERDICT_THINKING…); None: model default.
+    verdict_thinking: ThinkingConfig | None
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
 
@@ -123,6 +126,13 @@ class LiveDeps:
             max_results=self.settings.tavily_max_results,
             cache=cache,
         )
+
+    @property
+    def verdict_thinking(self) -> ThinkingConfig | None:
+        s = self.settings
+        if s.verdict_thinking is None:
+            return None
+        return ThinkingConfig(s.verdict_thinking, s.verdict_effort, s.verdict_thinking_budget)
 
     def take_search_cost(self, step: str) -> list[CostEntry]:
         """Tavily searches made since the last call, as a cost entry of `step`."""
@@ -364,6 +374,7 @@ def build_steps(
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
                 follow_up=follow_up_search(deps, store.manifest.speech_date),
+                thinking=deps.verdict_thinking,
                 own_source=own_source_checker(
                     store.read(SPEAKERS_FILE, SpeakerMap),
                     default_governments(),
@@ -428,7 +439,13 @@ def build_steps(
         Step("claims", claims_step, (CLAIMS_PROMPT,)),
         Step("context", context_step, (CONTEXT_PROMPT,)),
         Step("evidence", evidence_step),
-        Step("verdicts", verdicts_step, (VERDICT_PROMPT,)),
+        # A different thinking setting is a different verdict: recompute, do not reuse.
+        Step(
+            "verdicts",
+            verdicts_step,
+            (VERDICT_PROMPT,),
+            version=f"thinking={deps.verdict_thinking.label()}" if deps.verdict_thinking else "",
+        ),
         Step("promises", promises_step, (PROMISES_PROMPT,)),
         Step("report", report_step),
     ]

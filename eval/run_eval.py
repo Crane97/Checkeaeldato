@@ -190,7 +190,17 @@ def main(
     deps = LiveDeps(get_settings(), use_cache=not no_cache)
     runner = _run_full if modo == "completo" else _run_verdict_only
 
-    results = [score_case(c, runner(c, deps)) for c in cases]
+    reports = [runner(c, deps) for c in cases]
+    results = [score_case(c, r) for c, r in zip(cases, reports, strict=True)]
+    verdict_costs = [e for r in reports for e in r.cost.entries if e.step == "verdicts"]
+    n_claims = sum(len(r.claims) for r in reports)
+    review = sum(1 for r in reports for c in r.claims if c.needs_review)
+    per_claim = {
+        "usd": sum(e.usd for e in verdict_costs) / n_claims if n_claims else 0.0,
+        "segundos": sum(e.seconds for e in verdict_costs) / n_claims if n_claims else 0.0,
+        "llamadas": len(verdict_costs) / n_claims if n_claims else 0.0,
+        "tokens_razonamiento": sum(e.thinking_tokens for e in verdict_costs),
+    }
     for r in results:
         _print_case(r)
 
@@ -202,6 +212,15 @@ def main(
         f"contexto {_rate(summary.context_accuracy)} "
         f"({summary.context_correct}/{summary.context_checked}), "
         f"opiniones detectadas por error {summary.false_positives}"
+    )
+    thinking = deps.verdict_thinking
+    mode = f"razonamiento {thinking.label()}" if thinking else "razonamiento por defecto"
+    typer.echo(
+        f"Veredicto ({mode}): "
+        f"{per_claim['usd']:.4f} $ y {per_claim['segundos']:.1f} s por afirmación, "
+        f"{per_claim['llamadas']:.2f} llamadas por afirmación, pendientes de revisión {review}"
+        " (si los pasos se reutilizaron de la caché, el coste y el tiempo son de la ejecución "
+        "que los calculó)"
     )
     if summary.promises_gold:
         typer.echo(
@@ -238,6 +257,11 @@ def main(
                     "correctas": summary.correct,
                     "opiniones_detectadas": summary.false_positives,
                     "extra": summary.extra_detected,
+                    "veredicto_por_afirmacion": per_claim,
+                    "pendientes_revision": review,
+                    "razonamiento": deps.verdict_thinking.label()
+                    if deps.verdict_thinking
+                    else None,
                     "promesas_gold": summary.promises_gold,
                     "promesas_detectadas": summary.promises_matched,
                     "precision_promesas": summary.promise_accuracy,

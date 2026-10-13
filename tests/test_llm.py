@@ -6,7 +6,7 @@ import pytest
 from anthropic.types import Message
 from pydantic import BaseModel, Field
 
-from pipeline.llm import LLMClient, LLMError, LLMRefusal, LLMTruncated
+from pipeline.llm import LLMClient, LLMError, LLMRefusal, LLMTruncated, ThinkingConfig
 
 MODEL = "claude-haiku-5-5"
 
@@ -245,3 +245,56 @@ def test_missing_credentials_are_a_config_error(prompts_dir):
 def test_other_type_errors_are_not_hidden(prompts_dir):
     with pytest.raises(TypeError, match="otra cosa"):
         call(LLMClient(RaisingAnthropic(TypeError("otra cosa")), prompts_dir))
+
+
+def thinking_message(summary: str) -> Message:
+    msg = message(VALID)
+    block = {"type": "thinking", "thinking": summary, "signature": "sig"}
+    return Message.model_validate(
+        msg.model_dump() | {"content": [block, *msg.model_dump()["content"]]}
+    )
+
+
+@pytest.mark.parametrize(
+    ("model", "config", "expected"),
+    [
+        # Claude 5.5: thinking is adaptive and on by default; "off" is the lowest setting.
+        (
+            "claude-sonnet-5-5",
+            ThinkingConfig(True, "high"),
+            {"type": "adaptive", "display": "summarized"},
+        ),
+        ("claude-sonnet-5-5", ThinkingConfig(False), {"type": "between_tools"}),
+        ("claude-haiku-5-5", ThinkingConfig(False), {"type": "disabled"}),
+        ("claude-opus-5-5", ThinkingConfig(False), None),  # cannot be turned off
+        # Manual budget only on models that still accept it.
+        (
+            "claude-haiku-4-5",
+            ThinkingConfig(True, budget_tokens=4000),
+            {"type": "enabled", "budget_tokens": 4000},
+        ),
+    ],
+)
+def test_thinking_request_per_model(prompts_dir, model, config, expected):
+    fake = FakeAnthropic(message(VALID))
+    call(LLMClient(fake, prompts_dir), model=model, thinking=config)
+    sent = fake.messages.calls[0]
+    assert sent.get("thinking") == expected
+    if config.enabled and config.effort:
+        assert sent["output_config"]["effort"] == config.effort
+    if expected and expected.get("budget_tokens"):
+        assert sent["max_tokens"] > expected["budget_tokens"]
+
+
+def test_without_thinking_config_the_model_default_is_kept(prompts_dir):
+    fake = FakeAnthropic(message(VALID))
+    call(LLMClient(fake, prompts_dir))
+    assert "thinking" not in fake.messages.calls[0]
+
+
+def test_thinking_summary_and_duration_are_kept(prompts_dir):
+    llm = LLMClient(FakeAnthropic(thinking_message("Comparé 344 con 344,10.")), prompts_dir)
+    call(llm, model="claude-sonnet-5-5", thinking=ThinkingConfig(True))
+    assert llm.last_thinking == "Comparé 344 con 344,10."
+    [cost] = llm.take_costs()
+    assert cost.seconds >= 0

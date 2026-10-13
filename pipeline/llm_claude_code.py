@@ -11,12 +11,13 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from pipeline.llm import LLMConfigError, LLMError
+from pipeline.llm import LLMConfigError, LLMError, ThinkingConfig
 from pipeline.models import CostEntry
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class ClaudeCodeLLM:
         self._prompts_dir = prompts_dir
         self._validation_retries = validation_retries
         self._costs: list[CostEntry] = []
+        self.last_thinking: str | None = None  # `claude -p` does not return thinking
         # Empty working directory: no project CLAUDE.md or settings reach the model.
         self._workdir = tempfile.TemporaryDirectory(prefix="verificar-claude-")
 
@@ -52,6 +54,7 @@ class ClaudeCodeLLM:
         output_type: type[T],
         max_tokens: int = 16000,
         effort: str | None = None,
+        thinking: ThinkingConfig | None = None,
     ) -> T:
         from anthropic import transform_schema  # same schema rules as the API backend
 
@@ -82,10 +85,15 @@ class ClaudeCodeLLM:
             "--strict-mcp-config",
             "--disable-slash-commands",
         ]
+        # `claude -p` has no thinking switch: thinking depth follows the effort level.
+        if thinking is not None:
+            level = (thinking.effort or "high") if thinking.enabled else "low"
+            cmd += ["--effort", level]
 
         for attempt in range(self._validation_retries + 1):
+            started = time.monotonic()
             data = self._run(cmd, user_content, prompt)
-            self._record_cost(step, model, data)
+            self._record_cost(step, model, data, time.monotonic() - started)
             if not isinstance(data.get("structured_output"), dict):
                 raise LLMError(f"Claude Code no devolvió salida estructurada para {prompt}")
             try:
@@ -132,7 +140,7 @@ class ClaudeCodeLLM:
             raise LLMError(f"Claude Code devolvió un error ({detail}) para {prompt}")
         return data
 
-    def _record_cost(self, step: str, model: str, data: dict[str, Any]) -> None:
+    def _record_cost(self, step: str, model: str, data: dict[str, Any], seconds: float) -> None:
         usage = data.get("usage") or {}
         self._costs.append(
             CostEntry(
@@ -145,5 +153,6 @@ class ClaudeCodeLLM:
                 cache_read_tokens=int(usage.get("cache_read_input_tokens") or 0),
                 # List-price equivalent reported by Claude Code; covered by the plan.
                 usd=float(data.get("total_cost_usd") or 0),
+                seconds=round(seconds, 3),
             )
         )

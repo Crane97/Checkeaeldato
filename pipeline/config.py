@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     transcription_provider: Literal["elevenlabs"] = "elevenlabs"
     transcription_api_key: SecretStr | None = None
 
+    # Claude's internal thinking in the verdict step only. Unset: the model's default
+    # (Claude 5.5 models already think adaptively). Effort steers depth on Claude 4.6+;
+    # VERDICT_THINKING_BUDGET (tokens) is only accepted by models up to Claude 4.5.
+    verdict_thinking: bool | None = None
+    verdict_effort: Literal["low", "medium", "high", "xhigh", "max"] | None = None
+    verdict_thinking_budget: int | None = Field(default=None, ge=1024)
+
     google_factcheck_api_key: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
     # "basic" costs 1 credit per search, "advanced" 2.

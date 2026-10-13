@@ -7,7 +7,7 @@ import pytest
 from pydantic import BaseModel, Field
 
 from pipeline import llm_claude_code
-from pipeline.llm import LLMConfigError, LLMError
+from pipeline.llm import LLMConfigError, LLMError, ThinkingConfig
 from pipeline.llm_claude_code import ClaudeCodeLLM
 
 MODEL = "claude-haiku-5-5"
@@ -167,3 +167,26 @@ def test_timeout_is_an_llm_error(fake, prompts_dir, monkeypatch):
     monkeypatch.setattr(llm_claude_code.subprocess, "run", slow)
     with pytest.raises(LLMError, match="tiempo"):
         call(ClaudeCodeLLM(prompts_dir))
+
+
+@pytest.mark.parametrize(
+    ("config", "effort"),
+    [
+        (None, None),
+        (ThinkingConfig(True, "xhigh"), "xhigh"),
+        (ThinkingConfig(True), "high"),
+        (ThinkingConfig(False), "low"),
+    ],
+)
+def test_thinking_maps_to_the_effort_flag(fake, prompts_dir, config, effort):
+    runner = fake((0, result(GOOD), ""))
+    ClaudeCodeLLM(prompts_dir).structured(
+        step="verdicts",
+        model=MODEL,
+        prompt="clasificar.md",
+        user_content="x",
+        output_type=Answer,
+        thinking=config,
+    )
+    cmd = runner.calls[0]["cmd"]
+    assert (cmd[cmd.index("--effort") + 1] if "--effort" in cmd else None) == effort

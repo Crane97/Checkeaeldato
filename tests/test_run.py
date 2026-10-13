@@ -103,6 +103,7 @@ class FakeDeps:
         self.disabled_sources = ["factcheck"]
         self.speaker_search = None
         self.searches = SearchStats()
+        self.verdict_thinking = None
 
     def model_for(self, step: str) -> str:
         return "claude-haiku-5-5"
@@ -450,3 +451,15 @@ def test_report_has_the_explanation_but_not_the_audit_analysis(article: Path, tm
     assert claim["explanation"] and "analysis" not in claim and "evidence_used" not in claim
     [verdict] = json.loads((result.report_path.parent / "verdicts.json").read_text())
     assert verdict["analysis"]["conclusion"] and verdict["evidence_used"] == ["E1"]
+
+
+def test_changing_the_verdict_thinking_recomputes_only_from_the_verdicts(article, tmp_path):
+    from pipeline.llm import ThinkingConfig
+
+    deps = FakeDeps()
+    run(article, tmp_path / "data", deps)
+    deps.llm.calls.clear()
+    deps.verdict_thinking = ThinkingConfig(True, "high")
+    result = run(article, tmp_path / "data", deps)
+    assert deps.llm.calls == ["verdicts"]
+    assert result.steps_run == ["verdicts", "promises", "report"]
