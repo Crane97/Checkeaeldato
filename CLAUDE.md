@@ -88,6 +88,7 @@ pipeline/
   transcribe/         # interfaz Transcriber + proveedores
   speakers.py         # etapa 1: interlocutores y lo que el texto dice de ellos, con citas
   speaker_research.py # etapa 2: partido y cargo de cada orador (oficial → web), con citas
+  politicians.py      # base de políticos: emparejar nombres, partido y cargos en una fecha
   claims.py           # detección y normalización de afirmaciones y promesas
   promises.py         # viabilidad de las promesas y consecuencias (fuentes + razonamiento)
   governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
@@ -357,18 +358,41 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
 - **Golden tests** (`tests/test_knowledge_golden.py`): valores contrastados con su fuente;
   si fallan, se investiga el cambio, no se corrige el test.
 
-### Políticos (pendiente, tras la fase C; decidido 2026-10-14)
+### Políticos (decidido 2026-10-14)
 
-- **Carga inicial: unos 100 políticos elegidos por cargo a fecha de hoy**, sin mirar el
-  partido: presidente y ministros; presidentes del Congreso y del Senado; líderes y
-  portavoces de cada grupo parlamentario; presidentes autonómicos (17 + Ceuta y Melilla);
-  líderes nacionales de los partidos con representación; expresidentes del Gobierno vivos;
-  alcaldes de las 5 mayores ciudades.
-- Por persona: nombre completo, alias, fecha de nacimiento, partido(s) con fechas y
-  **cargos con fechas** (inicio, fin, en funciones), cada dato con su fuente oficial.
-- **Oradores nuevos:** cuando `speaker_research` investiga a alguien que no está, se guarda
-  en la caché y en la base marcado como investigación automática sin revisar y **se
-  reutiliza enseguida**; aparece en `revisar` y, si se rechaza, deja de usarse.
+Base de quién es quién para identificar oradores sin gastar búsquedas
+(`pipeline/politicians.py`; en Supabase, `ref.politicians`, `ref.politician_roles`,
+`ref.politician_parties`, migración 0005).
+- **Selección por cargo, nunca por partido** (`data/knowledge/politicians_seed.yaml`):
+  Gobierno; miembros del Gobierno salidos en la legislatura; expresidentes del Gobierno;
+  presidencias autonómicas y de Ceuta y Melilla; presidencias del Congreso y del Senado;
+  portavoces de los grupos del Congreso; dirección nacional de los partidos con
+  representación; alcaldías de las cinco mayores ciudades. Si no se puede confirmar quién
+  ocupa un cargo, no se incluye (se anota en la semilla).
+- **Por persona:** nombre oficial completo, alias, fecha de nacimiento, partidos y cargos
+  con fechas (inicio, fin y tramos **en funciones**), cada dato con su fuente:
+  - cargos del **BOE** (primaria): nombramientos y ceses, también los decretos colectivos
+    del Gobierno; el fin es el cese o el siguiente nombramiento para el mismo cargo. El
+    "cese de los miembros del Gobierno" tras unas elecciones **no** termina el cargo: abre
+    el tramo en funciones (de la tabla de gobiernos);
+  - nacimiento, partidos y cargos que el BOE no publica, de **Wikidata** marcados como
+    fuente **secundaria** (Wikipedia/Wikidata solo como secundaria: decisión del
+    responsable, 2026-10-14). Solo fechas con precisión de día. Wikidata puede estar
+    desactualizada: los cargos actuales se comprueban en el BOE o en una página oficial;
+  - un dato visto en una investigación lleva `constatado_en` (no periodo) y vale ±365 días.
+- **Regenerar:** `uv run python scripts/recopilar_politicos.py` (BOE y Wikidata sin clave,
+  con pausa y caché en `data/cache/collect/`), revisar el diff de
+  `data/knowledge/politicians.json` y `politicians_avisos.txt`, `uv run conocimiento
+  cargar-politicos` y aprobar con `uv run conocimiento revisar --tipo politico` (antes,
+  `data-verifier`). Lo curado entra `pendiente` y **no se usa hasta aprobarlo**.
+  Actualizar tras las elecciones del 30-11-2026.
+- **Uso en el análisis:** `speaker_research` busca primero en la base (todas las palabras
+  del nombre en el nombre o un alias; ante ambigüedad, nada) el partido y los cargos en la
+  fecha del discurso; solo si no los sabe, investiga en la web.
+- **Oradores nuevos:** lo que `speaker_research` averigua se guarda en
+  `data/cache/politicians.json` y en Supabase como `automatico`: **se reutiliza enseguida**
+  (decisión del responsable, 2026-10-14), aparece en `revisar` y, si se rechaza, deja de
+  usarse y no se vuelve a guardar. Solo se usan `aprobado` y `automatico`.
 
 ## Fuentes de evidencia (cascada, por orden de prioridad)
 
@@ -483,6 +507,8 @@ uv run conocimiento catalogo                     # sincroniza catalog.yaml
 uv run conocimiento cargar-json                  # carga validada de la base JSON
 uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
 uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
+uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
+uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .
 ```
 
