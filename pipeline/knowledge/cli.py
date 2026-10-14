@@ -10,6 +10,7 @@ from pipeline.knowledge.catalog import load_catalog, sync_catalog
 from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 from pipeline.knowledge.observations_load import load_json_base
+from pipeline.knowledge.review import KINDS, ReviewError, ReviewItem, decide, pending_items
 
 app = typer.Typer(no_args_is_help=True, help="Base de conocimiento oficial (Supabase Postgres).")
 
@@ -115,3 +116,75 @@ def cargar_json() -> None:
         )
         for e in s.errors:
             typer.secho(f"   error: {e}", fg=typer.colors.RED)
+
+
+_KEYS = "[a]probar · [r]echazar · [s]altar · [t]odos los de este grupo · [q] salir"
+
+
+def _show(item: ReviewItem, n: int, total: int) -> None:
+    typer.secho(f"\n[{n}/{total}] {item.kind} {item.id} · {item.title}", bold=True)
+    for line in item.lines:
+        typer.echo(f"   {line}")
+
+
+@app.command()
+def revisar(
+    tipo: Annotated[
+        list[str] | None,
+        typer.Option("--tipo", help="observacion, gobierno, partido o hecho (repetible)"),
+    ] = None,
+    indicador: Annotated[
+        str | None, typer.Option("--indicador", help="Solo las observaciones de un indicador")
+    ] = None,
+    lista: Annotated[bool, typer.Option("--lista", help="Solo muestra lo pendiente")] = False,
+    revisor: Annotated[
+        str | None, typer.Option("--revisor", help="Tu nombre: queda registrado en cada decisión")
+    ] = None,
+) -> None:
+    """Muestra lo pendiente con su fuente y pide aprobarlo o rechazarlo (solo lo aprobado se usa).
+
+    Antes de aprobar datos curados a mano, pásalos por el agente data-verifier.
+    """
+    kinds = tuple(tipo) if tipo else KINDS
+    if unknown := set(kinds) - set(KINDS):
+        typer.secho(f"Tipo no válido: {', '.join(sorted(unknown))}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+    with _connect() as conn:
+        items = pending_items(conn, kinds, indicator=indicador)  # type: ignore[arg-type]
+        conn.rollback()
+        if not items:
+            typer.echo("No hay nada pendiente de revisión.")
+            return
+        if lista:
+            for n, item in enumerate(items, 1):
+                _show(item, n, len(items))
+            return
+        name = revisor or typer.prompt("Tu nombre (queda registrado como revisor)")
+        counts = {"aprobado": 0, "rechazado": 0}
+        bulk: set[str] = set()
+        for n, item in enumerate(items, 1):
+            _show(item, n, len(items))
+            if item.group in bulk:
+                answer = "a"
+            else:
+                answer = typer.prompt(_KEYS, default="s").strip().lower()[:1]
+                if answer == "q":
+                    break
+                if answer == "t":
+                    rest = sum(1 for i in items[n - 1 :] if i.group == item.group)
+                    if typer.confirm(f"¿Aprobar este y los {rest - 1} siguientes de {item.group}?"):
+                        bulk.add(item.group)
+                        answer = "a"
+                    else:
+                        answer = "s"
+            if answer not in ("a", "r"):
+                continue
+            outcome = "aprobado" if answer == "a" else "rechazado"
+            try:
+                decide(conn, item.kind, item.id, outcome, reviewer=name)
+                conn.commit()
+                counts[outcome] += 1
+            except (ReviewError, psycopg.Error) as exc:
+                conn.rollback()
+                typer.secho(f"   No se pudo guardar: {exc}", fg=typer.colors.RED)
+    typer.echo(f"\nAprobados: {counts['aprobado']} · rechazados: {counts['rechazado']}")

@@ -332,6 +332,40 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
   Check API (gratuita), sin Tavily. Si no, se busca en la web como siempre; la ronda
   adicional sigue disponible. Un cambio en la base recalcula detección y evidencia.
 
+## Base de conocimiento oficial en Supabase (en construcción, 2026-10-14)
+
+Sustituirá a la base JSON. Esquemas `ref` (catálogo, observaciones, gobiernos, partidos,
+hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`) y `ops`
+(ingesta, migraciones), en `db/migrations/NNNN_*.sql` (cada migración pasa por
+`database-reviewer`). Conexión: `SUPABASE_DB_URL` en `.env` (proyecto de desarrollo).
+- **Observaciones inmutables:** ni UPDATE ni DELETE; una revisión del dato oficial es una
+  versión nueva. Solo se usan las `aprobado`; nunca las `pendiente` ni `cuarentena`.
+- **Catálogo** `pipeline/knowledge/catalog.yaml`: definición precisa, sinónimos, rango,
+  un umbral de salto (% en niveles, puntos en tasas), antigüedad máxima, tema, retraso de
+  publicación y fuente. Unidad, definición y frecuencia no cambian: otro id.
+- **Validación** (`validate.py`) antes de entrar: unidad, rango y salto → cuarentena;
+  igual al vigente → nada; distinto → versión nueva. Lo curado a mano entra `pendiente`.
+- **Fecha de publicación:** la real si la fuente la da (BOE); si no, **fin del periodo +
+  retraso habitual del calendario** del organismo, marcada como estimada (decisión del
+  responsable, 2026-10-14). El resolvedor usa la versión publicada a la fecha del discurso.
+- **Revisión humana:** `uv run conocimiento revisar` muestra cada elemento pendiente
+  (observaciones, gobiernos, partidos, hechos) con fuente, motivos y valores con los que
+  compararlo, y registra quién aprueba o rechaza. Antes de aprobar datos curados, agente
+  `data-verifier`.
+
+### Políticos (pendiente, tras la fase C; decidido 2026-10-14)
+
+- **Carga inicial: unos 100 políticos elegidos por cargo a fecha de hoy**, sin mirar el
+  partido: presidente y ministros; presidentes del Congreso y del Senado; líderes y
+  portavoces de cada grupo parlamentario; presidentes autonómicos (17 + Ceuta y Melilla);
+  líderes nacionales de los partidos con representación; expresidentes del Gobierno vivos;
+  alcaldes de las 5 mayores ciudades.
+- Por persona: nombre completo, alias, fecha de nacimiento, partido(s) con fechas y
+  **cargos con fechas** (inicio, fin, en funciones), cada dato con su fuente oficial.
+- **Oradores nuevos:** cuando `speaker_research` investiga a alguien que no está, se guarda
+  en la caché y en la base marcado como investigación automática sin revisar y **se
+  reutiliza enseguida**; aparece en `revisar` y, si se rechaza, deja de usarse.
+
 ## Fuentes de evidencia (cascada, por orden de prioridad)
 
 1. Google Fact Check Tools API (ClaimReview): Maldita, Newtral, EFE Verifica, Verificat…
@@ -440,6 +474,10 @@ uv run python eval/run_eval.py                   # evaluación completa contra e
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
 uv run python eval/run_eval.py --rapida          # 5 casos propensos a error (~mitad de búsquedas)
 uv run python scripts/actualizar_indicadores.py  # refresca INE / Eurostat / Seguridad Social
+uv run conocimiento migrar [--simular]          # aplica db/migrations/ en Supabase
+uv run conocimiento catalogo                     # sincroniza catalog.yaml
+uv run conocimiento cargar-json                  # carga validada de la base JSON
+uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
 uv run ruff check . && uv run ruff format .
 ```
 
