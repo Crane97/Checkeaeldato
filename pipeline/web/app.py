@@ -16,16 +16,18 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from pipeline.email_report import is_valid_email
 from pipeline.jobs import JOB_ID_LENGTH, MANIFEST_FILE
-from pipeline.models import STEPS, Report
+from pipeline.live.session import SESSION_ID_LENGTH
+from pipeline.models import STEPS, Report, SpeakerInfo
 from pipeline.report_html import render_report_html
 from pipeline.run import Deps, run_job
 from pipeline.speakers import parse_speaker_lines
+from pipeline.web.live import LiveManager, LiveRequest, SourceFactory, ffmpeg_source
 
 # (report, address) -> None; raises on failure.
 EmailSender = Callable[[Report, str], None]
@@ -194,15 +196,28 @@ def create_app(
     deps_factory: Callable[[], Deps],
     run_in_thread: bool = True,
     email_sender: EmailSender | None = None,
+    source_factory: SourceFactory = ffmpeg_source,
+    now: Callable[[], dt.datetime] = lambda: dt.datetime.now(dt.UTC),
 ) -> FastAPI:
     logging.getLogger("pipeline").setLevel(logging.INFO)
     app = FastAPI(title="Checkea el Dato (local)", docs_url=None, redoc_url=None)
     app.state.jobs = JobManager(data_dir, deps_factory, run_in_thread, email_sender)
+    app.state.live = LiveManager(
+        data_dir,
+        deps_factory,
+        source_factory=source_factory,
+        run_in_thread=run_in_thread,
+        now=now,
+    )
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @app.get("/")
     def home() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/directo")
+    def live_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "directo.html")
 
     @app.post("/api/analisis", status_code=202)
     def start(request: AnalysisRequest) -> dict[str, str]:
@@ -235,6 +250,54 @@ def create_app(
         return HTMLResponse(
             render_report_html(report),
             headers={"Content-Disposition": f'attachment; filename="informe-{job_id}.html"'},
+        )
+
+    # --- live sessions ----------------------------------------------------------
+
+    live: LiveManager = app.state.live
+
+    def checked_session(session_id: str) -> str:
+        if not (len(session_id) == SESSION_ID_LENGTH and session_id.isalnum()):
+            raise HTTPException(404, "Sesión no encontrada")
+        return session_id
+
+    @app.get("/api/directo")
+    def live_sessions() -> list[dict[str, Any]]:
+        return live.sessions()
+
+    @app.post("/api/directo", status_code=202)
+    def live_start(request: LiveRequest) -> dict[str, str]:
+        return {"session_id": live.start(request)}
+
+    @app.get("/api/directo/{session_id}")
+    def live_snapshot(session_id: str) -> dict[str, Any]:
+        return live.snapshot(checked_session(session_id))
+
+    @app.get("/api/directo/{session_id}/eventos")
+    def live_events(session_id: str, desde: int = 0) -> StreamingResponse:
+        session_id = checked_session(session_id)
+        live.state(session_id)  # 404 before the stream starts
+        return StreamingResponse(
+            live.events(session_id, desde),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    @app.post("/api/directo/{session_id}/parar")
+    def live_stop(session_id: str) -> dict[str, str]:
+        live.stop(checked_session(session_id))
+        return {"estado": "parando"}
+
+    @app.put("/api/directo/{session_id}/oradores/{label}")
+    def live_rename(session_id: str, label: str, info: SpeakerInfo) -> dict[str, str]:
+        return live.rename_speaker(checked_session(session_id), label, info)
+
+    @app.get("/api/directo/{session_id}/informe.html")
+    def live_download(session_id: str) -> HTMLResponse:
+        state = live.state(checked_session(session_id))
+        return HTMLResponse(
+            render_report_html(state.report(now())),
+            headers={"Content-Disposition": f'attachment; filename="directo-{session_id}.html"'},
         )
 
     return app

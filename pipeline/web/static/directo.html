@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkea el Dato · en directo</title>
+<link rel="stylesheet" href="/static/report.css">
+</head>
+<body>
+<main>
+  <h1>Checkea el Dato · en directo</h1>
+  <section class="card">
+    <form id="form">
+      <label for="fuente">Emisión (URL) o vídeo grabado (ruta)</label>
+      <input id="fuente" type="text" required>
+      <label for="fecha">Fecha del debate</label>
+      <input id="fecha" type="date" required>
+      <button type="submit">Empezar</button>
+    </form>
+  </section>
+</main>
+<script src="/static/report.js"></script>
+<script>
+// Placeholder; the panel listens with EventSource to /api/directo/{id}/eventos.
+</script>
+</body>
+</html>
