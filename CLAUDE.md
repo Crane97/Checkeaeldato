@@ -352,6 +352,10 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   (observaciones, gobiernos, partidos, hechos) con fuente, motivos y valores con los que
   compararlo, y registra quién aprueba o rechaza. Antes de aprobar datos curados, agente
   `data-verifier`.
+- **Trazabilidad:** cada veredicto guardado en `verif.claims` lleva los `observation_ids`
+  que usó; `conocimiento impacto` los lista con el comando para recalcular cada trabajo.
+- **Golden tests** (`tests/test_knowledge_golden.py`): valores contrastados con su fuente;
+  si fallan, se investiga el cambio, no se corrige el test.
 
 ### Políticos (pendiente, tras la fase C; decidido 2026-10-14)
 
@@ -478,6 +482,7 @@ uv run conocimiento migrar [--simular]          # aplica db/migrations/ en Supab
 uv run conocimiento catalogo                     # sincroniza catalog.yaml
 uv run conocimiento cargar-json                  # carga validada de la base JSON
 uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
+uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
 uv run ruff check . && uv run ruff format .
 ```
 

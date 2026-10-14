@@ -8,6 +8,7 @@ import typer
 from pipeline.config import ConfigError, get_settings
 from pipeline.knowledge.catalog import load_catalog, sync_catalog
 from pipeline.knowledge.governments_load import load_governments
+from pipeline.knowledge.impact import dependents, observation_summary, reprocess_commands
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 from pipeline.knowledge.observations_load import load_json_base
 from pipeline.knowledge.review import KINDS, ReviewError, ReviewItem, decide, pending_items
@@ -188,3 +189,28 @@ def revisar(
                 conn.rollback()
                 typer.secho(f"   No se pudo guardar: {exc}", fg=typer.colors.RED)
     typer.echo(f"\nAprobados: {counts['aprobado']} · rechazados: {counts['rechazado']}")
+
+
+@app.command()
+def impacto(observation_id: Annotated[int, typer.Argument(help="Id de ref.observations")]) -> None:
+    """Lista los veredictos que usaron un dato y el comando para recalcular cada trabajo."""
+    with _connect() as conn:
+        summary = observation_summary(conn, observation_id)
+        if summary is None:
+            typer.secho(f"No existe la observación {observation_id}", fg=typer.colors.RED, err=True)
+            raise typer.Exit(code=1)
+        found = dependents(conn, observation_id)
+        conn.rollback()
+    typer.echo(f"Dato: {summary}")
+    if not found:
+        typer.echo("Ningún veredicto guardado usa este dato.")
+        return
+    typer.echo(f"Veredictos que dependen de él: {len(found)}")
+    for d in found:
+        typer.echo(
+            f"  {d.fecha_verificacion:%Y-%m-%d} · trabajo {d.job_id or '—'} · {d.claim_id or '—'}"
+            f" · {d.veredicto} · {d.claim_normalizado}"
+        )
+    typer.echo("\nPara recalcularlos desde la evidencia (gasta búsquedas y modelo):")
+    for command in reprocess_commands(d.job_id for d in found):
+        typer.echo(f"  {command}")
