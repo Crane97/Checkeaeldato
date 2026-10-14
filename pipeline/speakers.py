@@ -30,6 +30,7 @@ _CUES_RE = re.compile(
     re.IGNORECASE,
 )
 _DIARIZATION_LABEL_RE = re.compile(r"^speaker_(\d+|desconocido)$", re.IGNORECASE)
+_HONORIFIC_RE = re.compile(r"^(?:(?:sr|sra|d|dña)\.?|señor|señora|don|doña)\s+", re.IGNORECASE)
 _PRESIDENT_ROLE_RE = re.compile(r"president[ea] del gobierno", re.IGNORECASE)
 
 T = TypeVar("T", bound=BaseModel)
@@ -143,13 +144,26 @@ def _validated(guess: SpeakerGuess, full_text: str, governments: Governments) ->
     )
 
 
+def _same_person(speaker: Speaker, president: str, parties: list[str]) -> bool:
+    """Every word of the speaker's name is in the president's, and no other party."""
+    words = set(re.findall(r"\w{2,}", _fold(_HONORIFIC_RE.sub("", speaker.name or ""))))
+    return words <= set(re.findall(r"\w{2,}", _fold(president))) and (
+        not speaker.party or speaker.party in parties
+    )
+
+
 def _with_table(speaker: Speaker, speech_date: dt.date, governments: Governments) -> Speaker:
-    """Party of a current or former president of the Government, from the table."""
-    if speaker.party:
-        return speaker
+    """Full name and party of a current or former president of the Government, from the
+    table ("Sánchez" -> "Pedro Sánchez", PSOE)."""
     term = None
     if speaker.name:
         term = next(iter(governments.president_terms(speaker.name)), None)
+        if term and not _same_person(speaker, term.president, term.parties):
+            term = None  # a namesake ("Ana Sánchez" is not "Pedro Sánchez")
+        if term and speaker.name != term.president:
+            speaker = speaker.model_copy(update={"name": term.president})
+    if speaker.party:
+        return speaker
     elif speaker.role and _PRESIDENT_ROLE_RE.search(speaker.role):
         term = governments.at(speech_date)
     if term is None or not term.parties:

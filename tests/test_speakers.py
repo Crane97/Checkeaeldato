@@ -5,7 +5,7 @@ import pytest
 
 from pipeline.governments import default_governments
 from pipeline.llm import LLMConfigError, LLMError
-from pipeline.models import Segment, SpeakerInfo, Transcript
+from pipeline.models import Segment, Speaker, SpeakerInfo, Transcript
 from pipeline.speakers import (
     PROMPT,
     SpeakerGuess,
@@ -246,3 +246,18 @@ def test_web_speaker_lines():
     assert info["Ana Ruiz"] == SpeakerInfo(name="Ana Ruiz", party="PSOE", role="candidata")
     assert info["SPEAKER_2"] == SpeakerInfo(name=None, party="Partido Popular", role=None)
     assert len(info) == 2
+
+
+def test_president_found_in_the_table_gets_the_full_name():
+    from pipeline.speakers import _with_table
+
+    partial = Speaker(label="Presidente", name="Sánchez", role="presidente del Gobierno")
+    found = _with_table(partial, dt.date(2023, 2, 21), default_governments())
+    assert (found.name, found.party) == ("Pedro Sánchez", "PSOE")
+
+
+def test_a_namesake_is_not_renamed_after_the_president():
+    from pipeline.speakers import _with_table
+
+    other = Speaker(label="Ana Sánchez", name="Ana Sánchez", party="PP")
+    assert _with_table(other, dt.date(2023, 2, 21), default_governments()).name == "Ana Sánchez"
