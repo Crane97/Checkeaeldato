@@ -41,6 +41,7 @@ from pipeline.models import (
     Transcript,
     Verdict,
 )
+from pipeline.politicians import CombinedDirectory, LocalPoliticianCache, PoliticianDirectory
 from pipeline.promises import PROMPT as PROMISES_PROMPT
 from pipeline.promises import assess_promises
 from pipeline.report import build_report, format_summary
@@ -78,6 +79,8 @@ class Deps(Protocol):
     indicators: IndicatorBase
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
+    # Politicians base (local cache + Supabase when configured); None: not used.
+    politicians: PoliticianDirectory | None
 
     def model_for(self, step: LlmStep) -> str: ...
 
@@ -191,6 +194,19 @@ class LiveDeps:
         return self._sources[1]
 
     @cached_property
+    def politicians(self) -> PoliticianDirectory | None:
+        cache = LocalPoliticianCache(self.settings.data_dir / "cache" / "politicians.json")
+        database = None
+        if self.settings.supabase_db_url is not None:
+            import psycopg
+
+            from pipeline.knowledge.politicians_repo import PostgresPoliticianDirectory
+
+            url = self.settings.supabase_db_url.get_secret_value()
+            database = PostgresPoliticianDirectory(lambda: psycopg.connect(url, connect_timeout=10))
+        return CombinedDirectory(cache, database)
+
+    @cached_property
     def speaker_search(self) -> SpeakerSearch | None:
         if self.tavily is None:
             return None
@@ -298,7 +314,7 @@ def build_steps(
     def speaker_research_step(store: JobStore) -> StepOutcome:
         speakers = store.read("speakers.json", SpeakerMap)
         search = deps.speaker_search
-        if search is None:
+        if search is None and deps.politicians is None:
             store.write(SPEAKERS_FILE, speakers, SpeakerMap)
             return StepOutcome()
 
@@ -310,6 +326,7 @@ def build_steps(
                 llm=deps.llm,
                 model=deps.model_for("detection"),
                 governments=default_governments(),
+                directory=deps.politicians,
             )
             store.write(SPEAKERS_FILE, researched, SpeakerMap)
             return len(researched.errors) == len(speakers.errors)

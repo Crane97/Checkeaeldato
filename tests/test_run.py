@@ -103,6 +103,7 @@ class FakeDeps:
         self.evidence_sources = [self.source]
         self.disabled_sources = ["factcheck"]
         self.speaker_search = None
+        self.politicians = None
         self.searches = SearchStats()
         self.search_entries: list[CostEntry] = []
         self.verdict_thinking = None

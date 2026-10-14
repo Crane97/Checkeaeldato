@@ -14,9 +14,9 @@ from typing import Literal
 
 import psycopg
 
-Kind = Literal["observacion", "gobierno", "partido", "hecho"]
+Kind = Literal["observacion", "gobierno", "partido", "hecho", "politico"]
 Outcome = Literal["aprobado", "rechazado"]
-KINDS: tuple[Kind, ...] = ("observacion", "gobierno", "partido", "hecho")
+KINDS: tuple[Kind, ...] = ("observacion", "gobierno", "partido", "hecho", "politico")
 
 
 class ReviewError(Exception):
@@ -152,6 +152,39 @@ def _facts(conn: psycopg.Connection) -> list[ReviewItem]:
     ]
 
 
+def _dates(inicio, fin, seen) -> str:
+    if inicio is None:
+        return f"constatado el {seen:%Y-%m-%d}"
+    return f"{inicio:%Y-%m-%d} – {fin:%Y-%m-%d}" if fin else f"desde {inicio:%Y-%m-%d}"
+
+
+def _politicians(conn: psycopg.Connection) -> list[ReviewItem]:
+    from pipeline.knowledge.politicians_repo import read_politicians
+
+    items = []
+    people = read_politicians(conn, frozenset({"pendiente", "automatico"}))
+    for p in sorted(people, key=lambda p: (p.estado != "automatico", p.nombre)):
+        origin = "investigación automática (en uso)" if p.estado == "automatico" else "curado"
+        lines = [f"Origen: {origin} · alias: {', '.join(p.alias) or '—'}"]
+        if p.fecha_nacimiento and p.fecha_nacimiento_source:
+            s = p.fecha_nacimiento_source
+            lines.append(
+                f"Nacimiento: {p.fecha_nacimiento:%Y-%m-%d} ({s.organismo}, {s.tipo}: {s.url})"
+            )
+        for m in p.parties:
+            dates = _dates(m.inicio, m.fin, m.constatado_en)
+            lines.append(f"Partido: {m.partido} ({dates}) · {m.source.organismo}, {m.source.tipo}")
+            lines.append(f"   {m.source.url}")
+        for r in p.roles:
+            where = f", {r.organo}" if r.organo else ""
+            caretaker = " [en funciones]" if r.en_funciones else ""
+            dates = _dates(r.inicio, r.fin, r.constatado_en)
+            lines.append(f"Cargo: {r.cargo}{where}{caretaker} ({dates}) · {r.source.organismo}")
+            lines.append(f"   {r.source.url}")
+        items.append(ReviewItem("politico", p.id, p.nombre, f"politico:{p.estado}", lines))
+    return items
+
+
 def pending_items(
     conn: psycopg.Connection,
     kinds: Collection[Kind] = KINDS,
@@ -168,10 +201,17 @@ def pending_items(
             items += _parties(conn)
         if "hecho" in kinds:
             items += _facts(conn)
+        if "politico" in kinds:
+            items += _politicians(conn)
     return items
 
 
-_TABLES = {"gobierno": "ref.governments", "partido": "ref.parties", "hecho": "ref.facts"}
+_TABLES = {
+    "gobierno": "ref.governments",
+    "partido": "ref.parties",
+    "hecho": "ref.facts",
+    "politico": "ref.politicians",
+}
 
 
 def decide(
@@ -196,7 +236,7 @@ def decide(
         id_value: object = int(item_id) if kind == "hecho" and item_id.isdigit() else item_id
         cur = conn.execute(
             f"update {_TABLES[kind]} set estado = %s, revisado_por = %s, revisado_en = now()"
-            " where id = %s and estado = 'pendiente'",
+            " where id = %s and estado in ('pendiente', 'automatico')",
             (outcome, reviewer, id_value),
         )
     else:

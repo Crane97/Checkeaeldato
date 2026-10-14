@@ -128,7 +128,7 @@ class Transcript(BaseModel):
 # --- Speakers ---------------------------------------------------------------
 
 # "oficial"/"web": found by the speaker research step (see `references`).
-SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos", "oficial", "web"]
+SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos", "base_politicos", "oficial", "web"]
 
 
 class SpeakerInfo(BaseModel):

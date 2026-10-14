@@ -17,7 +17,16 @@ from pydantic import BaseModel
 
 from pipeline.governments import Governments
 from pipeline.llm import LLMConfigError, LLMError
-from pipeline.models import EvidenceItem, Speaker, SpeakerMap, SpeakerSource
+from pipeline.models import EvidenceItem, Source, Speaker, SpeakerMap, SpeakerSource
+from pipeline.politicians import (
+    Membership,
+    Politician,
+    PoliticianDirectory,
+    PoliticianSource,
+    Role,
+    match,
+    slug,
+)
 from pipeline.speakers import MIN_CONFIDENCE, StructuredLLM, _fold
 
 logger = logging.getLogger(__name__)
@@ -145,20 +154,99 @@ def _ask(
     )
 
 
+def _source(s: PoliticianSource) -> Source:
+    kind = "oficial" if s.tipo == "primaria" else "web"
+    return Source(url=s.url, title=s.titulo, organization=s.organismo, date=s.fecha, kind=kind)
+
+
+def _role_text(roles: list[Role]) -> str | None:
+    if not roles:
+        return None
+    texts = [r.cargo + (" (en funciones)" if r.en_funciones else "") for r in roles]
+    return "; ".join(dict.fromkeys(texts))
+
+
+def _from_directory(
+    speaker: Speaker, known: Politician, speech_date: dt.date, governments: Governments
+) -> Speaker:
+    """Fill what the base knows on the speech date; what the text said is kept."""
+    membership = known.party_on(speech_date)
+    roles = known.roles_on(speech_date)
+    if membership is None and not roles:
+        return speaker
+    used = [m.source for m in ([membership] if membership else [])] + [r.source for r in roles]
+    party = speaker.party
+    if party is None and membership is not None:
+        party = governments.canonical_party(membership.partido) or membership.partido
+    facts = "; ".join(
+        x for x in (membership.partido if membership else None, _role_text(roles)) if x
+    )
+    return speaker.model_copy(
+        update={
+            "name": known.nombre,
+            "party": party,
+            "role": speaker.role or _role_text(roles),
+            "confidence": max(speaker.confidence, 0.9 if known.estado == "aprobado" else 0.8),
+            "evidence": [*speaker.evidence, f"Base de políticos ({known.estado}): {facts}"],
+            "sources": [*speaker.sources, "base_politicos"],
+            "references": [
+                *speaker.references,
+                *(_source(s) for s in {s.url: s for s in used}.values()),
+            ],
+        }
+    )
+
+
+def _as_politician(speaker: Speaker, alias: str, speech_date: dt.date) -> Politician | None:
+    """An automatic entry from a research result (party and role seen on the speech date)."""
+    if not speaker.name or not speaker.party or not speaker.references:
+        return None
+    ref = speaker.references[0]
+    source = PoliticianSource(
+        organismo=ref.organization,
+        titulo=ref.title,
+        url=ref.url,
+        fecha=ref.date,
+        tipo="primaria" if ref.kind == "oficial" else "secundaria",
+    )
+    return Politician(
+        id=slug(speaker.name),
+        nombre=speaker.name,
+        alias=[a for a in {alias} if a != speaker.name],
+        origen="investigacion",
+        estado="automatico",
+        parties=[Membership(partido=speaker.party, constatado_en=speech_date, source=source)],
+        roles=(
+            [Role(cargo=speaker.role, constatado_en=speech_date, source=source)]
+            if speaker.role
+            else []
+        ),
+    )
+
+
 def research_speakers(
     speakers: SpeakerMap,
     *,
     speech_date: dt.date,
-    search: SpeakerSearch,
+    search: SpeakerSearch | None,
     llm: StructuredLLM,
     model: str,
     governments: Governments,
+    directory: PoliticianDirectory | None = None,
 ) -> SpeakerMap:
-    """Fill in the party (and role, full name) of named speakers whose party is unknown."""
+    """Fill in the party (and role, full name) of named speakers whose party is unknown:
+    first from the politicians base (no searches), then by researching the web."""
     result: list[Speaker] = []
     errors = list(speakers.errors)
+    known_people = directory.usable() if directory is not None else []
     for speaker in speakers.speakers:
-        if speaker.party or not speaker.name or speaker.label == "autor":
+        if not speaker.name or speaker.label == "autor":
+            result.append(speaker)
+            continue
+        known = match(speaker.name, known_people)
+        if known is not None:
+            speaker = _from_directory(speaker, known, speech_date, governments)
+        if speaker.party or search is None:
             result.append(speaker)
             continue
         query = research_query(speaker.name, speech_date)
@@ -186,5 +274,10 @@ def research_speakers(
         except LLMError as exc:
             logger.warning("No se pudo investigar a %s: %s", speaker.name, exc)
             errors.append(f"{speaker.name}: {exc}")
+        if found is not None and directory is not None:
+            entry = _as_politician(found, speaker.name, speech_date)
+            if entry is not None:
+                directory.record(entry)
         result.append(found or speaker)
+    errors += [e for e in getattr(directory, "errors", []) if e not in errors]
     return SpeakerMap(speakers=result, errors=errors)

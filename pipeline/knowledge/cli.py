@@ -11,6 +11,7 @@ from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.impact import dependents, observation_summary, reprocess_commands
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 from pipeline.knowledge.observations_load import load_json_base
+from pipeline.knowledge.politicians_repo import load_politicians
 from pipeline.knowledge.review import KINDS, ReviewError, ReviewItem, decide, pending_items
 
 app = typer.Typer(no_args_is_help=True, help="Base de conocimiento oficial (Supabase Postgres).")
@@ -214,3 +215,31 @@ def impacto(observation_id: Annotated[int, typer.Argument(help="Id de ref.observ
     typer.echo("\nPara recalcularlos desde la evidencia (gasta búsquedas y modelo):")
     for command in reprocess_commands(d.job_id for d in found):
         typer.echo(f"  {command}")
+
+
+@app.command("cargar-politicos")
+def cargar_politicos(
+    actualizar: Annotated[
+        bool,
+        typer.Option(
+            "--actualizar", help="Sobrescribe lo que cambió en el JSON (vuelve a revisión)"
+        ),
+    ] = False,
+) -> None:
+    """Carga data/knowledge/politicians.json (entran pendientes de revisión), todo o nada."""
+    try:
+        with _connect() as conn:
+            report = load_politicians(conn, update=actualizar)
+            conn.commit()
+    except (ValueError, psycopg.Error) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"Nuevos: {len(report.new)} · sin cambios: {len(report.unchanged)} · "
+        f"cambiados en el JSON (no sobrescritos): {len(report.changed)} · "
+        f"actualizados y devueltos a revisión: {len(report.updated)}"
+    )
+    for pid in report.changed:
+        typer.secho(f"  Cambiado, usa --actualizar o revisa a mano: {pid}", fg=typer.colors.YELLOW)
+    for line in report.previous_reviews:
+        typer.echo(f"  Revisión anterior (vuelve a pendiente): {line}")
