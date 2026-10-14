@@ -10,12 +10,14 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
-from pipeline.audio import SAMPLE_RATE, AudioError, probe_duration
+from pipeline.audio import SAMPLE_RATE, AudioError
 
 logger = logging.getLogger(__name__)
 
 BLOCK_PATTERN = "block_%05d.flac"
-BLOCK_GLOB = "block_*.flac"
+# ffmpeg appends "file,start,end" here when it closes each segment: that is how a block is
+# known to be complete and how long it is (the FLAC header of a segment carries no length).
+LIST_FILE = "blocks.csv"
 DEFAULT_BLOCK_SECONDS = 60
 MIN_BLOCK_SECONDS, MAX_BLOCK_SECONDS = 20, 600
 
@@ -73,6 +75,10 @@ def block_command(source: str, out_dir: Path, block_seconds: int, *, realtime: b
         str(block_seconds),
         "-reset_timestamps",
         "1",
+        "-segment_list",
+        str(out_dir / LIST_FILE),
+        "-segment_list_type",
+        "csv",
         str(out_dir / BLOCK_PATTERN),
     ]
 
@@ -81,9 +87,25 @@ def is_local_file(source: str) -> bool:
     return "://" not in source and Path(source).is_file()
 
 
+def parse_segment_list(text: str) -> list[tuple[str, float, float]]:
+    """(file, start, end) per complete line of ffmpeg's CSV segment list.
+
+    A line still being written (no newline yet, or unparsable) is left for the next read."""
+    entries = []
+    for line in text.split("\n")[:-1]:
+        parts = line.strip().split(",")
+        if len(parts) != 3:
+            continue
+        try:
+            entries.append((parts[0], float(parts[1]), float(parts[2])))
+        except ValueError:
+            continue
+    return entries
+
+
 class FfmpegBlockSource:
-    """Runs ffmpeg in the background and yields each block once ffmpeg has moved on to the
-    next one (or has finished), so a block is never read half-written."""
+    """Runs ffmpeg in the background and yields each block once ffmpeg has closed it
+    (listed in blocks.csv), so a block is never read half-written."""
 
     def __init__(
         self,
@@ -94,7 +116,6 @@ class FfmpegBlockSource:
         realtime: bool | None = None,
         poll_seconds: float = 1.0,
         popen: Callable[..., Any] = subprocess.Popen,
-        probe: Callable[[Path], float] = probe_duration,
         sleep: Callable[[float], None] = time.sleep,
         which: Callable[[str], str | None] = shutil.which,
     ) -> None:
@@ -104,11 +125,16 @@ class FfmpegBlockSource:
         self.realtime = is_local_file(source) if realtime is None else realtime
         self._poll_seconds = poll_seconds
         self._popen = popen
-        self._probe = probe
         self._sleep = sleep
         self._which = which
         self._process: Any = None
         self._stopped = False
+
+    def _listed(self) -> list[tuple[str, float, float]]:
+        path = self.out_dir / LIST_FILE
+        if not path.exists():
+            return []
+        return parse_segment_list(path.read_text(encoding="utf-8"))
 
     def blocks(self) -> Iterator[AudioBlock]:
         if self._which("ffmpeg") is None:
@@ -117,26 +143,23 @@ class FfmpegBlockSource:
                 "(brew install ffmpeg / winget install Gyan.FFmpeg)"
             )
         self.out_dir.mkdir(parents=True, exist_ok=True)
+        (self.out_dir / LIST_FILE).unlink(missing_ok=True)
         cmd = block_command(self.source, self.out_dir, self.block_seconds, realtime=self.realtime)
         logger.info("Leyendo %s en bloques de %d s", self.source, self.block_seconds)
         self._process = self._popen(
             cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
         )
         next_index = 0
-        elapsed = 0.0
         while True:
             finished = self._process.poll() is not None
-            files = sorted(self.out_dir.glob(BLOCK_GLOB))
-            # The last file is still being written unless ffmpeg has finished.
-            ready = files if finished else files[:-1]
-            for path in ready[next_index:]:
-                duration = self._probe(path)
-                block = AudioBlock(
-                    index=next_index, path=str(path), start=elapsed, duration=duration
+            for name, start, end in self._listed()[next_index:]:
+                yield AudioBlock(
+                    index=next_index,
+                    path=str(self.out_dir / Path(name).name),
+                    start=start,
+                    duration=max(end - start, 0.0),
                 )
-                elapsed += duration
                 next_index += 1
-                yield block
             if finished:
                 break
             self._sleep(self._poll_seconds)

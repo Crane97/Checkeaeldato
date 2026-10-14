@@ -5,26 +5,37 @@ import pytest
 from pipeline.audio import AudioError
 from pipeline.live.source import (
     BLOCK_PATTERN,
+    LIST_FILE,
     AudioBlock,
     FfmpegBlockSource,
     block_command,
     is_local_file,
+    parse_segment_list,
 )
 
 
 class FakeProcess:
-    """ffmpeg stand-in: each poll() writes the next block file; exits when they run out."""
+    """ffmpeg stand-in: each poll() closes one more block (file + CSV line); exits when
+    the planned durations run out."""
 
-    def __init__(self, out_dir: Path, files: int, returncode: int = 0, stderr: bytes = b""):
-        self.out_dir, self.files, self.returncode_at_end = out_dir, files, returncode
+    def __init__(
+        self, out_dir: Path, durations: list[float], returncode: int = 0, stderr: bytes = b""
+    ):
+        self.out_dir, self.durations, self.returncode_at_end = out_dir, durations, returncode
         self.written = 0
+        self.elapsed = 0.0
         self.returncode: int | None = None
         self.terminated = False
         self.stderr = _Stream(stderr)
 
     def poll(self) -> int | None:
-        if self.written < self.files:
-            (self.out_dir / (BLOCK_PATTERN % self.written)).write_bytes(b"fLaC")
+        if self.written < len(self.durations):
+            name = BLOCK_PATTERN % self.written
+            (self.out_dir / name).write_bytes(b"fLaC")
+            end = self.elapsed + self.durations[self.written]
+            with (self.out_dir / LIST_FILE).open("a", encoding="utf-8") as f:
+                f.write(f"{name},{self.elapsed:.6f},{end:.6f}\n")
+            self.elapsed = end
             self.written += 1
             return None
         self.returncode = self.returncode_at_end
@@ -44,7 +55,6 @@ class _Stream:
 
 
 def source(tmp_path: Path, process: FakeProcess, **kwargs) -> FfmpegBlockSource:
-    kwargs.setdefault("probe", lambda path: 60.0)
     return FfmpegBlockSource(
         "https://emisora.example/directo.m3u8",
         tmp_path / "blocks",
@@ -55,11 +65,13 @@ def source(tmp_path: Path, process: FakeProcess, **kwargs) -> FfmpegBlockSource:
     )
 
 
-def test_command_cuts_mono_16khz_flac_blocks(tmp_path):
+def test_command_cuts_mono_16khz_flac_blocks_with_a_segment_list(tmp_path):
     cmd = block_command("https://x/y.m3u8", tmp_path, 90, realtime=False)
     assert cmd[0] == "ffmpeg" and "-re" not in cmd
     assert cmd[cmd.index("-segment_time") + 1] == "90"
     assert cmd[cmd.index("-ar") + 1] == "16000" and cmd[cmd.index("-ac") + 1] == "1"
+    assert cmd[cmd.index("-segment_list") + 1].endswith(LIST_FILE)
+    assert cmd[cmd.index("-segment_list_type") + 1] == "csv"
     assert cmd[-1].endswith("block_%05d.flac")
 
 
@@ -81,11 +93,20 @@ def test_local_files_are_detected(tmp_path):
     assert not is_local_file(str(tmp_path / "no-existe.mp4"))
 
 
-def test_blocks_are_yielded_once_the_next_file_exists(tmp_path):
-    process = FakeProcess(tmp_path / "blocks", files=3)
+def test_segment_list_ignores_the_line_still_being_written():
+    text = "block_00000.flac,0.000000,60.017187\nblock_00001.flac,60.017187,12"
+    assert parse_segment_list(text) == [("block_00000.flac", 0.0, 60.017187)]
+    assert parse_segment_list(text + "0.5\n") == [
+        ("block_00000.flac", 0.0, 60.017187),
+        ("block_00001.flac", 60.017187, 120.5),
+    ]
+    assert parse_segment_list("basura\n,,\n") == []
+
+
+def test_blocks_are_yielded_as_ffmpeg_closes_them(tmp_path):
     (tmp_path / "blocks").mkdir()
-    durations = iter([60.0, 60.0, 12.5])
-    src = source(tmp_path, process, probe=lambda path: next(durations))
+    process = FakeProcess(tmp_path / "blocks", durations=[60.0, 60.0, 12.5])
+    src = source(tmp_path, process)
 
     blocks = list(src.blocks())
 
@@ -96,18 +117,26 @@ def test_blocks_are_yielded_once_the_next_file_exists(tmp_path):
     ]
     assert blocks[2].end == 132.5
     assert all(Path(b.path).exists() for b in blocks)
+    assert Path(blocks[0].path).parent == tmp_path / "blocks"
+
+
+def test_a_previous_run_list_is_discarded(tmp_path):
+    (tmp_path / "blocks").mkdir()
+    (tmp_path / "blocks" / LIST_FILE).write_text("block_00000.flac,0,60\n", encoding="utf-8")
+    process = FakeProcess(tmp_path / "blocks", durations=[30.0])
+    assert [b.duration for b in source(tmp_path, process).blocks()] == [30.0]
 
 
 def test_an_ffmpeg_failure_raises_with_its_last_lines(tmp_path):
     (tmp_path / "blocks").mkdir()
-    process = FakeProcess(tmp_path / "blocks", files=0, returncode=1, stderr=b"x\nInvalid data")
+    process = FakeProcess(tmp_path / "blocks", [], returncode=1, stderr=b"x\nInvalid data")
     with pytest.raises(AudioError, match="Invalid data"):
         list(source(tmp_path, process).blocks())
 
 
 def test_blocks_before_a_failure_are_still_yielded(tmp_path):
     (tmp_path / "blocks").mkdir()
-    process = FakeProcess(tmp_path / "blocks", files=2, returncode=1, stderr=b"corte")
+    process = FakeProcess(tmp_path / "blocks", [60.0, 60.0], returncode=1, stderr=b"corte")
     gen = source(tmp_path, process).blocks()
     assert next(gen).index == 0
     assert next(gen).index == 1
@@ -117,7 +146,7 @@ def test_blocks_before_a_failure_are_still_yielded(tmp_path):
 
 def test_stop_terminates_ffmpeg_without_raising(tmp_path):
     (tmp_path / "blocks").mkdir()
-    process = FakeProcess(tmp_path / "blocks", files=5)
+    process = FakeProcess(tmp_path / "blocks", [60.0] * 5)
     src = source(tmp_path, process)
     gen = src.blocks()
     assert next(gen).index == 0
