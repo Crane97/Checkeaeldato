@@ -108,3 +108,9 @@ def test_duplicated_ids_in_the_json_are_rejected(db, tmp_path):  # noqa: F811
     with pytest.raises(ValueError, match="duplicados"):
         load_politicians(db, _json(tmp_path, ANA, ANA))
     assert isinstance(db, psycopg.Connection)
+
+
+def test_entries_dropped_from_the_json_are_reported(db, tmp_path):  # noqa: F811
+    load_politicians(db, _json(tmp_path, ANA))
+    other = ANA.model_copy(update={"id": "ana-gil-perez", "nombre": "Ana Gil Pérez"})
+    assert load_politicians(db, _json(tmp_path, other)).missing == ["ana-gil-ruiz"]

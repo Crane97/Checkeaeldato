@@ -202,6 +202,8 @@ class LoadReport:
     updated: list[str] = field(default_factory=list)
     # For each updated entry, the review it had before going back to pending (audit trail).
     previous_reviews: list[str] = field(default_factory=list)
+    # Curated entries in the database that the JSON no longer has (reject them in review).
+    missing: list[str] = field(default_factory=list)
 
 
 def load_curated(path: Path = DEFAULT_PATH) -> list[Politician]:
@@ -234,7 +236,14 @@ def load_politicians(
             conn, frozenset({"pendiente", "automatico", "aprobado", "rechazado"})
         )
     }
-    for p in load_curated(path):
+    curated = load_curated(path)
+    in_json = {p.id for p in curated}
+    report.missing = sorted(
+        pid
+        for pid, p in stored.items()
+        if p.origen == "curado" and pid not in in_json and p.estado != "rechazado"
+    )
+    for p in curated:
         current = stored.get(p.id)
         if current is None:
             _insert(conn, p)

@@ -14,7 +14,7 @@ Todo sale como `curado` + `pendiente`: nada se usa hasta que una persona lo revi
 
 import datetime as dt
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,8 +22,22 @@ import yaml
 from pydantic import BaseModel, Field
 
 from pipeline.governments import Governments
-from pipeline.knowledge.collect_sources import BoeHit, WdFacts, dismissal
-from pipeline.politicians import Membership, Politician, PoliticianSource, Role, fold, slug
+from pipeline.knowledge.collect_sources import (
+    CONGRESO_JUNTA_URL,
+    BoeHit,
+    CongresoSeat,
+    WdFacts,
+    dismissal,
+)
+from pipeline.politicians import (
+    Membership,
+    Politician,
+    PoliticianSource,
+    Role,
+    fold,
+    name_words,
+    slug,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +134,16 @@ def _boe_source(hit: BoeHit) -> PoliticianSource:
     )
 
 
+def is_national_government(cargo: str) -> bool:
+    """Ministers, vice-presidents and the president of the Government of Spain (not
+    "Presidente del Gobierno de Canarias" or "del Gobierno Vasco")."""
+    folded = fold(" ".join(cargo.split()))
+    return folded.startswith("ministr") or folded.endswith("del gobierno")
+
+
 def _organ(cargo: str) -> tuple[str | None, str]:
     folded = fold(cargo)
-    if folded.startswith("ministr") or "del gobierno" in folded and "vasco" not in folded:
+    if is_national_government(cargo):
         return "Gobierno de España", "ES"
     for key, code in _REGIONS.items():
         if key in folded:
@@ -187,9 +208,12 @@ def roles_from_boe(
     dismissals: list[BoeHit],
     successors: Callable[[str, dt.date], list[BoeHit]],
     governments: Governments,
+    cabinet_changes: Sequence[dt.date] = (),
 ) -> list[Role]:
-    """Official offices of a person: start at the appointment decree, end at the dismissal
-    or the next appointment to the same office (that day minus one)."""
+    """Official offices of a person: start at the appointment decree; end at the dismissal
+    (its date) or, without one, the day before the next appointment to the same office.
+    A minister or vice-president also ends at the next collective cabinet decree
+    (`cabinet_changes`): a new cabinet replaces every member, reappointed ones included."""
     me = fold(nombre)
     roles = []
     for hit in sorted(appointments, key=lambda h: h.published):
@@ -197,29 +221,104 @@ def roles_from_boe(
         if a is None or fold(a[1]) != me:
             continue
         cargo, start = a[0], hit.decree_date()
-        ends = [
+        same = _norm(cargo)
+        dismissed = [
             d.decree_date()
             for d in dismissals
-            if (x := dismissal(d)) and fold(x[1]) == me and fold(x[0]) == fold(cargo)
+            if (x := dismissal(d)) and fold(x[1]) == me and _norm(x[0]) == same
             and d.decree_date() >= start
         ]  # fmt: skip
-        ends += [
-            s.decree_date() - dt.timedelta(days=1)
+        replaced = [
+            s.decree_date()
             for s in successors(cargo, start)
             if s.ident != hit.ident and s.decree_date() > start
-            and (x := s.appointment()) and fold(x[0]) == fold(cargo)
+            and (x := s.appointment()) and _norm(x[0]) == same
         ]  # fmt: skip
+        president = same in ("presidente del gobierno", "presidenta del gobierno")
+        if is_national_government(cargo) and not president:
+            replaced += [c for c in cabinet_changes if c > start]
+        d, s = min(dismissed, default=None), min(replaced, default=None)
+        if d is not None and (s is None or d <= s):
+            end: dt.date | None = d
+        else:
+            end = s - dt.timedelta(days=1) if s is not None else None
         organo, territorio = _organ(cargo)
         role = Role(
             cargo=cargo,
             organo=organo,
             territorio=territorio,
             inicio=start,
-            fin=min(ends) if ends else None,
+            fin=end,
             source=_boe_source(hit),
         )
         roles += _split_caretaker(role, governments)
     return roles
+
+
+def _norm(cargo: str) -> str:
+    return fold(" ".join(cargo.split()))
+
+
+# Congreso group acronyms (Junta de Portavoces) → group names.
+_GROUPS = {
+    "GS": "Grupo Parlamentario Socialista",
+    "GP": "Grupo Parlamentario Popular en el Congreso",
+    "GVOX": "Grupo Parlamentario VOX",
+    "GSUMAR": "Grupo Parlamentario Plurinacional SUMAR",
+    "GR": "Grupo Parlamentario Republicano",
+    "GJXCAT": "Grupo Parlamentario Junts per Catalunya",
+    "GEH BILDU": "Grupo Parlamentario Euskal Herria Bildu",
+    "GV (EAJ-PNV)": "Grupo Parlamentario Vasco (EAJ-PNV)",
+    "GMX": "Grupo Parlamentario Mixto",
+}
+
+
+def same_person(congreso_name: str, seed: "SeedPerson") -> bool:
+    """ "López Álvarez, Patxi" is "Francisco Javier López Álvarez" (alias "Patxi López"):
+    every surname in the official name and the given name in the name or an alias."""
+    surnames, _, given = congreso_name.partition(",")
+    official = set(name_words(seed.nombre))
+    known = official | {w for a in seed.alias for w in name_words(a)}
+    return all(w in official for w in name_words(surnames)) and any(
+        w in known for w in name_words(given)
+    )
+
+
+def roles_from_congreso(seed: "SeedPerson", rows: list[CongresoSeat]) -> list[Role]:
+    """Spokesperson terms of the Junta de Portavoces (official start and end dates)."""
+    roles = []
+    for r in rows:
+        if r.cargo != "Portavoces titulares" or not same_person(r.nombre, seed):
+            continue
+        group = _GROUPS.get(r.siglas.upper(), r.siglas)
+        roles.append(
+            Role(
+                cargo=f"Portavoz del {group}",
+                organo="Congreso de los Diputados",
+                inicio=r.alta,
+                fin=r.baja,
+                source=PoliticianSource(
+                    organismo="Congreso de los Diputados",
+                    titulo=f"Junta de Portavoces, {r.legislatura} Legislatura",
+                    url=CONGRESO_JUNTA_URL,
+                    tipo="primaria",
+                ),
+            )
+        )
+    return roles
+
+
+# Dissolutions of the Cortes: every deputy's and senator's term ends that day.
+DISSOLUTIONS = (dt.date(2026, 10, 6),)  # Real Decreto 806/2026 (BOE-A-2026-20742)
+
+
+def _close_at_dissolution(role: Role) -> Role:
+    folded = _norm(role.cargo)
+    member = "diputad" in folded and ("congreso" in folded or "espana" in folded)
+    if role.fin is not None or role.inicio is None or not (member or "senador" in folded):
+        return role
+    end = min((d for d in DISSOLUTIONS if d >= role.inicio), default=None)
+    return role.model_copy(update={"fin": end}) if end else role
 
 
 def _wd_source(facts: WdFacts) -> PoliticianSource:
@@ -290,11 +389,12 @@ def build_politician(
     boe_roles: list[Role],
     current_checks: dict[str, BoeHit | None],
     facts: WdFacts | None,
+    congreso: list[CongresoSeat] = (),  # type: ignore[assignment]
 ) -> Collected:
     """Assemble one curated entry; `current_checks` maps each BOE office of the seed to its
     latest appointment (whoever it names)."""
     warnings: list[str] = []
-    roles = list(boe_roles)
+    roles = list(boe_roles) + roles_from_congreso(seed, list(congreso))
     parties: list[Membership] = []
     birth = birth_source = None
     if facts is not None:
@@ -315,7 +415,7 @@ def build_politician(
                 warnings.append(f"no se encontró en el BOE el nombramiento «{office.cargo}»")
             elif fold(appointed[1]) != fold(seed.nombre):
                 warnings.append(f"el último nombramiento «{office.cargo}» es de {appointed[1]}")
-            elif not any(r.cargo == office.cargo and r.fin is None for r in roles):
+            elif not any(_norm(r.cargo) == _norm(office.cargo) and r.fin is None for r in roles):
                 warnings.append(f"«{office.cargo}» no figura como vigente en el BOE")
         elif office.fuente is not None:
             s = office.fuente
@@ -334,12 +434,17 @@ def build_politician(
             warnings.append(f"«{office.cargo}» sin fuente")
     if not parties:
         warnings.append("sin partido con fecha")
+    roles = [_close_at_dissolution(r) for r in roles]
     stale = today - _STALE_OPEN_TERM
+    confirmed = {_norm(o.cargo) for o in seed.cargos_actuales}
     kept = []
     for r in roles:
-        if r.source.tipo == "secundaria" and r.fin is None and r.inicio and r.inicio < stale:
+        old_open = r.fin is None and r.inicio is not None and r.inicio < stale
+        if old_open and _norm(r.cargo) not in confirmed:
             # The analysis would take it as current: left out, and listed for the reviewer.
-            warnings.append(f"Wikidata: descartado «{r.cargo}», abierto desde {r.inicio}")
+            warnings.append(
+                f"{r.source.organismo}: descartado «{r.cargo}», abierto desde {r.inicio}"
+            )
         else:
             kept.append(r)
     roles = kept

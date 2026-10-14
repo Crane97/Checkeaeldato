@@ -241,5 +241,9 @@ def cargar_politicos(
     )
     for pid in report.changed:
         typer.secho(f"  Cambiado, usa --actualizar o revisa a mano: {pid}", fg=typer.colors.YELLOW)
+    for pid in report.missing:
+        typer.secho(
+            f"  Ya no está en el JSON (recházalo en `revisar`): {pid}", fg=typer.colors.YELLOW
+        )
     for line in report.previous_reviews:
         typer.echo(f"  Revisión anterior (vuelve a pendiente): {line}")

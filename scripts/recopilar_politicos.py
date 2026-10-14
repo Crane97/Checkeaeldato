@@ -27,9 +27,12 @@ from pipeline.governments import default_governments  # noqa: E402
 from pipeline.knowledge.collect_sources import (  # noqa: E402
     WIKIDATA_API,
     BoeHit,
+    CongresoSeat,
     _get,
     boe_search,
+    congreso_junta,
     document_body,
+    implied_dismissals,
     latest_appointment,
     parse_collective,
     wd_entities,
@@ -39,6 +42,7 @@ from pipeline.knowledge.politicians_collect import (  # noqa: E402
     SEED_PATH,
     SeedPerson,
     build_politician,
+    is_national_government,
     load_seed,
     roles_from_boe,
 )
@@ -56,14 +60,14 @@ class Boe:
     def __init__(self, client: httpx.Client) -> None:
         self.client = client
 
-    def search(self, terms: str) -> list[BoeHit]:
-        key = hashlib.sha256(terms.encode()).hexdigest()[:24]
+    def search(self, terms: str, until: dt.date | None = None) -> list[BoeHit]:
+        key = hashlib.sha256(f"{terms}|{until}".encode()).hexdigest()[:24]
         path = CACHE / "boe" / f"{key}.json"
         if path.is_file():
             rows = json.loads(path.read_text("utf-8"))
             return [BoeHit(r[0], dt.date.fromisoformat(r[1]), r[2]) for r in rows]
         time.sleep(PAUSE_SECONDS)
-        hits = boe_search(self.client, terms)
+        hits = boe_search(self.client, terms, until=until)
         path.parent.mkdir(parents=True, exist_ok=True)
         rows = [[h.ident, h.published.isoformat(), h.title] for h in hits]
         path.write_text(json.dumps(rows, ensure_ascii=False), "utf-8")
@@ -75,23 +79,62 @@ COLLECTIVE_SEARCHES = (
     "nombran Vicepresidentes del Gobierno",
     "nombran Vicepresidentas del Gobierno",
 )
-FIRST_YEAR = 2004  # the governments table starts here
+FIRST_YEAR = 1977  # first cabinet of the democracy
 
 
-def collective_index(client: httpx.Client, boe: Boe) -> list[BoeHit]:
-    """Appointments made in collective decrees (whole cabinets), one per person."""
+def body(client: httpx.Client, ident: str) -> str:
+    path = CACHE / "boe_textos" / f"{ident}.html"
+    if not path.is_file():
+        time.sleep(PAUSE_SECONDS)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(document_body(client, ident), "utf-8")
+    return path.read_text("utf-8")
+
+
+def collective_index(client: httpx.Client, boe: Boe) -> tuple[list[BoeHit], list[dt.date]]:
+    """Appointments made in collective decrees (whole cabinets), one per person, and the
+    dates of those decrees (each one replaces the whole cabinet)."""
     out: list[BoeHit] = []
+    dates: set[dt.date] = set()
     for terms in COLLECTIVE_SEARCHES:
         for hit in boe.search(terms):
             if hit.published.year < FIRST_YEAR or hit.title.startswith("Corrección"):
                 continue
-            path = CACHE / "boe_textos" / f"{hit.ident}.html"
-            if not path.is_file():
-                time.sleep(PAUSE_SECONDS)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(document_body(client, hit.ident), "utf-8")
-            out += parse_collective(hit, path.read_text("utf-8"))
-    return out
+            appointed = parse_collective(hit, body(client, hit.ident))
+            out += appointed
+            if appointed and "Ministros" in hit.title:
+                dates.add(hit.decree_date())
+    return out, sorted(dates)
+
+
+def congreso_rows(client: httpx.Client) -> list:
+    path = CACHE / "congreso" / "junta_portavoces_XV.json"
+    if path.is_file():
+        data = json.loads(path.read_text("utf-8"))
+        return [
+            CongresoSeat(
+                **r
+                | {
+                    "alta": dt.date.fromisoformat(r["alta"]),
+                    "baja": dt.date.fromisoformat(r["baja"]) if r["baja"] else None,
+                }
+            )
+            for r in data
+        ]
+    rows = congreso_junta(client, "XV")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            [
+                r.__dict__
+                | {"alta": r.alta.isoformat(), "baja": r.baja.isoformat() if r.baja else None}
+                for r in rows
+            ],
+            ensure_ascii=False,
+        ),
+        "utf-8",
+    )
+    return rows
 
 
 BROWSER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0"
@@ -166,7 +209,8 @@ def main(
     out, report = [], []
     with httpx.Client(timeout=60, follow_redirects=True) as client:
         boe = Boe(client)
-        collective = collective_index(client, boe)
+        collective, cabinet_changes = collective_index(client, boe)
+        junta = congreso_rows(client)
         qids = {}
         for person in seed:
             qid, warning = resolve_qid(client, person)
@@ -182,16 +226,27 @@ def main(
                 h for h in collective if (a := h.appointment()) and fold(a[1]) == mine
             ]
             dismissals = boe.search(f"cese {person.nombre}")
+            for h in boe.search(f"nombra {person.nombre}"):
+                a = h.appointment()
+                if a and fold(a[1]) == mine and is_national_government(a[0]):
+                    dismissals += implied_dismissals(h, body(client, h.ident), person.nombre)
 
-            def successors(cargo: str, start: dt.date) -> list[BoeHit]:
+            def successors(
+                cargo: str, start: dt.date, own: list[BoeHit] = appointments
+            ) -> list[BoeHit]:
                 same = fold(cargo)
-                return boe.search(f"nombra {cargo}") + [
-                    h for h in collective if (a := h.appointment()) and fold(a[0]) == same
-                ]
+                return (
+                    boe.search(f"nombra {cargo}", until=start)
+                    + own  # renewals of the same person
+                    + [h for h in collective if (a := h.appointment()) and fold(a[0]) == same]
+                )
 
-            roles = roles_from_boe(person.nombre, appointments, dismissals, successors, governments)
+            roles = roles_from_boe(
+                person.nombre, appointments, dismissals, successors, governments, cabinet_changes
+            )
             checks = {
-                o.cargo: latest_appointment(successors(o.cargo, dt.date.min), o.cargo)
+                # Only the latest appointment matters here: first page (until = date.max).
+                o.cargo: latest_appointment(successors(o.cargo, dt.date.max), o.cargo)
                 for o in person.cargos_actuales
                 if o.boe
             }
@@ -202,6 +257,7 @@ def main(
                 boe_roles=roles,
                 current_checks=checks,
                 facts=facts.get(q) if q else None,
+                congreso=junta,
             )
             for office in person.cargos_actuales:
                 if office.fuente is not None and (

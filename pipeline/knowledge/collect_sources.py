@@ -108,9 +108,17 @@ def parse_boe_results(page: str) -> list[BoeHit]:
     return hits
 
 
-def boe_search(client: httpx.Client, terms: str) -> list[BoeHit]:
-    """Up to 50 documents whose title has all `terms`, newest first. (No office has 50
-    appointments after a given one, so the next appointment is always in the list.)"""
+_NEXT_PAGE_RE = re.compile(
+    r'href="\.?/?boe\.php\?accion=Mas&(?:amp;)?id_busqueda=([^"]+?)-(\d+)-50"'
+)
+MAX_PAGES = 10
+
+
+def boe_search(client: httpx.Client, terms: str, until: dt.date | None = None) -> list[BoeHit]:
+    """Documents whose title has all `terms`, newest first: one page of 50, or, with
+    `until`, more pages until one reaches documents published before that date. (The
+    search matches words, so "nombra Presidente del Gobierno" also finds vice-presidents
+    and regional presidents: 50 results may not go back far enough.)"""
     params = [
         ("campo[1]", "TITULOS"),
         ("dato[1]", terms),
@@ -120,14 +128,26 @@ def boe_search(client: httpx.Client, terms: str) -> list[BoeHit]:
         ("sort_order[0]", "desc"),
         ("accion", "Buscar"),
     ]
-    return parse_boe_results(_get(client, BOE_SEARCH_URL, params).text)
+    page = _get(client, BOE_SEARCH_URL, params).text
+    hits = parse_boe_results(page)
+    offset = 0
+    while until is not None and hits and hits[-1].published >= until and offset < 50 * MAX_PAGES:
+        links = {int(off): ident for ident, off in _NEXT_PAGE_RE.findall(page)}
+        offset += 50
+        if offset not in links:
+            break
+        page = _get(
+            client, BOE_SEARCH_URL, {"accion": "Mas", "id_busqueda": f"{links[offset]}-{offset}-50"}
+        ).text
+        hits += parse_boe_results(page)
+    return hits
 
 
 _DISMISSAL_RE = re.compile(
     # Only "dispone el cese": "se declara el cese de … como Presidente del Gobierno" (and of
     # "los miembros del Gobierno") follows an election and opens the caretaker period.
     r"se dispone el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
-    r" como (?P<cargo>[^.]+?)(?:,| a petición|\.)"
+    r" como (?P<cargo>[^.]+?)(?:,? a petición propia|, por [^.]+)?\.$"
 )
 
 
@@ -282,3 +302,95 @@ def document_body(client: httpx.Client, ident: str) -> str:
     if m is None:
         raise CollectError(f"No se encontró el texto de {ident}")
     return m.group(1)
+
+
+# --- "conlleva el cese" -------------------------------------------------------
+
+_IMPLIED_RE = re.compile(
+    r"conlleva(?:rá)? el cese(?: de (?:don|doña) [^,]+?)? como (?P<cargo>[^.;]+?)(?:[.;]|, )"
+)
+
+
+def implied_dismissals(hit: BoeHit, body: str, nombre: str) -> list[BoeHit]:
+    """An appointment decree may say it "conlleva el cese … como Secretario de Estado de
+    …": one dismissal per office, dated as the appointment."""
+    prefix = _DECREE_PREFIX_RE.match(hit.title)
+    a = hit.appointment()
+    if prefix is None or a is None:
+        return []
+    text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", body)).split())
+    art = "doña" if " a doña " in hit.title else "don"
+    return [
+        BoeHit(
+            hit.ident,
+            hit.published,
+            f"{prefix.group(1)}, por el que se dispone el cese de {art} {nombre}"
+            f" como {m.group('cargo').strip()}.",
+        )
+        for m in _IMPLIED_RE.finditer(text)
+    ]
+
+
+# --- Congreso: Junta de Portavoces ---------------------------------------------
+
+CONGRESO_JUNTA_URL = "https://www.congreso.es/es/junta-de-portavoces"
+_JUNTA_SEARCH = (
+    CONGRESO_JUNTA_URL + "?p_p_id=organos&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view"
+    "&p_p_resource_id=searchOrgano&p_p_cacheability=cacheLevelPage"
+)
+BROWSER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/126.0"
+
+
+@dataclass(frozen=True)
+class CongresoSeat:
+    nombre: str  # "Apellidos, Nombre", as the Congreso writes it
+    cargo: str  # "Portavoces titulares", "Portavoces adjuntos", …
+    siglas: str
+    alta: dt.date
+    baja: dt.date | None
+    legislatura: str
+
+
+def _dmy(text: str | None) -> dt.date | None:
+    if not text:
+        return None
+    d, m, y = (int(x) for x in text.split("/"))
+    return dt.date(y, m, d)
+
+
+def parse_junta(data: dict, legislatura: str) -> list[CongresoSeat]:
+    return [
+        CongresoSeat(
+            nombre=x["apellidosNombre"],
+            cargo=x["descCargo"],
+            siglas=x["siglas"],
+            alta=_dmy(x["fechaAltaFormat"]),  # type: ignore[arg-type]
+            baja=_dmy(x.get("fechaBajaFormat")),
+            legislatura=legislatura,
+        )
+        for x in data["data"]
+        if x.get("fechaAltaFormat")
+    ]
+
+
+def congreso_junta(client: httpx.Client, legislatura: str = "XV") -> list[CongresoSeat]:
+    """Whole history of the Junta de Portavoces of a legislature (the Congreso blocks
+    generic clients, hence the browser agent)."""
+    response = request_with_retries(
+        client,
+        "POST",
+        _JUNTA_SEARCH,
+        data={
+            "_organos_selectedLegislatura": legislatura,
+            "_organos_compoHistorica": "true",
+            "_organos_selectedOrganoSup": "300",
+            "_organos_selectedSuborgano": "",
+        },
+        headers={"User-Agent": BROWSER_AGENT},
+        max_attempts=4,
+        backoff=5,
+        error_cls=CollectError,
+    )
+    if response.status_code != 200:
+        raise CollectError(f"HTTP {response.status_code} en la Junta de Portavoces")
+    return parse_junta(response.json(), legislatura)

@@ -403,12 +403,169 @@ def test_old_open_secondary_offices_are_left_out_and_listed_for_review():
     facts = WdFacts(
         qid="Q1",
         label="X",
-        positions=[WdStatement("Q5", "diputado de España", D(2019, 12, 3), None)],
+        positions=[WdStatement("Q5", "concejal de Lugo", D(2019, 12, 3), None)],
         parties=[WdStatement("Q10", "Partido Popular", D(2015, 1, 1), None)],
     )
     seed = SeedPerson(nombre="Ana Gil Ruiz", categoria="x")
     result = build_politician(seed, today=TODAY, boe_roles=[], current_checks={}, facts=facts)
     assert any(
-        "descartado «diputado de España», abierto desde 2019-12-03" in w for w in result.warnings
+        "Wikidata: descartado «concejal de Lugo», abierto desde 2019-12-03" in w
+        for w in result.warnings
     )
     assert result.politician.roles == []
+
+
+def test_regional_governments_are_not_the_national_government():
+    from pipeline.knowledge.politicians_collect import is_national_government
+
+    assert is_national_government("Vicepresidenta Primera del Gobierno")
+    assert is_national_government("Ministra de Hacienda")
+    assert not is_national_government("Presidente del Gobierno de Canarias")
+    assert not is_national_government("Presidente del Gobierno Vasco")
+
+
+def test_a_dismissal_on_the_successors_day_is_the_end_date():
+    a = _appoint(
+        "A", D(2023, 11, 21), D(2023, 11, 20), "Ministro de Inclusión", "José Sol", art="don"
+    )
+    b = _appoint("B", D(2024, 9, 6), D(2024, 9, 5), "Ministro de Inclusión", "Eva Luz")
+    cese = hit(
+        "C",
+        D(2024, 9, 6),
+        "Real Decreto 889/2024, de 5 de septiembre, por el que se dispone el cese de don José"
+        " Sol como Ministro de Inclusión.",
+    )
+    [role] = roles_from_boe("José Sol", [a], [cese], lambda c, s: [a, b], default_governments())
+    assert role.fin == D(2024, 9, 5)
+
+
+def test_a_new_cabinet_ends_every_minister_without_an_individual_decree():
+    edu = _appoint(
+        "E",
+        D(1999, 1, 19),
+        D(1999, 1, 18),
+        "Ministro de Educación y Cultura",
+        "Mariano Rajoy Brey",
+        art="don",
+    )
+    rows = roles_from_boe(
+        "Mariano Rajoy Brey",
+        [edu],
+        [],
+        lambda c, s: [edu],
+        default_governments(),
+        cabinet_changes=[D(2000, 4, 27)],
+    )
+    assert [(r.inicio, r.fin) for r in rows] == [(D(1999, 1, 18), D(2000, 4, 26))]
+
+
+def test_an_appointment_can_imply_a_dismissal():
+    from pipeline.knowledge.collect_sources import implied_dismissals
+
+    appointed = hit(
+        "BOE-A-2026-7048",
+        D(2026, 3, 27),
+        "Real Decreto 259/2026, de 26 de marzo, por el que se nombra Ministro de Hacienda a"
+        " don Arcadi España García.",
+    )
+    body = (
+        "<p>Vengo en nombrar Ministro de Hacienda a don Arcadi España García.</p><p>Este"
+        " nombramiento conlleva el cese de don Arcadi España García como Secretario de"
+        " Estado de Política Territorial.</p>"
+    )
+    [implied] = implied_dismissals(appointed, body, "Arcadi España García")
+    assert dismissal(implied) == (
+        "Secretario de Estado de Política Territorial",
+        "Arcadi España García",
+    )
+    assert implied.decree_date() == D(2026, 3, 26)
+
+
+def test_spokespeople_come_from_the_junta_de_portavoces():
+    from pipeline.knowledge.collect_sources import parse_junta
+    from pipeline.knowledge.politicians_collect import roles_from_congreso
+
+    def row(name, cargo, siglas, alta, baja):
+        return {
+            "apellidosNombre": name,
+            "descCargo": cargo,
+            "siglas": siglas,
+            "fechaAltaFormat": alta,
+            "fechaBajaFormat": baja,
+        }
+
+    data = {
+        "data": [
+            row("López Álvarez, Patxi", "Portavoces titulares", "GS", "14/09/2023", "06/10/2026"),
+            row("López Álvarez, Patxi", "Portavoces adjuntos", "GS", "01/01/2023", ""),
+            row("López Pérez, Ana", "Portavoces titulares", "GP", "14/09/2023", "06/10/2026"),
+        ]
+    }
+    seed = SeedPerson(nombre="Francisco Javier López Álvarez", categoria="x", alias=["Patxi López"])
+    [role] = roles_from_congreso(seed, parse_junta(data, "XV"))
+    assert role.cargo == "Portavoz del Grupo Parlamentario Socialista"
+    assert (role.inicio, role.fin, role.source.tipo) == (
+        D(2023, 9, 14),
+        D(2026, 10, 6),
+        "primaria",
+    )
+
+
+def test_deputies_terms_end_at_the_dissolution():
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[WdStatement("Q5", "diputado de España", D(2023, 8, 17), None)],
+        parties=[WdStatement("Q10", "Partido Popular", D(2015, 1, 1), None)],
+    )
+    seed = SeedPerson(nombre="Ana Gil Ruiz", categoria="x")
+    result = build_politician(seed, today=TODAY, boe_roles=[], current_checks={}, facts=facts)
+    [role] = result.politician.roles
+    assert role.fin == D(2026, 10, 6)
+
+
+def test_boe_search_follows_pages_until_the_requested_date():
+    import httpx
+
+    from pipeline.knowledge.collect_sources import boe_search
+
+    def page(items: list[tuple[str, str]], next_offset: int | None) -> str:
+        lis = "".join(
+            f'<li class="resultado-busqueda"><p>Real Decreto {i}, por el que se nombra X a don'
+            f" Y.</p><div>BOE de {d}</div>BOE-A-2000-{i}</li>"
+            for i, d in items
+        )
+        more = (
+            f'<a href="boe.php?accion=Mas&id_busqueda=ABC-{next_offset}-50">Más</a>'
+            if next_offset
+            else ""
+        )
+        return f"<ul>{lis}</ul>{more}"
+
+    pages = {
+        None: page([("1", "01/01/2020")], 50),
+        "ABC-50-50": page([("2", "01/01/2010")], 100),
+        "ABC-100-50": page([("3", "01/01/2000")], None),
+    }
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        key = request.url.params.get("id_busqueda")
+        calls.append(key)
+        return httpx.Response(200, text=pages[key])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        assert len(boe_search(client, "nombra X")) == 1  # no date: one page
+        hits = boe_search(client, "nombra X", until=D(2005, 1, 1))
+    assert [h.ident for h in hits] == ["BOE-A-2000-1", "BOE-A-2000-2", "BOE-A-2000-3"]
+    assert calls == [None, None, "ABC-50-50", "ABC-100-50"]
+
+
+def test_dismissals_keep_commas_in_the_office_name():
+    cese = hit(
+        "X",
+        D(2023, 12, 29),
+        "Real Decreto 1235/2023, de 29 de diciembre, por el que se dispone el cese de doña"
+        " Nadia María Calviño Santamaría como Ministra de Economía, Comercio y Empresa.",
+    )
+    assert dismissal(cese)[0] == "Ministra de Economía, Comercio y Empresa"
