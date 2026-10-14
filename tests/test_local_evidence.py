@@ -59,3 +59,15 @@ def test_no_local_evidence_without_indicator_period_or_coverage():
     assert local_evidence(claim(years=[]), BASE) is None
     assert local_evidence(claim(years=[2020]), BASE) is None  # not covered: search the web
     assert local_evidence(claim(kind="promesa"), BASE) is None  # promises look at the future
+
+
+def test_current_year_claims_use_the_latest_published_value():
+    # Speech in March 2015 about "this year": the latest value published is 2014's, and the
+    # base was refreshed after the speech, so that value is what was known then.
+    item = local_evidence(claim(years=[2015]), BASE, speech_date=D(2015, 3, 1))
+    assert item is not None and "24,4" in item.excerpt
+
+
+def test_current_year_claims_need_a_base_refreshed_after_the_speech():
+    stale = IndicatorBase({"paro_epa": PARO.model_copy(update={"actualizado": D(2014, 1, 1)})})
+    assert local_evidence(claim(years=[2015]), stale, speech_date=D(2015, 3, 1)) is None

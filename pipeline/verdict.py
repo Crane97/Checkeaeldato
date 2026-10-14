@@ -38,6 +38,7 @@ MAX_FOLLOW_UP_QUERIES = 3
 # reliable sources first; the full evidence stays in evidence.json.
 MAX_EVIDENCE_ITEMS = 8
 VERDICT_EXCERPT_CHARS = 2500
+LOCAL_EXCERPT_CHARS = 8000
 _KIND_PRIORITY = {"factcheck": 0, "indicador_local": 1, "oficial": 1, "web": 2}
 
 # (claim, queries, first evidence number) -> (new items numbered from it, errors)
@@ -153,7 +154,9 @@ def _evidence_block(item: EvidenceItem, own: bool = False) -> str:
         lines.append(f"afirmación revisada por el verificador: {item.claim_reviewed}")
     if item.rating:
         lines.append(f"valoración del verificador: {item.rating}")
-    lines.append(f"extracto: {item.excerpt[:VERDICT_EXCERPT_CHARS]}")
+    # A local series is sent whole: cutting it could drop the value that decides the claim.
+    limit = LOCAL_EXCERPT_CHARS if source.kind == "indicador_local" else VERDICT_EXCERPT_CHARS
+    lines.append(f"extracto: {item.excerpt[:limit]}")
     body = html.escape("\n".join(lines), quote=False)
     return f"<evidencia {attr_text}>\n{body}\n</evidencia>"
 

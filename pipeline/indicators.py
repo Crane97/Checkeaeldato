@@ -24,7 +24,7 @@ from pipeline.models import EvidenceItem, Source
 DEFAULT_INDICATORS_DIR = Path(__file__).resolve().parent.parent / "data/knowledge/indicators"
 # Values shown around the claim's period, so comparisons with the previous value work.
 CONTEXT_OBSERVATIONS = 1
-MAX_EXCERPT_OBSERVATIONS = 40
+MAX_EXCERPT_OBSERVATIONS = 160
 
 
 class IndicatorSource(BaseModel):
@@ -115,11 +115,36 @@ def _number(value: float) -> str:
 
 
 def _period(o: Observation) -> str:
-    if o.desde.day == 1 and o.desde.month == 1 and o.hasta.month == 12 and o.hasta.day == 31:
-        return (
-            str(o.desde.year) if o.desde.year == o.hasta.year else f"{o.desde.year}–{o.hasta.year}"
-        )
-    return f"{o.desde:%d/%m/%Y}–{o.hasta:%d/%m/%Y}"
+    """Short label: 2013, 2013T2, 2013-07, or the exact dates."""
+    d, h = o.desde, o.hasta
+    if d.day == 1 and d.month == 1 and h.month == 12 and h.day == 31:
+        return str(d.year) if d.year == h.year else f"{d.year}–{h.year}"
+    if d.day == 1 and d.year == h.year and (h + dt.timedelta(days=1)).day == 1:
+        months = h.month - d.month + 1
+        if months == 3 and d.month in (1, 4, 7, 10):
+            return f"{d.year}T{(d.month - 1) // 3 + 1}"
+        if months == 1:
+            return f"{d:%Y-%m}"
+    if d == h:
+        return f"{d:%d/%m/%Y}"
+    return f"{d:%d/%m/%Y}–{h:%d/%m/%Y}"
+
+
+def _excerpt(ind: "Indicator", rows: list[Observation]) -> str:
+    """Every value of the window, compactly; the source is written once if it is shared."""
+    documents = {o.fuente.documento for o in rows}
+    shared = len(documents) == 1
+    values = " | ".join(
+        f"{_period(o)} {_number(o.valor)}"
+        + ("" if shared else f" ({o.fuente.documento})")
+        + (" (provisional)" if o.provisional else "")
+        for o in rows
+    )
+    source = f" Fuente: {rows[0].fuente.documento}." if shared else ""
+    return (
+        f"{ind.nombre}, {ind.ambito}, en {ind.unidad}.{source} Valores: {values}. Notas: "
+        + " ".join(ind.notas)
+    )
 
 
 @dataclass(frozen=True)
@@ -152,17 +177,7 @@ class IndicatorBase:
         if ind is None or not ind.usable or not ind.covers(start, end):
             return None
         rows = ind.window(start, end)
-        lines = [
-            f"{_period(o)}: {_number(o.valor)} ({o.fuente.documento}"
-            f"{', provisional' if o.provisional else ''})"
-            for o in rows
-        ]
-        excerpt = (
-            f"{ind.nombre}, {ind.ambito}, en {ind.unidad}. "
-            + " | ".join(lines)
-            + ". Notas: "
-            + " ".join(ind.notas)
-        )
+        excerpt = _excerpt(ind, rows)
         last = rows[-1].fuente
         return EvidenceItem(
             id="",

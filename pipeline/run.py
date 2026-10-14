@@ -374,7 +374,9 @@ def build_steps(
         date = store.manifest.speech_date
         # Claims answered by the local base of indicators skip the web searches; the
         # (free) fact-check API is still asked, to recognise published debunks.
-        local = {c.id: item for c in searchable if (item := local_evidence(c, deps.indicators))}
+        local = {
+            c.id: item for c in searchable if (item := local_evidence(c, deps.indicators, date))
+        }
         web = [c for c in searchable if c.id not in local]
         found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
         factcheck_only = [s for s in deps.evidence_sources if s.name == "factcheck"]
@@ -469,7 +471,7 @@ def build_steps(
 
     steps = [
         Step("transcript", transcript_step, version=TRANSCRIPT_VERSION if kind == "texto" else ""),
-        Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
+        Step("speakers", speakers_step, (SPEAKERS_PROMPT,), version="nombre_presidente=1"),
         Step("speaker_research", speaker_research_step, (RESEARCH_PROMPT,)),
         Step(
             "claims",
@@ -481,7 +483,7 @@ def build_steps(
         Step(
             "evidence",
             evidence_step,
-            version=f"indicadores={deps.indicators.version(coverage=True)}",
+            version=f"indicadores={deps.indicators.version(coverage=True)};regla=3",
         ),
         # A different thinking setting is a different verdict: recompute, do not reuse.
         Step(

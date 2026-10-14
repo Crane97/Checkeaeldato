@@ -111,3 +111,16 @@ def test_version_changes_with_usable_indicators_and_coverage():
     assert one.version(coverage=False) == longer.version(coverage=False)
     assert one.version(coverage=True) != longer.version(coverage=True)
     assert pending.version(coverage=True) == ""  # unreviewed data does not count
+
+
+def test_long_series_excerpt_keeps_every_value_compactly():
+    quarters = [
+        obs(f"{y}-{m:02d}-01", f"{y}-{m + 2:02d}-{30 if m + 2 in (6, 9) else 31}", 10 + i / 10)
+        for i, (y, m) in enumerate((y, m) for y in range(2008, 2027) for m in (1, 4, 7, 10))
+    ]
+    paro = smi(id="paro_epa", periodicidad="trimestral", serie=quarters)
+    item = base(paro).evidence("paro_epa", D(2008, 1, 1), D(2026, 12, 31))
+    assert item is not None
+    assert "2008T1 10" in item.excerpt and "2017T3 13,8" in item.excerpt  # the middle is kept
+    assert item.excerpt.count("Real Decreto 1077/2017") == 1  # one shared source, written once
+    assert len(item.excerpt) < 3000
