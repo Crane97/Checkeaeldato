@@ -50,3 +50,27 @@ def test_bulk_approval_stays_within_the_group_and_needs_confirmation(monkeypatch
     assert decided == [("1", "aprobado", "Jorge"), ("2", "aprobado", "Jorge")]
     decided, _ = _run(monkeypatch, "t\nn\nq\n", items)
     assert decided == []
+
+
+def test_ingestion_alerts_are_emailed_when_something_needs_attention(monkeypatch):
+    from pipeline.config import Settings
+    from pipeline.knowledge.ingest import IndicatorResult, IngestReport
+
+    report = IngestReport(
+        results=[IndicatorResult("paro_epa", "error", error="INE no responde")],
+        stale=["ipc_interanual: último dato del 2026-01-31"],
+    )
+    sent = []
+    monkeypatch.setattr(cli, "_connect", FakeConn)
+    monkeypatch.setattr(cli, "ingest", lambda *a, **k: report)
+    monkeypatch.setattr(cli, "load_catalog", lambda: {})
+    monkeypatch.setattr(
+        cli, "get_settings", lambda: Settings(alert_email_to="alertas@example.org", smtp_user="x")
+    )
+    monkeypatch.setattr("pipeline.email_report.send_email", lambda msg, s: sent.append(msg))
+    result = CliRunner().invoke(cli.app, ["ingerir", "--avisar"])
+    assert result.exit_code == 2  # errors fail the run (and the GitHub Action)
+    [message] = sent
+    assert message["To"] == "alertas@example.org"
+    body = message.get_content()
+    assert "INE no responde" in body and "ipc_interanual" in body

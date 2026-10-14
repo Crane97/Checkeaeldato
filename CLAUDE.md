@@ -360,6 +360,26 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
 - **Golden tests** (`tests/test_knowledge_golden.py`): valores contrastados con su fuente;
   si fallan, se investiga el cambio, no se corrige el test.
 
+### Ingesta automática (fase D, 2026-10-14)
+
+- `uv run conocimiento ingerir [--simular] [--indicador X] [--forzar] [--avisar]`
+  (`pipeline/knowledge/ingest.py`): descarga los indicadores del catálogo con conector
+  `ine`, `eurostat` o `seguridad_social` (APIs públicas, **sin clave**), compara una huella
+  de los valores con `ops.source_state` y, si cambió, carga con la validación (nuevo →
+  aprobado; dudoso → cuarentena; revisión → versión nueva) en una ejecución de
+  `ops.ingest_runs` por conector. Un fallo de un indicador se registra y el resto sigue
+  (salida con código 2). `--avisar` envía a `ALERT_EMAIL_TO` los errores, cuarentenas y
+  datos más viejos que `max_antiguedad_dias`.
+- Manuales (sin conector): SMI (BOE), pensiones, pensionistas y pensión media (INSS), IVA.
+- **Rol `ingesta`** (migración 0006): lee el catálogo, inserta observaciones y fuentes,
+  retira vigencias y registra ejecuciones; no borra, no aprueba, no ve políticos ni
+  veredictos. Se crea sin login: el responsable le pone contraseña en el SQL Editor
+  (`alter role ingesta with login password '…'`), nunca en archivos.
+- **GitHub Actions** (`.github/workflows/ingesta.yml`): diario a las 07:30 UTC, **en
+  simulación** hasta que el responsable decida quitar `--simular`. Secretos:
+  `SUPABASE_DB_URL` (pooler, usuario `ingesta.<ref>`), `SMTP_*`, `EMAIL_FROM`,
+  `ALERT_EMAIL_TO`.
+
 ### Políticos (decidido 2026-10-14)
 
 Base de quién es quién para identificar oradores sin gastar búsquedas
@@ -488,6 +508,8 @@ VERDICT_THINKING=               # opcional: true/false; sin definir = defecto de
 VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
+ALERT_EMAIL_TO=                 # avisos de la ingesta diaria
+SUPABASE_DB_URL=                # base de conocimiento (pooler de sesión, IPv4)
 ```
 
 ## Comandos
@@ -510,6 +532,7 @@ uv run conocimiento cargar-json                  # carga validada de la base JSO
 uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
 uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
 uv run conocimiento retirar politico <id>        # rechaza algo ya aprobado (deja de usarse)
+uv run conocimiento ingerir [--simular] [--avisar] # ingesta INE/Eurostat/Seg. Social
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .

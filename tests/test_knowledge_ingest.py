@@ -133,3 +133,43 @@ def test_simulation_marks_the_run(db):  # noqa: F811
     sync_catalog(db, CATALOG)
     _run(db, {(2026, 1): 10.5}, simulate=True)
     assert db.execute("select estado from ops.ingest_runs").fetchone() == ("simulacion",)
+
+
+@pytest.mark.supabase
+def test_the_ingesta_role_can_ingest_but_not_delete_approve_or_touch_other_tables(db):  # noqa: F811
+    import psycopg
+
+    sync_catalog(db, CATALOG)
+    db.execute("set local role ingesta")
+    report = _run(db, {(2026, 1): 10.5, (2026, 2): 10.2})
+    assert report.results[0].summary.new == 2
+    assert _run(db, {(2026, 1): 10.6, (2026, 2): 10.2}).results[0].summary.revisions == 1
+
+    def denied(sql: str) -> None:
+        db.execute("savepoint s")
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            db.execute(sql)
+        db.execute("rollback to savepoint s")
+
+    denied("delete from ref.observations")
+    denied("update ref.observations set estado = 'aprobado' where estado = 'cuarentena'")
+    denied("select * from ref.politicians")
+    denied(
+        "insert into ref.indicators (id, nombre, definicion, unidad, frecuencia, organismo,"
+        " tema, salto_max_pct) values ('x', 'x', 'x', 'x', 'anual', 'x', 'otros', 1)"
+    )
+    denied("truncate ops.ingest_runs")
+    denied("select * from ref.indicators")
+    denied("select * from ops.schema_migrations")
+    denied("update ops.ingest_runs set conector = 'x'")
+    denied("alter table ref.observations disable trigger observations_guard")
+    # A finished run cannot be used to slip approved data in.
+    db.execute("savepoint s")
+    with pytest.raises(psycopg.errors.CheckViolation, match="ejecución de ingesta abierta"):
+        db.execute(
+            "insert into ref.observations (indicator_id, periodo, periodo_inicio, periodo_fin,"
+            " valor, unidad, fecha_publicacion, estado, source_id, ingest_run_id)"
+            " select 'paro_epa', '2026T3', '2026-07-01', '2026-09-30', 10, unidad, '2026-10-14',"
+            " 'aprobado', source_id, ingest_run_id from ref.observations limit 1"
+        )
+    db.execute("rollback to savepoint s")
