@@ -8,6 +8,7 @@ from pipeline.models import (
     Claim,
     ClaimDetection,
     CostEntry,
+    DetectedClaim,
     InputKind,
     Promise,
     PromiseVerdict,
@@ -96,6 +97,22 @@ def _warnings(
     return warnings
 
 
+def merge_claim(detected: DetectedClaim, verdict: Verdict) -> Claim:
+    """The claim as the report shows it. The analysis stays in verdicts.json for auditing;
+    the report shows the explanation only."""
+    return Claim(
+        **detected.model_dump(exclude={"search_queries", "needs_context"}),
+        **verdict.model_dump(exclude={"claim_id", "basis", "category", *Verdict.AUDIT_FIELDS}),
+    )
+
+
+def merge_promise(detected: DetectedClaim, assessed: PromiseVerdict) -> Promise:
+    return Promise(
+        **detected.model_dump(exclude={"search_queries", "needs_context"}),
+        **assessed.model_dump(exclude={"claim_id", "basis"}),
+    )
+
+
 def build_report(
     *,
     job_id: str,
@@ -120,26 +137,12 @@ def build_report(
             found = by_promise.get(detected.id)
             if found is None:
                 raise ReportError(f"Falta el análisis de la promesa {detected.id}")
-            assessed.append(
-                Promise(
-                    **detected.model_dump(exclude={"search_queries", "needs_context"}),
-                    **found.model_dump(exclude={"claim_id", "basis"}),
-                )
-            )
+            assessed.append(merge_promise(detected, found))
             continue
         verdict = by_claim.get(detected.id)
         if verdict is None:
             raise ReportError(f"Falta el veredicto de la afirmación {detected.id}")
-        claims.append(
-            Claim(
-                **detected.model_dump(exclude={"search_queries", "needs_context"}),
-                # The analysis stays in verdicts.json for auditing; the report shows the
-                # explanation only.
-                **verdict.model_dump(
-                    exclude={"claim_id", "basis", "category", *Verdict.AUDIT_FIELDS}
-                ),
-            )
-        )
+        claims.append(merge_claim(detected, verdict))
     return Report(
         job_id=job_id,
         source=source,

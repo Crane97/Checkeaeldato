@@ -29,7 +29,8 @@ _CUES_RE = re.compile(
     r"tiene la palabra|le doy la palabra|turno de|secretari|líder|diputad|alcalde",
     re.IGNORECASE,
 )
-_DIARIZATION_LABEL_RE = re.compile(r"^speaker_(\d+|desconocido)$", re.IGNORECASE)
+# Live sessions suffix each block's labels with "@<block>" (speaker_0@3).
+_DIARIZATION_LABEL_RE = re.compile(r"^speaker_(\d+|desconocido)(@\d+)?$", re.IGNORECASE)
 _HONORIFIC_RE = re.compile(r"^(?:(?:sr|sra|d|dña)\.?|señor|señora|don|doña)\s+", re.IGNORECASE)
 _PRESIDENT_ROLE_RE = re.compile(r"president[ea] del gobierno", re.IGNORECASE)
 
@@ -94,7 +95,7 @@ def _canonical(party: str | None, governments: Governments) -> str | None:
     return governments.canonical_party(party) or party.strip()
 
 
-def _from_info(label: str, info: SpeakerInfo, governments: Governments) -> Speaker:
+def speaker_from_info(label: str, info: SpeakerInfo, governments: Governments) -> Speaker:
     return Speaker(
         label=label,
         name=info.name or (label if _is_name_label(label) else None),
@@ -193,7 +194,7 @@ def identify_speakers(
 
     for label in labels:
         if label in info:
-            by_label[label] = _from_info(label, info[label], governments)
+            by_label[label] = speaker_from_info(label, info[label], governments)
 
     # "autor" (plain text) is named with --autor; the text rarely identifies its author.
     pending = [
