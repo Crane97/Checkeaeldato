@@ -374,3 +374,38 @@ def test_catalog_syncs_and_its_identity_fields_are_locked(db):
         "update ref.indicators set salto_max_pct = 5 where id = 'paro_epa'",
         match="check",  # one threshold only: paro_epa already has salto_max_puntos
     )
+
+
+@pytest.mark.supabase
+def test_json_base_loads_validated_and_reloading_changes_nothing(db):
+    import datetime as dt
+
+    from pipeline.knowledge.catalog import load_catalog, sync_catalog
+    from pipeline.knowledge.observations_load import load_json_base
+
+    catalog = load_catalog()
+    sync_catalog(db, catalog)
+    today = dt.date(2026, 10, 14)
+    first = {s.indicator_id: s for s in load_json_base(db, catalog, today=today)}
+    assert all(not s.errors for s in first.values()), [s.errors for s in first.values()]
+    assert first["smi_mensual"].pending == first["smi_mensual"].new == 25  # curated
+    assert first["paro_epa"].pending == 0 and first["paro_epa"].new > 90
+
+    smi_2018 = db.execute(
+        "select valor, fecha_publicacion, fecha_publicacion_estimada, estado"
+        " from ref.observations where indicator_id = 'smi_mensual' and periodo = '2018'"
+    ).fetchone()
+    assert (float(smi_2018[0]), smi_2018[1], smi_2018[2], smi_2018[3]) == (
+        735.9,
+        dt.date(2017, 12, 30),  # the BOE publication date of RD 1077/2017
+        False,
+        "pendiente",
+    )
+    paro = db.execute(
+        "select fecha_publicacion, fecha_publicacion_estimada, estado from ref.observations"
+        " where indicator_id = 'paro_epa' and periodo = '2013T1'"
+    ).fetchone()
+    assert paro == (dt.date(2013, 4, 28), True, "aprobado")  # quarter end + 28 days
+
+    again = load_json_base(db, catalog, today=today)
+    assert sum(s.new + s.revisions for s in again) == 0

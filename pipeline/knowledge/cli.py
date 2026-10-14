@@ -9,6 +9,7 @@ from pipeline.config import ConfigError, get_settings
 from pipeline.knowledge.catalog import load_catalog, sync_catalog
 from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
+from pipeline.knowledge.observations_load import load_json_base
 
 app = typer.Typer(no_args_is_help=True, help="Base de conocimiento oficial (Supabase Postgres).")
 
@@ -97,3 +98,20 @@ def catalogo() -> None:
         f"Nuevos: {len(report.new)} · actualizados: {len(report.updated)} · "
         f"sin cambios: {len(report.unchanged)}"
     )
+
+
+@app.command("cargar-json")
+def cargar_json() -> None:
+    """Carga inicial de data/knowledge/indicators/ en ref.observations (validada), todo o nada."""
+    import datetime as dt
+
+    with _connect() as conn:
+        summaries = load_json_base(conn, load_catalog(), today=dt.date.today())
+        conn.commit()
+    for s in summaries:
+        typer.echo(
+            f"{s.indicator_id:24} nuevas {s.new:4} · revisiones {s.revisions:3} · "
+            f"sin cambios {s.unchanged:4} · cuarentena {s.quarantine:3} · pendientes {s.pending:3}"
+        )
+        for e in s.errors:
+            typer.secho(f"   error: {e}", fg=typer.colors.RED)
