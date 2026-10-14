@@ -6,6 +6,7 @@ import psycopg
 import typer
 
 from pipeline.config import ConfigError, get_settings
+from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 
 app = typer.Typer(no_args_is_help=True, help="Base de conocimiento oficial (Supabase Postgres).")
@@ -57,3 +58,17 @@ def version() -> None:
         ).fetchall()
     for v, name, when in rows:
         typer.echo(f"{v}  {name}  ({when:%Y-%m-%d %H:%M})")
+
+
+@app.command("cargar-gobiernos")
+def cargar_gobiernos() -> None:
+    """Carga data/knowledge/governments.json (entran pendientes de revisión)."""
+    with _connect() as conn:
+        report = load_governments(conn)
+        conn.commit()
+    typer.echo(
+        f"Nuevos: {len(report.new)} · sin cambios: {len(report.unchanged)} · "
+        f"cambiados en el JSON (no sobrescritos): {len(report.changed)}"
+    )
+    for item in report.changed:
+        typer.secho(f"  Cambiado, revisar a mano: {item}", fg=typer.colors.YELLOW)

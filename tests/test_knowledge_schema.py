@@ -256,3 +256,48 @@ def test_rls_is_enabled_on_every_table(db):
         " and c.relkind = 'r' and not c.relrowsecurity and c.relname <> 'schema_migrations'"
     ).fetchall()
     assert without == []
+
+
+@pytest.mark.supabase
+def test_governments_enter_pending_and_need_a_reviewer_to_be_approved(db):
+    db.execute(
+        "insert into ref.governments (id, nivel, territorio, presidente, partidos, inicio)"
+        " values ('es-x', 'nacional', 'España', 'X', '{A}', '2018-06-02')"
+    )
+    assert db.execute("select estado from ref.governments where id = 'es-x'").fetchone() == (
+        "pendiente",
+    )
+    _fails(db, "update ref.governments set estado = 'aprobado' where id = 'es-x'", match="check")
+    db.execute(
+        "update ref.governments set estado = 'aprobado', revisado_por = 'Jorge',"
+        " revisado_en = now() where id = 'es-x'"
+    )
+
+
+@pytest.mark.supabase
+def test_governments_json_loads_pending_and_is_idempotent(db, tmp_path):
+    import json
+
+    from pipeline.governments import DEFAULT_KNOWLEDGE_PATH
+    from pipeline.knowledge.governments_load import load_governments
+
+    first = load_governments(db)
+    assert len([n for n in first.new if n.startswith("gobierno")]) == 7
+    assert first.changed == []
+    estados = {e for (e,) in db.execute("select estado from ref.governments").fetchall()}
+    assert estados == {"pendiente"}
+    partners = db.execute(
+        "select partido, inicio from ref.government_partners"
+        " where government_id = 'es-2018-sanchez' order by inicio"
+    ).fetchall()
+    assert [p for p, _ in partners] == ["Unidas Podemos", "Sumar"]
+
+    again = load_governments(db)
+    assert again.new == [] and again.changed == []
+
+    data = json.loads(DEFAULT_KNOWLEDGE_PATH.read_text())
+    data["governments"][0]["notes"] = "otra nota"
+    edited = tmp_path / "governments.json"
+    edited.write_text(json.dumps(data, ensure_ascii=False))
+    report = load_governments(db, edited)
+    assert report.changed == [f"gobierno {data['governments'][0]['id']}"]  # warned, not overwritten
