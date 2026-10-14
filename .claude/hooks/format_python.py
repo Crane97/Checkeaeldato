@@ -14,9 +14,11 @@ def main() -> None:
     event = json.load(sys.stdin)
     path = Path(event.get("tool_input", {}).get("file_path", ""))
     project = Path(os.environ.get("CLAUDE_PROJECT_DIR", Path.cwd()))
-    ruff = project / ".venv" / "bin" / "ruff"
+    # The venv's layout differs: bin/ on macOS and Linux, Scripts/ on Windows.
+    candidates = [project / ".venv" / "bin" / "ruff", project / ".venv" / "Scripts" / "ruff.exe"]
+    ruff = next((c for c in candidates if c.exists()), None)
 
-    if path.suffix != ".py" or not path.is_file() or not ruff.exists():
+    if path.suffix != ".py" or not path.is_file() or ruff is None:
         return
     if not path.resolve().is_relative_to(project.resolve()):
         return  # only this repo's files follow its ruff config

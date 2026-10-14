@@ -5,11 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkea el Dato · prueba local</title>
 <link rel="stylesheet" href="/static/report.css">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
 <main>
-  <h1>Checkea el Dato</h1>
-  <p class="sub">Prueba local del verificador: pega un discurso o un artículo y analiza sus afirmaciones.</p>
+  <nav class="topbar">
+    <span class="brand">Checkea el Dato <small>prueba local</small></span>
+    <div class="tabs"><a href="/" class="active">Texto</a><a href="/directo">Directo</a></div>
+  </nav>
+  <p class="sub">Pega un discurso, un artículo o la transcripción de un debate y analiza sus afirmaciones.
+    Para seguir una emisión en directo, usa la pestaña <a href="/directo">Directo</a>.</p>
 
   <section class="card">
     <form id="form">
@@ -45,6 +50,7 @@
 
   <section class="card hidden" id="progreso">
     <h2>Progreso</h2>
+    <div class="progress"><span id="barra"></span></div>
     <ul class="steps" id="pasos"></ul>
     <p class="meta" id="mensaje"></p>
     <p class="meta" id="correo"></p>
@@ -68,13 +74,13 @@
       <div class="actions"><a class="button" id="descargar" href="#">Descargar informe</a></div>
     </div>
     <p class="meta filters" id="filtros"></p>
-    <div id="afirmaciones"></div>
+    <div class="feed" id="afirmaciones"></div>
     <div class="hidden" id="promesas-wrap">
       <h2 class="section-title" id="titulo-promesas"></h2>
       <p class="meta">Una promesa no es verdadera ni falsa: se valora si se puede cumplir con el marco legal
         (España y la UE), los datos y el presupuesto, y qué consecuencias señalan las fuentes.</p>
       <div class="tiles tiles-4" id="tiles-promesas"></div>
-      <div id="promesas"></div>
+      <div class="feed" id="promesas"></div>
     </div>
   </section>
 </main>
@@ -82,9 +88,10 @@
 <script src="/static/report.js"></script>
 <script>
 const STEP_NAMES = {
-  audio: "Extraer audio", transcript: "Preparar el texto", speakers: "Identificar interlocutores y turnos", speaker_research: "Investigar a los oradores (fuentes oficiales y web)",
-  context: "Resolver contexto", claims: "Detectar afirmaciones",
-  evidence: "Buscar evidencia", verdicts: "Decidir veredictos", report: "Generar informe",
+  audio: "Extraer audio", transcript: "Preparar el texto", speakers: "Identificar interlocutores y turnos",
+  speaker_research: "Investigar a los oradores (fuentes oficiales y web)", claims: "Detectar afirmaciones",
+  context: "Resolver contexto", evidence: "Buscar evidencia", verdicts: "Decidir veredictos",
+  promises: "Valorar promesas", report: "Generar informe",
 };
 const STEP_ICONS = { pending: "○", running: "◐", done: "✓", partial: "◑", failed: "✗" };
 const MAIL_TEXT = {
@@ -94,6 +101,9 @@ const MAIL_TEXT = {
 };
 
 function renderSteps(status) {
+  const done = status.pasos.filter((s) => s.estado === "done" || s.estado === "partial").length;
+  const running = status.pasos.some((s) => s.estado === "running") ? 0.5 : 0;
+  $("barra").style.width = `${Math.round(100 * (done + running) / status.pasos.length)}%`;
   $("pasos").replaceChildren(...status.pasos.map((step) => {
     const icon = el("span", { class: "icon" }, STEP_ICONS[step.estado] || "○");
     if (step.estado === "running") icon.classList.add("spin");
@@ -120,7 +130,10 @@ async function poll(jobId) {
   if (status.estado === "error") return fail(new Error(status.error));
   try { localStorage.setItem("ultimoAnalisis", jobId); } catch (e) { /* storage unavailable */ }
   $("descargar").href = `/api/analisis/${jobId}/informe.html`;
-  if (!lastReport || lastReport.job_id !== status.informe.job_id) renderReport(status.informe);
+  if (!lastReport || lastReport.job_id !== status.informe.job_id) {
+    renderReport(status.informe);
+    $("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function fail(error) {
@@ -146,6 +159,7 @@ $("form").addEventListener("submit", async (event) => {
     const body = await response.json();
     if (!response.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Datos no válidos");
     show("progreso", true);
+    $("progreso").scrollIntoView({ behavior: "smooth", block: "nearest" });
     await poll(body.job_id);
   } catch (error) { fail(error); }
 });

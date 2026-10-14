@@ -20,7 +20,9 @@ Fase futura: análisis en tiempo real (streaming) de debates en directo.
 3. **Backend** — worker + cola de trabajos + Postgres/pgvector + caché de afirmaciones.
 4. **Web** — subida, progreso, panel de resultados, reproductor sincronizado.
 5. **Beta** — metodología pública, avisos legales, auditoría de neutralidad, límites de uso.
-6. **Casi en vivo** — procesar bloques de 3–5 min durante un debate.
+6. **Casi en vivo** (en curso desde el 2026-10-13, a petición del responsable del proyecto)
+   — una emisión se corta en bloques de audio de 1 min (configurable) que recorren el
+   pipeline mientras llega el siguiente; panel en directo en la web local. Ver "Directo".
 7. **Tiempo real** — transcripción en streaming y veredictos provisionales.
 
 No adelantes trabajo de fases posteriores salvo que se pida. Diseña las interfaces para
@@ -97,9 +99,13 @@ pipeline/
   verdict.py          # veredicto basado solo en evidencia
   report.py           # agregación y salida JSON
   evaluation.py       # formato gold, emparejamiento y métricas
-  web/                # web LOCAL de pruebas (FastAPI + una página): `uv run verificar-web`.
+  live/               # casi en vivo: source.py (bloques de audio con ffmpeg) y session.py
+                      # (estado acumulado, análisis por bloque, eventos, runner de 2 etapas)
+  web/                # web LOCAL de pruebas (FastAPI): `uv run verificar-web`.
                       # No es la web de la fase 4; solo escucha en 127.0.0.1.
+                      # app.py (texto), live.py (sesiones en directo, SSE)
                       # static/report.{css,js}: pintado compartido con el informe HTML
+                      # static/app.css, directo.html, live.js: solo web local (panel)
   report_html.py      # informe HTML autocontenido e interactivo (filtros orador/categoría)
   email_report.py     # envío por SMTP: resumen estático en el cuerpo + informe adjunto
                       # (los clientes de correo bloquean JavaScript)
@@ -350,6 +356,37 @@ evaluación). Pendiente: las fuentes aún no filtran por `--fecha`; el veredicto
 cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay lista de medios
 "reconocidos"**: es una decisión de neutralidad pendiente del responsable del proyecto.
 
+## Directo (casi en vivo)
+
+Decidido el 2026-10-13. `pipeline/live/`, panel en `/directo` de la web local.
+
+- **Entrada:** cualquier URL que lea `ffmpeg` (HLS `.m3u8`, RTMP, RTSP…) o un **vídeo
+  grabado**, que se reproduce a su ritmo real (`-re`) para ensayar sin emisión. `ffmpeg` corta
+  audio mono 16 kHz FLAC en bloques (`-f segment`, 20–600 s, 60 por defecto) en
+  `data/live/<sesión>/blocks/`; un bloque se usa cuando existe el siguiente (o ffmpeg acabó).
+- **Transcripción por lotes, no streaming:** Scribe v2 Realtime (WebSocket) no documenta
+  diarización, y en un debate saber quién habla es imprescindible. La fase 7 queda tras la
+  interfaz `BlockSource`/`Transcriber`.
+- **Etiquetas por bloque:** la diarización no persiste entre bloques, así que cada etiqueta
+  lleva su bloque (`speaker_0@3`). El usuario las nombra en el panel sin coste
+  (`rename_speaker`); "Quién es quién" del formulario se aplica por etiqueta o nombre.
+- **Por bloque**, con las mismas funciones del pipeline: transcribir → oradores → afirmaciones
+  (ids `b003c001`, tiempos absolutos de la emisión) → contexto → por cada afirmación evidencia y
+  veredicto (o viabilidad de promesa), emitiendo un evento tras cada paso. Dos etapas
+  solapadas: se transcribe el bloque n+1 mientras se analiza el n.
+- **Fallos:** un bloque que no se transcribe o no se analiza queda `fallido` con aviso y la
+  sesión sigue; un error de configuración la para; `MAX_CONSECUTIVE_FAILURES` (5) análisis
+  seguidos fallidos también (seguir gastaría búsquedas sin veredicto).
+- **Estado** `LiveState` en `data/live/<sesión>/state.json`, guardado tras cada bloque;
+  `report()` devuelve un `Report` normal con lo decidido hasta el momento (mismo pintado y
+  misma descarga HTML). Una sesión reanudada numera sus bloques a continuación.
+- **Web:** una sesión a la vez; `POST /api/directo`, instantánea `GET`, eventos por SSE
+  (`/eventos?desde=N`, reanudables), `/parar`, `PUT /oradores/{etiqueta}`. El panel pinta la
+  instantánea al cargar y aplica los eventos después; si cae la conexión vuelve a la
+  instantánea. Sin frameworks: es la web local, no la de la fase 4.
+- **Despliegue:** el worker (ffmpeg, hilos, sesiones largas) **no puede ir en Vercel**; irá a
+  un host de procesos largos y las claves se configuran allí, nunca en el frontend.
+
 ## Fallos y trazabilidad
 
 - Errores de configuración (clave inválida, API sin habilitar, créditos agotados) **paran**
@@ -398,6 +435,7 @@ VERDICT_THINKING=               # opcional: true/false; sin definir = defecto de
 VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
+VERIFICAR_WEB_NO_BROWSER=1      # solo desarrollo: la web local no abre el navegador
 ```
 
 ## Comandos
@@ -408,7 +446,7 @@ uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
 uv run verificar data/x.mp4 --fecha 2026-11-20 --no-cache  # sin reutilizar búsquedas
-uv run verificar-web            # web local de pruebas en http://localhost:8000
+uv run verificar-web            # web local de pruebas en http://localhost:8000 (/directo: panel en vivo)
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
@@ -430,7 +468,12 @@ uv run ruff check . && uv run ruff format .
 ## Harness de Claude Code (`.claude/`)
 
 - **Hooks** (`settings.json`): bloquean el acceso a `.env`; pasan `ruff` a cada `.py`
-  editado; revisan la neutralidad de `prompts/*.md` y recuerdan ejecutar la evaluación.
+  editado; revisan la neutralidad de `prompts/*.md` y recuerdan ejecutar la evaluación. Se
+  lanzan con `uv run --no-sync` para que funcionen igual en macOS y Windows (`python3` en
+  Windows es un acceso directo de la Store y el venv usa `Scripts/` en vez de `bin/`).
+- **Portabilidad:** todo archivo de texto se lee y escribe con `encoding="utf-8"` (y
+  `newline="\n"` cuando su hash importa); sin ello Windows usa cp1252 y `\r\n`. `ffmpeg` en
+  Windows: `winget install Gyan.FFmpeg`.
 - **Agentes** (bajo demanda): `refactor-cleaner` (código muerto),
   `silent-failure-hunter` (errores silenciados; tras los pasos de evidencia y veredicto),
   `type-design-analyzer` (modelos pydantic). Adaptados de Everything Claude Code (MIT).
