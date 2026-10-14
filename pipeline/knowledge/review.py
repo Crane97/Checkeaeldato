@@ -243,3 +243,29 @@ def decide(
         raise ReviewError(f"Tipo no válido: {kind}")
     if cur.rowcount != 1:
         raise ReviewError(f"{kind} {item_id} no existe o ya no está pendiente")
+
+
+def withdraw(
+    conn: psycopg.Connection, kind: Kind, item_id: str, *, reviewer: str
+) -> tuple[str, str | None]:
+    """Reject something already approved (it stops being used at once). Returns the
+    previous state and reviewer. Observations are immutable: a wrong value is corrected
+    with a new version, not withdrawn."""
+    reviewer = reviewer.strip()
+    if not reviewer:
+        raise ReviewError("Falta el nombre del revisor")
+    if kind not in _TABLES:
+        raise ReviewError("Las observaciones no se retiran: se corrigen con una versión nueva")
+    table = _TABLES[kind]
+    id_value: object = int(item_id) if kind == "hecho" and item_id.isdigit() else item_id
+    row = conn.execute(
+        f"select estado, revisado_por from {table} where id = %s for update", (id_value,)
+    ).fetchone()
+    if row is None or row[0] != "aprobado":
+        raise ReviewError(f"{kind} {item_id} no existe o no está aprobado")
+    conn.execute(
+        f"update {table} set estado = 'rechazado', revisado_por = %s, revisado_en = now()"
+        " where id = %s",
+        (reviewer, id_value),
+    )
+    return row[0], row[1]

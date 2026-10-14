@@ -114,3 +114,21 @@ def test_entries_dropped_from_the_json_are_reported(db, tmp_path):  # noqa: F811
     load_politicians(db, _json(tmp_path, ANA))
     other = ANA.model_copy(update={"id": "ana-gil-perez", "nombre": "Ana Gil Pérez"})
     assert load_politicians(db, _json(tmp_path, other)).missing == ["ana-gil-ruiz"]
+
+
+def test_an_approved_entry_can_be_withdrawn_by_a_reviewer(db, tmp_path):  # noqa: F811
+    from pipeline.knowledge.review import ReviewError, withdraw
+
+    load_politicians(db, _json(tmp_path, ANA))
+    decide(db, "politico", "ana-gil-ruiz", "aprobado", reviewer="Jorge")
+    previous = withdraw(db, "politico", "ana-gil-ruiz", reviewer="Jorge")
+    assert previous == ("aprobado", "Jorge")
+    assert read_politicians(db) == []
+    row = db.execute(
+        "select estado, revisado_por from ref.politicians where id = 'ana-gil-ruiz'"
+    ).fetchone()
+    assert row == ("rechazado", "Jorge")
+    with pytest.raises(ReviewError, match="no está aprobado"):
+        withdraw(db, "politico", "ana-gil-ruiz", reviewer="Jorge")
+    with pytest.raises(ReviewError, match="observaciones"):
+        withdraw(db, "observacion", "1", reviewer="Jorge")

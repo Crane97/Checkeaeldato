@@ -509,6 +509,7 @@ uv run conocimiento catalogo                     # sincroniza catalog.yaml
 uv run conocimiento cargar-json                  # carga validada de la base JSON
 uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
 uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
+uv run conocimiento retirar politico <id>        # rechaza algo ya aprobado (deja de usarse)
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .

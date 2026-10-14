@@ -12,7 +12,14 @@ from pipeline.knowledge.impact import dependents, observation_summary, reprocess
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 from pipeline.knowledge.observations_load import load_json_base
 from pipeline.knowledge.politicians_repo import load_politicians
-from pipeline.knowledge.review import KINDS, ReviewError, ReviewItem, decide, pending_items
+from pipeline.knowledge.review import (
+    KINDS,
+    ReviewError,
+    ReviewItem,
+    decide,
+    pending_items,
+    withdraw,
+)
 
 app = typer.Typer(no_args_is_help=True, help="Base de conocimiento oficial (Supabase Postgres).")
 
@@ -247,3 +254,25 @@ def cargar_politicos(
         )
     for line in report.previous_reviews:
         typer.echo(f"  Revisión anterior (vuelve a pendiente): {line}")
+
+
+@app.command()
+def retirar(
+    tipo: Annotated[str, typer.Argument(help="gobierno, partido, hecho o politico")],
+    item_id: Annotated[str, typer.Argument(help="Id del elemento aprobado")],
+    revisor: Annotated[
+        str | None, typer.Option("--revisor", help="Tu nombre: queda registrado")
+    ] = None,
+) -> None:
+    """Rechaza algo que ya estaba aprobado: deja de usarse en el siguiente análisis."""
+    name = revisor or typer.prompt("Tu nombre (queda registrado como revisor)")
+    if not typer.confirm(f"¿Retirar {tipo} {item_id}? Dejará de usarse"):
+        raise typer.Exit(code=1)
+    try:
+        with _connect() as conn:
+            estado, antes = withdraw(conn, tipo, item_id, reviewer=name)  # type: ignore[arg-type]
+            conn.commit()
+    except (ReviewError, psycopg.Error) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(f"Retirado {tipo} {item_id} (estaba {estado}, revisado por {antes}).")
