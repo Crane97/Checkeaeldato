@@ -207,6 +207,10 @@ class DetectedClaim(ClaimBase):
     search_queries: list[str] = Field(default_factory=list)
     # Has implicit actors or periods that the context step must resolve.
     needs_context: bool = False
+    # Official indicator of the local base the claim is about (data/knowledge/indicators) and
+    # the years it refers to: when covered, the evidence comes from there, not the web.
+    indicator: str | None = None
+    years: list[int] = Field(default_factory=list)
 
 
 class RejectedClaim(BaseModel):
@@ -446,6 +450,8 @@ class CostEntry(BaseModel):
     searches: int = 0
     cached_searches: int = 0
     credits: int = 0
+    # Claims answered by the local base of indicators instead of a web search.
+    indicator_hits: int = 0
     usd: float = Field(ge=0)
     # False when the model/provider is missing from pricing.toml (usd is then 0).
     priced: bool = True

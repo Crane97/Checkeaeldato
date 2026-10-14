@@ -16,9 +16,11 @@ from pipeline.context import PROMPT as CONTEXT_PROMPT
 from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
 from pipeline.evidence.base import EvidenceSource, collect_evidence
+from pipeline.evidence.local import local_evidence
 from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
+from pipeline.indicators import IndicatorBase, load_indicators
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
 from pipeline.llm import ThinkingConfig
 from pipeline.models import (
@@ -70,6 +72,8 @@ class Deps(Protocol):
     searches: SearchStats
     # Claude's thinking in the verdict step (VERDICT_THINKING…); None: model default.
     verdict_thinking: ThinkingConfig | None
+    # Local base of official series (data/knowledge/indicators).
+    indicators: IndicatorBase
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
 
@@ -126,6 +130,10 @@ class LiveDeps:
             max_results=self.settings.tavily_max_results,
             cache=cache,
         )
+
+    @cached_property
+    def indicators(self) -> IndicatorBase:
+        return load_indicators()
 
     @property
     def verdict_thinking(self) -> ThinkingConfig | None:
@@ -311,6 +319,7 @@ def build_steps(
                 input_kind=kind,
                 llm=deps.llm,
                 model=deps.model_for("detection"),
+                indicator_catalog=deps.indicators.catalog(),
             )
             store.write("claims.json", detection, ClaimDetection)
             return not detection.failed_blocks
@@ -334,24 +343,39 @@ def build_steps(
 
         return _with_costs(deps, "context", work)
 
+    indicator_hits: list[int] = []
+
     def evidence_step(store: JobStore) -> StepOutcome:
-        return _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
+        outcome = _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
+        hits = indicator_hits.pop() if indicator_hits else 0
+        if hits:
+            outcome.cost.append(
+                CostEntry(step="evidence", provider="indicadores", indicator_hits=hits, usd=0)
+            )
+            deps.searches.indicator_hits += hits
+        return outcome
 
     def _evidence(store: JobStore) -> bool:
         claims = store.read("context.json", ClaimDetection).claims
         # Unresolved claims are no_verificable anyway: don't spend searches on them.
         # Promises are assessed for feasibility, which does not depend on who made them.
         searchable = [c for c in claims if c.kind == "promesa" or c.context_status != "no_resuelto"]
-        found = (
-            {
-                e.claim_id: e
-                for e in collect_evidence(
-                    searchable, deps.evidence_sources, store.manifest.speech_date
-                )
-            }
-            if searchable
-            else {}
-        )
+        date = store.manifest.speech_date
+        # Claims answered by the local base of indicators skip the web searches; the
+        # (free) fact-check API is still asked, to recognise published debunks.
+        local = {c.id: item for c in searchable if (item := local_evidence(c, deps.indicators))}
+        web = [c for c in searchable if c.id not in local]
+        found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
+        factcheck_only = [s for s in deps.evidence_sources if s.name == "factcheck"]
+        checked = collect_evidence([c for c in searchable if c.id in local], factcheck_only, date)
+        for e in checked:
+            items = [local[e.claim_id], *e.items]
+            found[e.claim_id] = e.model_copy(
+                update={
+                    "items": [i.model_copy(update={"id": f"E{n}"}) for n, i in enumerate(items, 1)]
+                }
+            )
+        indicator_hits.append(len(local))
         sources = deps.evidence_sources
         run = EvidenceRun(
             sources_used=[s.name for s in sources],
@@ -436,9 +460,18 @@ def build_steps(
         Step("transcript", transcript_step, version=TRANSCRIPT_VERSION if kind == "texto" else ""),
         Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
         Step("speaker_research", speaker_research_step, (RESEARCH_PROMPT,)),
-        Step("claims", claims_step, (CLAIMS_PROMPT,)),
+        Step(
+            "claims",
+            claims_step,
+            (CLAIMS_PROMPT,),
+            version=f"indicadores={deps.indicators.version(coverage=False)}",
+        ),
         Step("context", context_step, (CONTEXT_PROMPT,)),
-        Step("evidence", evidence_step),
+        Step(
+            "evidence",
+            evidence_step,
+            version=f"indicadores={deps.indicators.version(coverage=True)}",
+        ),
         # A different thinking setting is a different verdict: recompute, do not reuse.
         Step(
             "verdicts",

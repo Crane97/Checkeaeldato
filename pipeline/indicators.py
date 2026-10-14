@@ -11,6 +11,7 @@ las que se copian a mano de documentos oficiales (BOE, Seguridad Social) llegan 
 """
 
 import datetime as dt
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -127,6 +128,15 @@ class IndicatorBase:
 
     def usable(self) -> list[Indicator]:
         return [i for i in self.indicators.values() if i.usable]
+
+    def version(self, *, coverage: bool) -> str:
+        """Short hash of what the pipeline uses: the usable ids (detection) and, with
+        `coverage`, how far each series goes (evidence). Changing it recomputes the step."""
+        parts = [
+            f"{i.id}:{i.cubre_hasta.isoformat()}" if coverage else i.id
+            for i in sorted(self.usable(), key=lambda i: i.id)
+        ]
+        return hashlib.sha256("|".join(parts).encode()).hexdigest()[:12] if parts else ""
 
     def catalog(self) -> str:
         """One line per usable indicator, for the detection prompt."""

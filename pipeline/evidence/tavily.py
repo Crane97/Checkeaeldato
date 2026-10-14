@@ -42,6 +42,7 @@ class SearchStats:
     real: int = 0
     cached: int = 0
     credits: int = 0
+    indicator_hits: int = 0  # claims answered by the local base (counted by the pipeline)
 
 
 def _score(value: Any) -> float | None:

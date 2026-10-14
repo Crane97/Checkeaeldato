@@ -102,3 +102,12 @@ def test_file_name_must_match_the_id(tmp_path: Path):
 
 def test_bundled_indicators_are_valid():
     load_indicators(DEFAULT_INDICATORS_DIR)  # every versioned file parses and validates
+
+
+def test_version_changes_with_usable_indicators_and_coverage():
+    one = base(smi())
+    longer = base(smi(serie=[*smi()["serie"], obs("2020-01-01", "2020-12-31", 950)]))
+    pending = base(smi(estado="pendiente_revision"))
+    assert one.version(coverage=False) == longer.version(coverage=False)
+    assert one.version(coverage=True) != longer.version(coverage=True)
+    assert pending.version(coverage=True) == ""  # unreviewed data does not count

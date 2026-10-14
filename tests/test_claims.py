@@ -339,3 +339,38 @@ def test_claims_are_statements_by_default():
     transcript = video_transcript("El paro bajó un 15 %.")
     detection = run_detect(transcript, extracted(0, "El paro bajó un 15 %"))
     assert detection.claims[0].kind == "afirmacion"
+
+
+def test_indicator_and_years_travel_with_the_claim_and_the_catalog_reaches_the_model():
+    transcript = video_transcript("El paro EPA fue del 26,9 % en 2013.")
+    item = extracted(0, "El paro EPA fue del 26,9 % en 2013", indicator="paro_epa", years=[2013])
+    llm = FakeLLM(DetectionResult(claims=[item]))
+    detection = detect_claims(
+        transcript,
+        speech_date=DATE,
+        input_kind="video",
+        llm=llm,
+        model=MODEL,
+        indicator_catalog="- paro_epa: Tasa de paro (EPA)",
+    )
+    [claim] = detection.claims
+    assert (claim.indicator, claim.years) == ("paro_epa", [2013])
+    assert (
+        "<indicadores>\n- paro_epa: Tasa de paro (EPA)\n</indicadores>"
+        in llm.calls[0]["user_content"]
+    )
+
+
+def test_unknown_indicator_ids_are_dropped():
+    transcript = video_transcript("El paro bajó.")
+    item = extracted(0, "El paro bajó", indicator="inventado", years=[2013])
+    llm = FakeLLM(DetectionResult(claims=[item]))
+    detection = detect_claims(
+        transcript,
+        speech_date=DATE,
+        input_kind="video",
+        llm=llm,
+        model=MODEL,
+        indicator_catalog="- paro_epa: Tasa de paro (EPA)",
+    )
+    assert detection.claims[0].indicator is None
