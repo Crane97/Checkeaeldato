@@ -5,12 +5,13 @@
   "ambito": "España",
   "periodicidad": "anual (diciembre) hasta 2025; mensual desde 2026",
   "origen": "seguridad_social",
-  "estado": "pendiente_revision",
+  "estado": "revisado",
   "actualizado": "2026-10-13",
   "notas": [
     "Sistema de la Seguridad Social: pensiones contributivas gestionadas por el INSS y el ISM. No incluye pensiones no contributivas ni clases pasivas del Estado.",
-    "Hasta 2025, dato del mes de diciembre de cada año; en 2026, dato mensual. Es un número en vigor en ese mes, no una media anual.",
-    "Un pensionista puede cobrar varias pensiones: se cuenta una vez (ver «pensiones»)."
+    "Número en alta a día 1 del mes indicado (el «diciembre» de cada año es a 1 de diciembre; el dato a 31 de diciembre coincide con el de 1 de enero siguiente). Hasta 2025 solo está diciembre; desde 2026, todos los meses. No es una media anual.",
+    "Un pensionista puede cobrar varias pensiones: se cuenta una vez (ver «pensiones»).",
+    "Serie mensual completa anterior a 2026 solo disponible en la aplicación eSTADISS de la Seguridad Social (no descargable de forma automática); revisado por el responsable del proyecto el 2026-10-13."
   ],
   "serie": [
     {

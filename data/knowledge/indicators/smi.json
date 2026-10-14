@@ -5,13 +5,14 @@
   "ambito": "España",
   "periodicidad": "anual (fijado por real decreto; puede cambiar a mitad de año)",
   "origen": "boe",
-  "estado": "pendiente_revision",
+  "estado": "revisado",
   "actualizado": "2026-10-13",
   "notas": [
     "Cuantía mensual en 14 pagas, tal como la fija el artículo 1 de cada real decreto. Anual = 14 × mensual.",
     "2004: 460,50 € de enero a junio (RD 1793/2003) y 490,80 € desde el 1 de julio (RD-ley 3/2004).",
     "2021: el SMI de 2020 (950 €) se prorrogó del 1 de enero al 31 de agosto (DA 6.ª del RD-ley 38/2020); 965 € desde el 1 de septiembre (RD 817/2021).",
-    "Cuantías extraídas del texto oficial de cada real decreto (XML del BOE) el 2026-10-13."
+    "Cuantías extraídas del texto oficial de cada real decreto (XML del BOE) el 2026-10-13.",
+    "Revisado por el responsable del proyecto el 2026-10-13."
   ],
   "serie": [
     {
