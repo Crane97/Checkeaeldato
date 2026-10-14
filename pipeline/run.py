@@ -15,6 +15,7 @@ from pipeline.config import ConfigError, LlmStep, Settings
 from pipeline.context import PROMPT as CONTEXT_PROMPT
 from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
+from pipeline.duplicates import mark_duplicates, with_repetitions
 from pipeline.evidence.base import EvidenceSource, collect_evidence
 from pipeline.evidence.local import local_evidence
 from pipeline.evidence.search_cache import SearchCache
@@ -338,6 +339,8 @@ def build_steps(
                 model=deps.model_for("verdict"),
                 governments=default_governments(),
             )
+            # Repetitions of the same claim by the same speaker are verified once.
+            resolved = resolved.model_copy(update={"claims": mark_duplicates(resolved.claims)})
             store.write("context.json", resolved, ClaimDetection)
             return not resolved.context_errors
 
@@ -359,7 +362,11 @@ def build_steps(
         claims = store.read("context.json", ClaimDetection).claims
         # Unresolved claims are no_verificable anyway: don't spend searches on them.
         # Promises are assessed for feasibility, which does not depend on who made them.
-        searchable = [c for c in claims if c.kind == "promesa" or c.context_status != "no_resuelto"]
+        searchable = [
+            c
+            for c in claims
+            if not c.duplicate_of and (c.kind == "promesa" or c.context_status != "no_resuelto")
+        ]
         date = store.manifest.speech_date
         # Claims answered by the local base of indicators skip the web searches; the
         # (free) fact-check API is still asked, to recognise published debunks.
@@ -387,12 +394,11 @@ def build_steps(
 
     def verdicts_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
+            claims = [
+                c for c in store.read("context.json", ClaimDetection).claims if c.kind != "promesa"
+            ]
             verdicts = decide_verdicts(
-                [
-                    c
-                    for c in store.read("context.json", ClaimDetection).claims
-                    if c.kind != "promesa"
-                ],
+                [c for c in claims if not c.duplicate_of],
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
@@ -405,6 +411,7 @@ def build_steps(
                     store.manifest.speech_date,
                 ),
             )
+            verdicts = with_repetitions(claims, verdicts)
             store.write("verdicts.json", verdicts, list[Verdict])
             return not any(v.analysis_error for v in verdicts)
 
@@ -412,17 +419,17 @@ def build_steps(
 
     def promises_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
+            promises = [
+                c for c in store.read("context.json", ClaimDetection).claims if c.kind == "promesa"
+            ]
             results = assess_promises(
-                [
-                    c
-                    for c in store.read("context.json", ClaimDetection).claims
-                    if c.kind == "promesa"
-                ],
+                [c for c in promises if not c.duplicate_of],
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
             )
+            results = with_repetitions(promises, results)
             store.write("promises.json", results, list[PromiseVerdict])
             return not any(r.analysis_error for r in results)
 
@@ -466,7 +473,7 @@ def build_steps(
             (CLAIMS_PROMPT,),
             version=f"indicadores={deps.indicators.version(coverage=False)}",
         ),
-        Step("context", context_step, (CONTEXT_PROMPT,)),
+        Step("context", context_step, (CONTEXT_PROMPT,), version="repeticiones=1"),
         Step(
             "evidence",
             evidence_step,

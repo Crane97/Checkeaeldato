@@ -193,6 +193,8 @@ class ClaimBase(BaseModel):
     time_scope: list[DateRange] = Field(default_factory=list)
     resolution_confidence: float | None = None
     resolution_notes: str | None = None
+    # Repetition of an earlier claim of the same speaker: shares its verdict (see duplicates.py).
+    duplicate_of: str | None = None
 
     @model_validator(mode="after")
     def _valid_range(self) -> Self:

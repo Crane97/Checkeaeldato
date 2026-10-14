@@ -91,6 +91,9 @@ function renderClaim(claim, speakers) {
     card.append(el("ul", { class: "sources" }, ...claim.sources.map((s) => el("li", {},
       `${s.organization} — `, safeLink(s.url, s.title), s.date ? ` (${s.date})` : ""))));
   }
+  if (claim.duplicate_of) {
+    card.append(el("p", { class: "meta" }, `Repite una afirmación anterior del mismo orador (${claim.duplicate_of}): se verificó una sola vez.`));
+  }
   if (claim.needs_review) {
     card.append(el("p", { class: "note" }, "Pendiente de revisión humana: el análisis automático no fue coherente."));
   }
