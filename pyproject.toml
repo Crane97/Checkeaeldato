@@ -18,6 +18,7 @@ dependencies = [
 [project.scripts]
 verificar = "pipeline.cli:app"
 verificar-web = "pipeline.web.app:main"
+conocimiento = "pipeline.knowledge.cli:app"
 
 [dependency-groups]
 dev = [
@@ -48,6 +49,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "supabase: integration test against the DEVELOPMENT Supabase Postgres (inside a rolled-back transaction)",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pipeline"]

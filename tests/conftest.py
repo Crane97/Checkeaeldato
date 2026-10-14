@@ -10,9 +10,12 @@ import socket
 import subprocess
 from pathlib import Path
 
+import psycopg
 import pytest
 
 from pipeline.config import Settings, get_settings
+
+REPO = Path(__file__).resolve().parent.parent
 
 SECRET_VARS = (
     "TAVILY_API_KEY",
@@ -20,6 +23,7 @@ SECRET_VARS = (
     "ANTHROPIC_API_KEY",
     "TRANSCRIPTION_API_KEY",
     "SMTP_PASSWORD",
+    "SUPABASE_DB_URL",
 )
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "testserver"}
 
@@ -45,12 +49,19 @@ def _no_real_keys(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
-def _no_real_network(monkeypatch: pytest.MonkeyPatch) -> None:
+def _no_real_network(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
     real_getaddrinfo = socket.getaddrinfo
     real_connect = socket.socket.connect
+    # Integration tests marked `supabase` may resolve the dev project's host, nothing else.
+    supabase = request.node.get_closest_marker("supabase") is not None
+
+    def allowed(host: str) -> bool:
+        return host in _LOCAL_HOSTS or (
+            supabase and host.endswith((".supabase.co", ".supabase.com"))
+        )
 
     def guarded_getaddrinfo(host, *args, **kwargs):
-        if host is not None and str(host) not in _LOCAL_HOSTS:
+        if host is not None and not allowed(str(host)):
             raise RealNetworkInTest(f"petición sin mock a {host}")
         return real_getaddrinfo(host, *args, **kwargs)
 
@@ -76,3 +87,27 @@ def _no_real_claude_code(monkeypatch: pytest.MonkeyPatch) -> None:
         return real_run(cmd, *args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", guarded_run)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_database(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """psycopg connects through libpq (C), which the socket guard above cannot see: block it
+    unless the test is marked `supabase` (integration tests against the dev project)."""
+    if request.node.get_closest_marker("supabase"):
+        return
+
+    def blocked(*args, **kwargs):
+        raise RealNetworkInTest("conexión a Postgres sin el marcador @pytest.mark.supabase")
+
+    monkeypatch.setattr(psycopg, "connect", blocked)
+    monkeypatch.setattr(psycopg.Connection, "connect", classmethod(lambda cls, *a, **k: blocked()))
+
+
+@pytest.fixture
+def supabase_url() -> str:
+    """Connection string of the DEVELOPMENT project, read from the real .env; the test is
+    skipped when it is not configured."""
+    settings = Settings(_env_file=REPO / ".env")
+    if settings.supabase_db_url is None:
+        pytest.skip("SUPABASE_DB_URL no está configurada")
+    return settings.supabase_db_url.get_secret_value()
