@@ -9,7 +9,8 @@ from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
 VerdictLabel = Literal["verdadero", "verdad_a_medias", "confusion", "falso", "no_verificable"]
-SourceKind = Literal["factcheck", "oficial", "web"]
+# "indicador_local": official series kept in data/knowledge/indicators (no web search).
+SourceKind = Literal["factcheck", "oficial", "indicador_local", "web"]
 # "promesa": a concrete commitment about the future; assessed for feasibility, not truth.
 ClaimKind = Literal["afirmacion", "promesa"]
 PromiseLabel = Literal["viable", "dudosa", "inviable", "no_evaluable"]
@@ -45,7 +46,7 @@ CATEGORIES: tuple[Category, ...] = (
     "falso_con_fuente_oficial",
 )
 # Public bodies and professional fact-checkers count as "fuente oficial".
-RELIABLE_KINDS: frozenset[str] = frozenset({"oficial", "factcheck"})
+RELIABLE_KINDS: frozenset[str] = frozenset({"oficial", "factcheck", "indicador_local"})
 
 
 def _check_time_range(start: float | None, end: float | None) -> None:
@@ -327,7 +328,9 @@ class VerdictFields(BaseModel):
     def basis(self) -> SourceKind | None:
         """Strongest kind of source the verdict rests on: factcheck > oficial > web."""
         kinds = {s.kind for s in self.sources}
-        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+        return next(
+            (k for k in ("factcheck", "oficial", "indicador_local", "web") if k in kinds), None
+        )
 
     @computed_field
     @property
@@ -398,7 +401,9 @@ class PromiseFields(BaseModel):
     @property
     def basis(self) -> SourceKind | None:
         kinds = {s.kind for s in self.sources}
-        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+        return next(
+            (k for k in ("factcheck", "oficial", "indicador_local", "web") if k in kinds), None
+        )
 
     @field_validator("explanation", "consequences_sourced", "consequences_reasoning")
     @classmethod
@@ -486,7 +491,7 @@ class Report(BaseModel):
     @computed_field
     @property
     def by_basis(self) -> dict[str, int]:
-        counts = {"factcheck": 0, "oficial": 0, "web": 0, "sin_fuente": 0}
+        counts = {"factcheck": 0, "oficial": 0, "indicador_local": 0, "web": 0, "sin_fuente": 0}
         for c in self.claims:
             counts[c.basis or "sin_fuente"] += 1
         return counts

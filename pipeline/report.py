@@ -37,6 +37,7 @@ BASIS_NAMES = {
     "factcheck": "desmentido publicado",
     "oficial": "oficial",
     "web": "solo web",
+    "indicador_local": "serie oficial local",
     "sin_fuente": "sin fuente",
 }
 

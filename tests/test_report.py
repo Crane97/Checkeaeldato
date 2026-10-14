@@ -79,7 +79,13 @@ def test_merges_claims_and_verdicts_in_order():
     assert first.sources == [INE]
     assert report.by_verdict["verdadero"] == 1
     assert report.by_speaker["Candidata A"]["verdadero"] == 1
-    assert report.by_basis == {"factcheck": 0, "oficial": 1, "web": 0, "sin_fuente": 1}
+    assert report.by_basis == {
+        "factcheck": 0,
+        "oficial": 1,
+        "indicador_local": 0,
+        "web": 0,
+        "sin_fuente": 1,
+    }
     assert report.input_kind == "video"
     assert "search_queries" not in report.model_dump()["claims"][0]
 

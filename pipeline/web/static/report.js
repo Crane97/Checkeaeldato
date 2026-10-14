@@ -18,6 +18,7 @@ const OBSTACLES = {
 };
 const BASIS = {
   factcheck: "desmentido publicado", oficial: "fuente oficial", web: "solo web", sin_fuente: "sin fuente",
+  indicador_local: "serie oficial local",
 };
 
 const $ = (id) => document.getElementById(id);

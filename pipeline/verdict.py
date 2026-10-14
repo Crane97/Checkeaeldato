@@ -38,7 +38,7 @@ MAX_FOLLOW_UP_QUERIES = 3
 # reliable sources first; the full evidence stays in evidence.json.
 MAX_EVIDENCE_ITEMS = 8
 VERDICT_EXCERPT_CHARS = 2500
-_KIND_PRIORITY = {"factcheck": 0, "oficial": 1, "web": 2}
+_KIND_PRIORITY = {"factcheck": 0, "indicador_local": 1, "oficial": 1, "web": 2}
 
 # (claim, queries, first evidence number) -> (new items numbered from it, errors)
 FollowUpSearch = Callable[[DetectedClaim, list[str], int], tuple[list[EvidenceItem], list[str]]]
@@ -247,6 +247,8 @@ def _primary_sources() -> tuple[str, ...]:
 
 def _source_rank(item: EvidenceItem) -> int:
     """Primary sources (legal texts, statistics) first, then other official, fact-checks, web."""
+    if item.source.kind == "indicador_local":  # compiled from primary sources (BOE, INE…)
+        return 0
     if item.source.kind == "oficial":
         return 0 if is_primary(item.source.url, list(_primary_sources())) else 1
     return {"factcheck": 2, "web": 3}.get(item.source.kind, 4)
