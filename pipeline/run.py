@@ -17,7 +17,7 @@ from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
 from pipeline.duplicates import mark_duplicates, with_repetitions
 from pipeline.evidence.base import EvidenceSource, collect_evidence
-from pipeline.evidence.local import local_evidence, partial_local_evidence
+from pipeline.evidence.local import local_evidence, on_demand_evidence, partial_local_evidence
 from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
@@ -25,6 +25,7 @@ from pipeline.indicators import IndicatorBase, load_indicators
 
 if TYPE_CHECKING:
     from pipeline.knowledge.local_base import KnowledgeIndicatorBase
+    from pipeline.knowledge.on_demand import OnDemandSeries
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, prompt_hash, run_steps
 from pipeline.knowledge.verdict_store import verdict_rows
 from pipeline.llm import ThinkingConfig
@@ -265,6 +266,20 @@ class LiveDeps:
         return CombinedDirectory(cache, database)
 
     @cached_property
+    def on_demand(self) -> "OnDemandSeries":
+        """Official APIs (INE, Eurostat) for periods the local base does not cover."""
+        import httpx
+
+        from pipeline.knowledge.catalog import load_catalog
+        from pipeline.knowledge.on_demand import OnDemandSeries
+
+        return OnDemandSeries(
+            load_catalog(),
+            lambda: httpx.Client(timeout=60, follow_redirects=True),
+            today=dt.date.today(),
+        )
+
+    @cached_property
     def speaker_search(self) -> SpeakerSearch | None:
         if self.tavily is None:
             return None
@@ -460,6 +475,12 @@ def build_steps(
         # (free) fact-check API is still asked, to recognise published debunks.
         base = deps.indicators.at(date)  # what was published on the speech date
         local = {c.id: item for c in searchable if (item := local_evidence(c, base, date))}
+        # Not in the local base: the official API, fetched now, before any web search.
+        on_demand = getattr(deps, "on_demand", None)
+        if on_demand is not None:
+            for c in searchable:
+                if c.id not in local and (item := on_demand_evidence(c, on_demand, date)):
+                    local[c.id] = item
         web = [c for c in searchable if c.id not in local]
         found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
         # Partly covered: the web search ran, and the covered part of the series goes first.
@@ -487,6 +508,7 @@ def build_steps(
         sources = deps.evidence_sources
         base_warnings = [w for w in [getattr(deps, "knowledge_warning", None)] if w]
         base_warnings += list(getattr(deps.indicators, "problems", []))
+        base_warnings += list(getattr(on_demand, "errors", []))
         run = EvidenceRun(
             sources_used=[s.name for s in sources],
             sources_disabled=deps.disabled_sources,

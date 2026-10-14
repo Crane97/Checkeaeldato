@@ -124,3 +124,24 @@ def test_long_series_excerpt_keeps_every_value_compactly():
     assert "2008T1 10" in item.excerpt and "2017T3 13,8" in item.excerpt  # the middle is kept
     assert item.excerpt.count("Real Decreto 1077/2017") == 1  # one shared source, written once
     assert len(item.excerpt) < 3000
+
+
+def test_excerpts_carry_the_arithmetic_done_by_the_system():
+    item = base(smi()).evidence("smi", D(2018, 1, 1), D(2019, 12, 31))
+    summary = item.excerpt.split("Cálculo del sistema")[1]
+    # The value before the period (2017) is shown for context, not counted.
+    assert "de 2018 (735,9) a 2019 (900)" in summary
+    assert "+164,1 euros/mes (14 pagas) (+22,3 %)" in summary
+    assert "máximo 900 (2019)" in summary and "mínimo 735,9 (2018)" in summary
+
+
+def test_rates_change_in_points_and_one_value_has_no_summary():
+    paro = smi(
+        id="paro", nombre="Tasa de paro", unidad="% de la población activa",
+        serie=[obs("2012-01-01", "2012-12-31", 24.8), obs("2013-01-01", "2013-12-31", 26.1),
+               obs("2014-01-01", "2014-12-31", 24.4)],
+    )  # fmt: skip
+    item = base(paro).evidence("paro", D(2013, 1, 1), D(2014, 12, 31))
+    assert "−1,7 puntos" in item.excerpt and "%)" not in item.excerpt.split("Cálculo")[1]
+    single = base(paro).evidence("paro", D(2013, 1, 1), D(2013, 12, 31))
+    assert "Cálculo del sistema" not in single.excerpt

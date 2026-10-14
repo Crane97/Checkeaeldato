@@ -151,6 +151,31 @@ def _excerpt(ind: "Indicator", rows: list[Observation]) -> str:
     )
 
 
+def _signed(value: float) -> str:
+    return ("+" if value > 0 else "−" if value < 0 else "") + _number(abs(value))
+
+
+def _summary(ind: "Indicator", start: dt.date, end: dt.date) -> str:
+    """Arithmetic done in Python for the claim's period, so the verdict does not have to:
+    first and last value, the change (points for rates, also % for levels), extremes."""
+    inside = [o for o in ind.serie if o.desde <= end and o.hasta >= start]
+    if len(inside) < 2:
+        return ""
+    first, last = inside[0], inside[-1]
+    diff = last.valor - first.valor
+    rate = ind.unidad.startswith("%")
+    change = f"{_signed(diff)} puntos" if rate else f"{_signed(diff)} {ind.unidad}"
+    if not rate and first.valor:
+        change += f" ({_signed(diff / abs(first.valor) * 100)} %)"
+    high = max(inside, key=lambda o: o.valor)
+    low = min(inside, key=lambda o: o.valor)
+    return (
+        f" Cálculo del sistema para el periodo: de {_period(first)} ({_number(first.valor)}) a"
+        f" {_period(last)} ({_number(last.valor)}), {change}; máximo {_number(high.valor)}"
+        f" ({_period(high)}), mínimo {_number(low.valor)} ({_period(low)})."
+    )
+
+
 @dataclass(frozen=True)
 class IndicatorBase:
     indicators: dict[str, Indicator]
@@ -201,7 +226,7 @@ class IndicatorBase:
         if ind is None or not ind.usable or not ind.covers(start, end):
             return None
         rows = ind.window(start, end)
-        excerpt = _excerpt(ind, rows)
+        excerpt = _excerpt(ind, rows) + _summary(ind, start, end)
         last = rows[-1].fuente
         ids = [o.observation_id for o in rows if o.observation_id is not None]
         return EvidenceItem(

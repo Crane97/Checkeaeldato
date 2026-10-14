@@ -20,6 +20,7 @@ import httpx
 import psycopg
 
 from pipeline.indicator_update import (
+    SINCE_YEAR,
     SPECS,
     EurostatSpec,
     IndicatorUpdateError,
@@ -47,7 +48,9 @@ class IngestError(RuntimeError):
     """An indicator cannot be ingested (catalog without a source code, bad answer…)."""
 
 
-def _ine(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indicator:
+def _ine(
+    spec: IndicatorSpec, client: httpx.Client, today: dt.date, since_year: int = SINCE_YEAR
+) -> Indicator:
     if not spec.codigo_fuente:
         raise IngestError(f"{spec.id}: el catálogo no tiene codigo_fuente")
     periodicity = "puntual" if spec.frecuencia == "puntual" else _PERIODICITY[spec.frecuencia]
@@ -60,7 +63,7 @@ def _ine(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indicator
         documento=spec.nombre,
         periodicidad=periodicity,  # type: ignore[arg-type]
     )
-    ind = build_ine(ine, client, today=today)
+    ind = build_ine(ine, client, today=today, since_year=since_year)
     if not ine.tabla:  # no known table: link to the series itself
         url = INE_SERIES_URL.format(cod=spec.codigo_fuente)
         for o in ind.serie:
@@ -68,7 +71,9 @@ def _ine(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indicator
     return ind
 
 
-def _eurostat(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indicator:
+def _eurostat(
+    spec: IndicatorSpec, client: httpx.Client, today: dt.date, since_year: int = SINCE_YEAR
+) -> Indicator:
     if not spec.codigo_fuente or "?" not in spec.codigo_fuente:
         raise IngestError(f"{spec.id}: codigo_fuente de Eurostat debe ser dataset?filtro=valor&…")
     dataset, query = spec.codigo_fuente.split("?", 1)
@@ -78,10 +83,13 @@ def _eurostat(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indi
                      filtros=filters),
         client,
         today=today,
+        since_year=since_year,
     )  # fmt: skip
 
 
-def _social_security(spec: IndicatorSpec, client: httpx.Client, today: dt.date) -> Indicator:
+def _social_security(
+    spec: IndicatorSpec, client: httpx.Client, today: dt.date, since_year: int = SINCE_YEAR
+) -> Indicator:
     if spec.id != "afiliacion_ss" or not spec.codigo_fuente:
         raise IngestError(f"{spec.id}: no hay conector de la Seguridad Social para él")
     old, new = spec.codigo_fuente.split(",")

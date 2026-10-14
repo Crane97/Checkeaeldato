@@ -47,3 +47,17 @@ def partial_local_evidence(claim: DetectedClaim, base: IndicatorBase) -> Evidenc
         return None
     period = claim_period(claim)
     return base.partial_evidence(claim.indicator, *period) if period else None
+
+
+def on_demand_evidence(claim: DetectedClaim, source, speech_date: dt.date) -> EvidenceItem | None:
+    """The official API's series when the local base does not cover the claim's period
+    (`source` is an OnDemandSeries). Promises and claims without indicator: None."""
+    if claim.kind == "promesa" or not claim.indicator:
+        return None
+    period = claim_period(claim)
+    if period is None:
+        return None
+    start, end = period[0], min(period[1], speech_date)
+    if end < start:
+        return None
+    return source.evidence(claim.indicator, start, end)

@@ -197,7 +197,9 @@ def _ine_start(point: dict) -> dt.date | None:
     return None
 
 
-def build_ine(spec: IneSpec, client: httpx.Client, *, today: dt.date) -> Indicator:
+def build_ine(
+    spec: IneSpec, client: httpx.Client, *, today: dt.date, since_year: int = SINCE_YEAR
+) -> Indicator:
     data = _get(client, INE_URL.format(cod=spec.cod)).json()
     points = data.get("Data") if isinstance(data, dict) else None
     if not points:
@@ -209,7 +211,7 @@ def build_ine(spec: IneSpec, client: httpx.Client, *, today: dt.date) -> Indicat
         if p.get("Valor") is None:
             continue
         start = _ine_start(p)
-        if start is None or start.year < SINCE_YEAR:
+        if start is None or start.year < since_year:
             continue
         serie.append(
             Observation(
@@ -233,8 +235,10 @@ def build_ine(spec: IneSpec, client: httpx.Client, *, today: dt.date) -> Indicat
     )
 
 
-def build_eurostat(spec: EurostatSpec, client: httpx.Client, *, today: dt.date) -> Indicator:
-    params = {"geo": "ES", "sinceTimePeriod": str(SINCE_YEAR), **spec.filtros}
+def build_eurostat(
+    spec: EurostatSpec, client: httpx.Client, *, today: dt.date, since_year: int = SINCE_YEAR
+) -> Indicator:
+    params = {"geo": "ES", "sinceTimePeriod": str(since_year), **spec.filtros}
     data = _get(client, EUROSTAT_URL + spec.dataset, params=params).json()
     try:
         years = data["dimension"]["time"]["category"]["index"]
