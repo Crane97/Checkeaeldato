@@ -39,3 +39,11 @@ def local_evidence(
     if end < start:
         return None
     return base.evidence(claim.indicator, start, end)
+
+
+def partial_local_evidence(claim: DetectedClaim, base: IndicatorBase) -> EvidenceItem | None:
+    """The part of the claim's period the base covers, when it does not cover all of it."""
+    if claim.kind == "promesa" or not claim.indicator:
+        return None
+    period = claim_period(claim)
+    return base.partial_evidence(claim.indicator, *period) if period else None

@@ -71,3 +71,14 @@ def test_current_year_claims_use_the_latest_published_value():
 def test_current_year_claims_need_a_base_refreshed_after_the_speech():
     stale = IndicatorBase({"paro_epa": PARO.model_copy(update={"actualizado": D(2014, 1, 1)})})
     assert local_evidence(claim(years=[2015]), stale, speech_date=D(2015, 3, 1)) is None
+
+
+def test_partial_coverage_gives_the_covered_part_but_still_searches():
+    from pipeline.evidence.local import partial_local_evidence
+
+    wide = claim(years=[2010, 2013])  # the series starts in 2012
+    assert local_evidence(wide, BASE) is None  # not enough to skip the web search
+    item = partial_local_evidence(wide, BASE)
+    assert item is not None and "25,8" in item.excerpt and "26,1" in item.excerpt
+    assert "solo cubre" in item.excerpt  # the model is told the series is incomplete
+    assert partial_local_evidence(claim(years=[1990]), BASE) is None  # no overlap at all

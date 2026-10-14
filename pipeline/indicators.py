@@ -171,6 +171,26 @@ class IndicatorBase:
             for i in self.usable()
         )
 
+    def partial_evidence(
+        self, indicator_id: str, start: dt.date, end: dt.date
+    ) -> EvidenceItem | None:
+        """The covered part of [start, end] when the series covers only part of it, so the
+        data we have is not lost; the web search still runs for the rest."""
+        ind = self.indicators.get(indicator_id)
+        if ind is None or not ind.usable or ind.covers(start, end):
+            return None
+        lo, hi = max(start, ind.cubre_desde), min(end, ind.cubre_hasta)
+        if lo > hi:
+            return None
+        item = self.evidence(indicator_id, lo, hi)
+        if item is None:
+            return None
+        warning = (
+            f" Atención: esta serie solo cubre de {ind.cubre_desde:%d/%m/%Y} a "
+            f"{ind.cubre_hasta:%d/%m/%Y}; el resto del periodo debe salir de otras fuentes."
+        )
+        return item.model_copy(update={"excerpt": item.excerpt + warning})
+
     def evidence(self, indicator_id: str, start: dt.date, end: dt.date) -> EvidenceItem | None:
         """Local evidence for [start, end], or None if unknown, unreviewed or not covered."""
         ind = self.indicators.get(indicator_id)

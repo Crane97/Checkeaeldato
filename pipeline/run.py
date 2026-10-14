@@ -17,7 +17,7 @@ from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
 from pipeline.duplicates import mark_duplicates, with_repetitions
 from pipeline.evidence.base import EvidenceSource, collect_evidence
-from pipeline.evidence.local import local_evidence
+from pipeline.evidence.local import local_evidence, partial_local_evidence
 from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
@@ -379,6 +379,18 @@ def build_steps(
         }
         web = [c for c in searchable if c.id not in local]
         found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
+        # Partly covered: the web search ran, and the covered part of the series goes first.
+        for c in web:
+            part = partial_local_evidence(c, deps.indicators)
+            if part is not None and c.id in found:
+                items = [part, *found[c.id].items]
+                found[c.id] = found[c.id].model_copy(
+                    update={
+                        "items": [
+                            i.model_copy(update={"id": f"E{n}"}) for n, i in enumerate(items, 1)
+                        ]
+                    }
+                )
         factcheck_only = [s for s in deps.evidence_sources if s.name == "factcheck"]
         checked = collect_evidence([c for c in searchable if c.id in local], factcheck_only, date)
         for e in checked:
@@ -483,7 +495,7 @@ def build_steps(
         Step(
             "evidence",
             evidence_step,
-            version=f"indicadores={deps.indicators.version(coverage=True)};regla=3",
+            version=f"indicadores={deps.indicators.version(coverage=True)};regla=4",
         ),
         # A different thinking setting is a different verdict: recompute, do not reuse.
         Step(
