@@ -168,3 +168,27 @@ def test_summary_lists_half_truths():
     detection = ClaimDetection(claims=[detected("c001", "speaker_0")])
     report = build(detection, [verdict("c001", "verdad_a_medias", [INE])])
     assert "Verdad a medias" in format_summary(report, report_path="r.json")
+
+
+def test_search_metrics_have_totals_indicator_hits_and_a_line_per_step():
+    from pipeline.models import CostEntry
+    from pipeline.report import format_searches
+
+    entries = [
+        CostEntry(step="speaker_research", provider="tavily", searches=2, credits=2, usd=0),
+        CostEntry(
+            step="evidence", provider="tavily", searches=10, cached_searches=6, credits=10, usd=0
+        ),
+        CostEntry(step="evidence", provider="indicadores", indicator_hits=4, usd=0),
+        CostEntry(
+            step="verdicts", provider="tavily", searches=1, cached_searches=2, credits=1, usd=0
+        ),
+        CostEntry(step="verdicts", provider="anthropic", model="m", usd=0.1),
+    ]
+    text = format_searches(entries)
+    assert text.splitlines()[0] == (
+        "Búsquedas Tavily: 13 reales (13 créditos), 8 desde caché, 4 desde la base de indicadores"
+    )
+    assert "    evidence: 10 reales, 6 desde caché, 4 desde la base de indicadores" in text
+    assert "    speaker_research: 2 reales, 0 desde caché" in text
+    assert "verdicts: 1 real, 2 desde caché" in text

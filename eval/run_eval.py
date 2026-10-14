@@ -31,7 +31,7 @@ from pipeline.evidence.base import collect_evidence
 from pipeline.jobs import prompt_hash
 from pipeline.models import Claim, DetectedClaim, Promise, Report, RunCost, Verdict
 from pipeline.promises import assess_promises
-from pipeline.report import format_summary
+from pipeline.report import format_searches, format_summary
 from pipeline.run import PROMPTS_DIR, LiveDeps, follow_up_search, run_job
 from pipeline.verdict import decide_verdicts
 
@@ -134,6 +134,23 @@ def _run_verdict_only(case: GoldCase, deps: LiveDeps) -> Report:
     )
 
 
+def _search_metrics(deps: LiveDeps) -> dict:
+    """Real searches, cache hits and indicator-base hits of this run, total and per step."""
+
+    def counts(entries: list) -> dict[str, int]:
+        return {
+            "reales": sum(e.searches for e in entries),
+            "cache": sum(e.cached_searches for e in entries),
+            "base_indicadores": sum(e.indicator_hits for e in entries),
+        }
+
+    steps = dict.fromkeys(e.step for e in deps.search_entries)
+    return {
+        **counts(deps.search_entries),
+        "por_paso": {s: counts([e for e in deps.search_entries if e.step == s]) for s in steps},
+    }
+
+
 def _rate(value: float | None) -> str:
     return "—" if value is None else f"{value:.0%}"
 
@@ -228,10 +245,7 @@ def main(
             f"valoración {_rate(summary.promise_accuracy)} "
             f"({summary.promises_correct}/{summary.promises_checked})"
         )
-    typer.echo(
-        f"Búsquedas Tavily: {deps.searches.real} reales ({deps.searches.credits} créditos), "
-        f"{deps.searches.cached} desde caché"
-    )
+    typer.echo(format_searches(deps.search_entries, "Búsquedas en esta evaluación"))
     if any(r.synthetic for r in results):
         typer.echo("Aviso: hay casos sintéticos; sus métricas no miden calidad real.")
 
@@ -258,6 +272,7 @@ def main(
                     "opiniones_detectadas": summary.false_positives,
                     "extra": summary.extra_detected,
                     "veredicto_por_afirmacion": per_claim,
+                    "busquedas": _search_metrics(deps),
                     "pendientes_revision": review,
                     "razonamiento": deps.verdict_thinking.label()
                     if deps.verdict_thinking

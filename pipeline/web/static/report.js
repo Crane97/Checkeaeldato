@@ -201,12 +201,12 @@ function renderReport(report) {
   const basis = Object.entries(report.by_basis).filter(([, n]) => n).map(([k, n]) => `${BASIS[k]}: ${n}`);
   $("base").textContent = basis.length ? `En qué se apoyan los veredictos — ${basis.join(", ")}` : "";
   const plan = report.cost.entries.some((e) => e.provider === "claude-code");
-  const searches = report.cost.entries.filter((e) => e.provider === "tavily");
+  const searches = report.cost.entries.filter((e) => e.provider === "tavily" || e.provider === "indicadores");
   const sum = (key) => searches.reduce((n, e) => n + e[key], 0);
   $("coste").textContent = `Coste estimado: ${report.cost.total_usd.toFixed(4)} $` +
     (plan ? " (equivalente orientativo, cubierto por el plan de Claude)" : "") +
     (searches.length ? ` · Búsquedas web: ${sum("searches")} reales (${sum("credits")} créditos), ` +
-      `${sum("cached_searches")} desde caché` : "");
+      `${sum("cached_searches")} desde caché, ${sum("indicator_hits")} desde la base de indicadores` : "");
   $("avisos").replaceChildren(...report.warnings.map((w) => el("li", {}, w)));
 
   renderSpeakers(report);

@@ -159,7 +159,8 @@ def main(
     searches = deps.searches
     typer.echo(
         f"Búsquedas Tavily en esta ejecución: {searches.real} reales "
-        f"({searches.credits} créditos), {searches.cached} desde caché"
+        f"({searches.credits} créditos), {searches.cached} desde caché, "
+        f"{searches.indicator_hits} desde la base de indicadores"
         + (" (caché sin leer: --no-cache)" if no_cache else "")
     )
     if email:

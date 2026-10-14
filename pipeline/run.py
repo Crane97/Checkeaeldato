@@ -69,8 +69,9 @@ class Deps(Protocol):
     transcriber: Transcriber
     evidence_sources: list[EvidenceSource]
     disabled_sources: list[str]
-    # Web searches of this run, all steps (for the summary at the end).
+    # Web searches of this run, all steps (for the summary at the end), and per step.
     searches: SearchStats
+    search_entries: list[CostEntry]
     # Claude's thinking in the verdict step (VERDICT_THINKING…); None: model default.
     verdict_thinking: ThinkingConfig | None
     # Local base of official series (data/knowledge/indicators).
@@ -95,6 +96,7 @@ class LiveDeps:
         self.use_cache = use_cache
         # Searches of this run (all steps), for the summary at the end.
         self.searches = SearchStats()
+        self.search_entries: list[CostEntry] = []
 
     def model_for(self, step: LlmStep) -> str:
         return self.settings.model_for(step)
@@ -153,7 +155,9 @@ class LiveDeps:
         self.searches.real += stats.real
         self.searches.cached += stats.cached
         self.searches.credits += stats.credits
-        return [search_cost(step, real=stats.real, cached=stats.cached, credits=stats.credits)]
+        entry = search_cost(step, real=stats.real, cached=stats.cached, credits=stats.credits)
+        self.search_entries.append(entry)
+        return [entry]
 
     @cached_property
     def _sources(self) -> tuple[list[EvidenceSource], list[str]]:
@@ -352,10 +356,10 @@ def build_steps(
         outcome = _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
         hits = indicator_hits.pop() if indicator_hits else 0
         if hits:
-            outcome.cost.append(
-                CostEntry(step="evidence", provider="indicadores", indicator_hits=hits, usd=0)
-            )
+            entry = CostEntry(step="evidence", provider="indicadores", indicator_hits=hits, usd=0)
+            outcome.cost.append(entry)
             deps.searches.indicator_hits += hits
+            deps.search_entries.append(entry)
         return outcome
 
     def _evidence(store: JobStore) -> bool:

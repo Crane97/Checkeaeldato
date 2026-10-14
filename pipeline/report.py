@@ -156,16 +156,34 @@ def build_report(
     )
 
 
-def format_searches(entries: list[CostEntry], label: str = "Búsquedas Tavily") -> str:
+def _search_counts(entries: list[CostEntry]) -> str:
     real = sum(e.searches for e in entries)
     cached = sum(e.cached_searches for e in entries)
-    credits = sum(e.credits for e in entries)
-    usd = sum(e.usd for e in entries)
+    hits = sum(e.indicator_hits for e in entries)
+    text = f"{_plural(real, 'real', 'reales')}, {cached} desde caché"
+    return text + (f", {hits} desde la base de indicadores" if hits else "")
+
+
+def format_searches(entries: list[CostEntry], label: str = "Búsquedas Tavily") -> str:
+    """Totals of web searches (real, cached) and indicator-base answers, then one line per
+    pipeline step."""
+    relevant = [e for e in entries if e.provider in ("tavily", "indicadores")]
+    real = sum(e.searches for e in relevant)
+    cached = sum(e.cached_searches for e in relevant)
+    hits = sum(e.indicator_hits for e in relevant)
+    credits = sum(e.credits for e in relevant)
+    usd = sum(e.usd for e in relevant)
     price = f", {usd:.4f} $" if usd else ""
-    return (
+    lines = [
         f"{label}: {_plural(real, 'real', 'reales')} "
         f"({_plural(credits, 'crédito', 'créditos')}{price}), {cached} desde caché"
-    )
+        + (f", {hits} desde la base de indicadores" if hits else "")
+    ]
+    steps = dict.fromkeys(e.step for e in relevant)
+    lines += [
+        f"    {step}: {_search_counts([e for e in relevant if e.step == step])}" for step in steps
+    ]
+    return "\n".join(lines)
 
 
 def format_summary(report: Report, report_path: str) -> str:
@@ -207,9 +225,9 @@ def format_summary(report: Report, report_path: str) -> str:
         f"(Claude: {llm:.4f} $ en {_plural(calls, 'llamada', 'llamadas')}; "
         f"transcripción: {audio:.4f} $)",
     ]
-    searches = [e for e in report.cost.entries if e.provider == "tavily"]
+    searches = [e for e in report.cost.entries if e.provider in ("tavily", "indicadores")]
     if searches:
-        lines.append(f"  {format_searches(searches)}")
+        lines += [f"  {line}" for line in format_searches(searches).splitlines()]
     if any(e.provider == "claude-code" for e in claude):
         lines.append(
             "  (Claude vía Claude Code: coste equivalente orientativo, cubierto por tu plan)"
