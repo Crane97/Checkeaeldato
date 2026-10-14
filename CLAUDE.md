@@ -380,6 +380,25 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   `SUPABASE_DB_URL` (pooler, usuario `ingesta.<ref>`), `SMTP_*`, `EMAIL_FROM`,
   `ALERT_EMAIL_TO`.
 
+### El análisis con la base de conocimiento (fases E y F, 2026-10-14)
+
+- **Fuente local** (`pipeline/knowledge/local_base.py`): con `SUPABASE_DB_URL`, la base
+  local de indicadores son las observaciones **aprobadas** de Supabase, resueltas **a la
+  fecha del discurso** (la versión publicada entonces; el extracto dice si se revisó
+  después y si la fecha de publicación es estimada). Sin la variable, o si la base no
+  responde, se usa la base JSON y el informe lo avisa. Lo pendiente (p. ej. el SMI hasta
+  que se apruebe) no aparece en el catálogo de la detección.
+- **Cálculo del sistema**: cada extracto de serie termina con la aritmética del periodo
+  hecha en Python (primer y último valor, diferencia en puntos o en %, máximo y mínimo).
+- **API bajo demanda** (`pipeline/knowledge/on_demand.py`): si la base no cubre el
+  periodo y el indicador tiene conector, se descarga la serie entera en el momento, se
+  valida como en la ingesta (lo anómalo se descarta) y se usa como evidencia `oficial`
+  marcada «valores actuales de la API»; no se guarda en la base ni se busca en la web.
+- **Trazabilidad**: cada veredicto se guarda en `verif.claims` con la evidencia citada y
+  los `observation_ids` de las series locales (`conocimiento impacto` los encuentra). Un
+  fallo al guardar no para el análisis; el informe avisa.
+- Pendiente (F2): hechos extraídos de la web reutilizables (`evid.web_facts`).
+
 ### Políticos (decidido 2026-10-14)
 
 Base de quién es quién para identificar oradores sin gastar búsquedas

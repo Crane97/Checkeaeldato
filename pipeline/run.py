@@ -611,7 +611,7 @@ def build_steps(
         Step(
             "evidence",
             evidence_step,
-            version=f"indicadores={deps.indicators.version(coverage=True)};regla=4",
+            version=f"indicadores={deps.indicators.version(coverage=True)};regla=4;calculo=1;api=1",
         ),
         # A different thinking setting is a different verdict: recompute, do not reuse.
         Step(
