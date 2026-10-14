@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     smtp_user: str | None = None
     smtp_password: SecretStr | None = None
     email_from: str | None = None  # defaults to SMTP_USER
+    # Who receives the daily ingestion alerts (`conocimiento ingerir --avisar`).
+    alert_email_to: str | None = None
 
     # Supabase Postgres of the DEVELOPMENT project (knowledge base, migrations, ingestion).
     supabase_db_url: SecretStr | None = None

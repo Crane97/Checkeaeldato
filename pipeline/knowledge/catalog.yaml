@@ -11,7 +11,8 @@
 # margen sobre los extremos reales conocidos (p. ej. la subida del SMI de 2019, +22 %, o
 # la caída del PIB de 2020, −10,9 %).
 #
-# codigo_fuente: null = se fijará en la fase de ingesta, tras revisar la API del organismo.
+# codigo_fuente: INE = código de serie; Eurostat = dataset?filtro=valor&…; Seguridad Social =
+# consultas PXWeb. null en los indicadores manuales (BOE, INSS, IVA).
 
 indicadores:
 
@@ -94,7 +95,7 @@ indicadores:
     tema: empleo
     retraso_publicacion_dias: 28
     conector: ine
-    codigo_fuente: null
+    codigo_fuente: EPA387796    # tabla 65109
 
   - id: paro_registrado
     nombre: Paro registrado
@@ -268,7 +269,7 @@ indicadores:
     max_antiguedad_dias: 75
     tema: pensiones
     retraso_publicacion_dias: 30
-    conector: seguridad_social
+    conector: manual      # sin API comprobada: la serie del INSS se carga a mano
     codigo_fuente: null
 
   - id: poblacion
@@ -341,7 +342,7 @@ indicadores:
     tema: vivienda
     retraso_publicacion_dias: 70
     conector: ine
-    codigo_fuente: null
+    codigo_fuente: IPV1376      # tabla 80270 (base vigente; la 25171 dejó de actualizarse)
 
   - id: iva_general
     nombre: Tipo general del IVA
@@ -381,7 +382,7 @@ indicadores:
     tema: economia
     retraso_publicacion_dias: 33
     conector: ine
-    codigo_fuente: null
+    codigo_fuente: FREG337      # tabla 75719
 
   - id: edad_emancipacion
     nombre: Edad media de emancipación
@@ -400,4 +401,4 @@ indicadores:
     tema: vivienda
     retraso_publicacion_dias: 150
     conector: eurostat
-    codigo_fuente: yth_demo_030
+    codigo_fuente: yth_demo_030?unit=AVG&sex=T

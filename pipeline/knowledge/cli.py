@@ -9,6 +9,7 @@ from pipeline.config import ConfigError, get_settings
 from pipeline.knowledge.catalog import load_catalog, sync_catalog
 from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.impact import dependents, observation_summary, reprocess_commands
+from pipeline.knowledge.ingest import IngestError, IngestReport, ingest
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 from pipeline.knowledge.observations_load import load_json_base
 from pipeline.knowledge.politicians_repo import load_politicians
@@ -276,3 +277,78 @@ def retirar(
         typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=1) from exc
     typer.echo(f"Retirado {tipo} {item_id} (estaba {estado}, revisado por {antes}).")
+
+
+def _alert(report: IngestReport, today) -> None:
+    """Email the report to ALERT_EMAIL_TO (SMTP settings of .env)."""
+    from email.message import EmailMessage
+
+    from pipeline.email_report import send_email
+
+    settings = get_settings()
+    if not settings.alert_email_to:
+        raise ConfigError("Falta ALERT_EMAIL_TO en .env para enviar el aviso")
+    message = EmailMessage()
+    message["Subject"] = f"Checkea el Dato · ingesta {today}: hay que revisar datos"
+    message["From"] = settings.email_from or settings.smtp_user or ""
+    message["To"] = settings.alert_email_to
+    lines = ["La ingesta automática ha encontrado algo que necesita revisión:", ""]
+    lines += [f"Error: {e}" for e in report.errors]
+    lines += [f"En cuarentena: {q}" for q in report.quarantine]
+    lines += [f"Desactualizado: {s}" for s in report.stale]
+    lines += ["", "Detalle:", *report.lines(), "", "Revisa con `uv run conocimiento revisar`."]
+    message.set_content("\n".join(lines))
+    send_email(message, settings)
+
+
+@app.command()
+def ingerir(
+    simular: Annotated[
+        bool, typer.Option("--simular", help="Descarga y valida, pero no guarda nada")
+    ] = False,
+    indicador: Annotated[
+        list[str] | None, typer.Option("--indicador", help="Solo estos indicadores (repetible)")
+    ] = None,
+    forzar: Annotated[
+        bool, typer.Option("--forzar", help="Carga aunque la huella no haya cambiado")
+    ] = False,
+    avisar: Annotated[
+        bool,
+        typer.Option("--avisar", help="Envía un correo si hay errores, cuarentena o datos viejos"),
+    ] = False,
+) -> None:
+    """Descarga las series automáticas (INE, Eurostat, Seguridad Social) y carga lo nuevo."""
+    import datetime as dt
+
+    import httpx
+
+    today = dt.date.today()
+    try:
+        with _connect() as conn, httpx.Client(timeout=60, follow_redirects=True) as client:
+            report = ingest(
+                conn,
+                load_catalog(),
+                client,
+                today=today,
+                only=set(indicador) if indicador else None,
+                force=forzar,
+                simulate=simular,
+            )
+            if simular:
+                conn.rollback()
+            else:
+                conn.commit()
+    except (IngestError, ConfigError, psycopg.Error) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    if simular:
+        typer.secho("SIMULACIÓN: no se ha guardado nada.", fg=typer.colors.YELLOW)
+    for line in report.lines():
+        typer.echo(line)
+    if report.needs_attention():
+        typer.secho("Hay datos que revisar.", fg=typer.colors.YELLOW)
+        if avisar:
+            _alert(report, today)
+            typer.echo("Aviso enviado.")
+    if report.errors:
+        raise typer.Exit(code=2)
