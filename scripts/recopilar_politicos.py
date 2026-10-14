@@ -32,6 +32,7 @@ from pipeline.knowledge.collect_sources import (  # noqa: E402
     boe_search,
     congreso_junta,
     dismissal,
+    dismissals_in_body,
     document_body,
     implied_dismissals,
     implied_in_body,
@@ -46,6 +47,7 @@ from pipeline.knowledge.politicians_collect import (  # noqa: E402
     build_politician,
     is_national_government,
     load_seed,
+    other_gender,
     roles_from_boe,
 )
 from pipeline.knowledge.politicians_repo import DEFAULT_PATH  # noqa: E402
@@ -76,6 +78,8 @@ class Boe:
         return hits
 
 
+# Decrees whose dismissed people are named only in the body (Article 155, October 2017).
+BODY_DISMISSAL_SEARCHES = ("cese artículo 155 Generalitat",)
 COLLECTIVE_SEARCHES = (
     "nombran Ministros del Gobierno",
     "nombran Vicepresidentes del Gobierno",
@@ -112,6 +116,9 @@ def collective_index(
             implied += implied_in_body(hit, text)
             if appointed and "Ministros" in hit.title:
                 dates.add(hit.decree_date())
+    for terms in BODY_DISMISSAL_SEARCHES:
+        for hit in boe.search(terms):
+            implied += dismissals_in_body(hit, body(client, hit.ident))
     return out, sorted(dates), implied
 
 
@@ -230,9 +237,9 @@ def main(
         for n, person in enumerate(seed, 1):
             typer.echo(f"[{n}/{len(seed)}] {person.nombre}")
             mine = fold(person.nombre)
-            appointments = boe.search(f"nombra {person.nombre}") + [
-                h for h in collective if (a := h.appointment()) and fold(a[1]) == mine
-            ]
+            appointments = (
+                boe.search(f"nombra {person.nombre}") + boe.search(f"asuma {person.nombre}")
+            ) + [h for h in collective if (a := h.appointment()) and fold(a[1]) == mine]
             dismissals = boe.search(f"cese {person.nombre}") + [
                 h for h in collective_ceses if (x := dismissal(h)) and fold(x[1]) == mine
             ]
@@ -245,8 +252,12 @@ def main(
                 cargo: str, start: dt.date, own: list[BoeHit] = appointments
             ) -> list[BoeHit]:
                 same = fold(cargo)
+                other = other_gender(cargo)
+                both = boe.search(f"nombra {cargo}", until=start) + (
+                    boe.search(f"nombra {other}", until=start) if other != cargo else []
+                )
                 return (
-                    boe.search(f"nombra {cargo}", until=start)
+                    both
                     + own  # renewals of the same person
                     + [h for h in collective if (a := h.appointment()) and fold(a[0]) == same]
                 )
@@ -275,6 +286,7 @@ def main(
                 current_checks=checks,
                 facts=facts.get(q) if q else None,
                 congreso=junta,
+                dismissals=dismissals,
             )
             collected.warnings += notes
             for office in person.cargos_actuales:

@@ -171,7 +171,9 @@ _CABINET_DELAY = dt.timedelta(days=30)
 _STALE_OPEN_TERM = dt.timedelta(days=4 * 365)
 
 
-def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
+def _split_caretaker(
+    role: Role, governments: Governments, extra: Sequence[tuple[dt.date, dt.date | None]] = ()
+) -> list[Role]:
     """Rows of a national government office, cut where the government was in caretaker.
 
     The president is in caretaker for the periods of the governments table. Ministers stay
@@ -194,6 +196,7 @@ def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
                 # missing decree must not stretch the caretaker period for years.
                 ends = [x for x in (role.fin, c.end and c.end + _CABINET_DELAY) if x]
                 cuts.append((c.start, min(ends) + dt.timedelta(days=1) if ends else None))
+    cuts += [c for c in extra if c[1] is None or c[1] > c[0]]
     rows, cursor, end = [], role.inicio, role.fin
     for c_start, c_end in sorted(cuts):
         last = c_end - dt.timedelta(days=1) if c_end else None  # caretaker end is exclusive
@@ -204,6 +207,8 @@ def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
                 role.model_copy(update={"inicio": cursor, "fin": c_start - dt.timedelta(1)})
             )
         stop = min(x for x in (last, end) if x is not None) if (last or end) else None
+        if stop is not None and stop < max(cursor, c_start):
+            continue  # overlapping caretaker periods (table and declared "cese"): covered
         rows.append(
             role.model_copy(
                 update={"inicio": max(cursor, c_start), "fin": stop, "en_funciones": True}
@@ -218,15 +223,18 @@ def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
 
 
 def _ends_office(d: BoeHit, president: bool, later: list[BoeHit], me: str) -> bool:
-    """After an election the president's "cese" is declared and the same person is
-    appointed again: caretaker, not an end. After a motion of no confidence (2018)
-    someone else is appointed: a real end. Any other dismissal ends the office."""
+    """The president's declared "cese" after an election opens the caretaker period
+    (the decree says "continuará en funciones"), whoever is appointed next. Only after a
+    motion of no confidence (2018) is the successor appointed the same day: a real end.
+    Any other dismissal ends the office."""
     if not (president and declared(d)):
         return True
-    following = [s for s in later if s.decree_date() >= d.decree_date()]
-    nxt = min(following, key=lambda s: s.decree_date(), default=None)
-    appointed = nxt.appointment() if nxt else None
-    return appointed is not None and fold(appointed[1]) != me
+    return any(
+        s.decree_date() == d.decree_date()
+        and (a := s.appointment()) is not None
+        and fold(a[1]) != me
+        for s in later
+    )
 
 
 def roles_from_boe(
@@ -245,18 +253,23 @@ def roles_from_boe(
     me = fold(nombre)
     roles = []
     notes = notes if notes is not None else []
+    published_ends: set[tuple[str, dt.date]] = set()
     for hit in sorted(appointments, key=lambda h: h.published):
         a = hit.appointment()
         if a is None or fold(a[1]) != me:
             continue
         cargo, start = a[0], hit.decree_date()
         same = _norm(cargo)
-        later = [
-            s
-            for s in successors(cargo, start)
-            if s.ident != hit.ident and s.decree_date() > start
-            and (x := s.appointment()) and _norm(x[0]) == same
-        ]  # fmt: skip
+        later = (
+            []
+            if multi_seat(cargo)
+            else [
+                s
+                for s in successors(cargo, start)
+                if s.ident != hit.ident and s.decree_date() > start
+                and (x := s.appointment()) and _norm(x[0]) == same
+            ]
+        )  # fmt: skip
         president = same in ("presidente del gobierno", "presidenta del gobierno")
 
         dismissed = [
@@ -272,6 +285,7 @@ def roles_from_boe(
         d, s = min(dismissed, default=None), min(replaced, default=None)
         if d is not None and (s is None or d <= s):
             end: dt.date | None = d
+            published_ends.add((cargo, d))
         else:
             end = s - dt.timedelta(days=1) if s is not None else None
         organo, territorio = _organ(cargo)
@@ -283,11 +297,23 @@ def roles_from_boe(
             fin=end,
             source=_boe_source(hit),
         )
-        roles += _split_caretaker(role, governments)
-    return _incompatible(roles, notes)
+        extra: list[tuple[dt.date, dt.date | None]] = []
+        if president:
+            # Caretaker from each declared "cese" until the next appointment (exclusive).
+            for d in dismissals:
+                if not (declared(d) and (x := dismissal(d)) and fold(x[1]) == me):
+                    continue
+                if not (start < d.decree_date() and (end is None or d.decree_date() <= end)):
+                    continue
+                nxt = [s.decree_date() for s in later if s.decree_date() >= d.decree_date()]
+                extra.append((d.decree_date(), min(nxt, default=None)))
+        roles += _split_caretaker(role, governments, extra)
+    return _incompatible(roles, notes, published_ends)
 
 
-def _incompatible(roles: list[Role], notes: list[str]) -> list[Role]:
+def _incompatible(
+    roles: list[Role], notes: list[str], published_ends: set[tuple[str, dt.date]] = frozenset()
+) -> list[Role]:
     """Joining the Government is incompatible with other public offices: an office held
     before and still open (or ending later) closes the day before; listed in `notes`
     because the date is inferred, not read from a dismissal."""
@@ -307,7 +333,10 @@ def _incompatible(roles: list[Role], notes: list[str]) -> list[Role]:
             and not in_government(r.inicio)
         ):
             join = next((j for j in joins if j > r.inicio), None)
-            if join is not None and (r.fin is None or r.fin > join):
+            # A published dismissal wins over an inferred end (Bolaños stayed 17 days on a
+            # board after becoming minister, until his dismissal).
+            published = r.fin is not None and (r.cargo, r.fin) in published_ends
+            if join is not None and not published and (r.fin is None or r.fin > join):
                 end = join - dt.timedelta(days=1)
                 notes.append(f"fin deducido: «{r.cargo}» termina el {end} (entrada en el Gobierno)")
                 r = r.model_copy(update={"fin": end})
@@ -315,8 +344,66 @@ def _incompatible(roles: list[Role], notes: list[str]) -> list[Role]:
     return out
 
 
+_GENDER = {
+    "presidenta": "presidente",
+    "vicepresidenta": "vicepresidente",
+    "ministra": "ministro",
+    "secretaria": "secretario",
+    "directora": "director",
+    "delegada": "delegado",
+    "subdelegada": "subdelegado",
+    "consejera": "consejero",
+    "consellera": "conseller",
+    "alcaldesa": "alcalde",
+    "gobernadora": "gobernador",
+    "embajadora": "embajador",
+    "magistrada": "magistrado",
+    "jefa": "jefe",
+    "comisionada": "comisionado",
+    "diputada": "diputado",
+    "senadora": "senador",
+    "primera": "primero",
+    "segunda": "segundo",
+    "tercera": "tercero",
+    "cuarta": "cuarto",
+}
+_GENDER_BACK = {v: k for k, v in _GENDER.items()}
+
+
 def _norm(cargo: str) -> str:
-    return fold(" ".join(cargo.split()))
+    """Office name for comparisons: folded, and the same for women and men
+    ("Presidenta de la Sala…" is the office "Presidente de la Sala…")."""
+    return " ".join(_GENDER.get(w, w) for w in fold(" ".join(cargo.split())).split())
+
+
+def other_gender(cargo: str) -> str:
+    """The office with its first word in the other gender, to search the BOE for both."""
+    first, _, rest = cargo.partition(" ")
+    low = fold(first)
+    swap = _GENDER.get(low) or _GENDER_BACK.get(low)
+    if swap is None:
+        return cargo
+    return f"{swap.capitalize()} {rest}".strip()
+
+
+# Bodies with several members: appointing another member does not replace this one.
+_MULTI_SEAT = (
+    "vocal",
+    "miembro",
+    "magistrado",
+    "consejero del consejo",
+    "consejero electivo",
+    "consejero permanente",
+    "diputado",
+    "senador",
+    "letrado",
+    "fiscal de sala",
+    "gobernador suplente",
+)
+
+
+def multi_seat(cargo: str) -> bool:
+    return _norm(cargo).startswith(_MULTI_SEAT)
 
 
 # Congreso group acronyms (Junta de Portavoces) → group names.
@@ -381,6 +468,36 @@ def _close_at_dissolution(role: Role) -> Role:
     return role.model_copy(update={"fin": end}) if end else role
 
 
+def _same_office(a: set[str], b: set[str]) -> bool:
+    """ "Consejero de Presidencia" and "Consejero de Presidencia de la Generalidad de
+    Cataluña" name the same office: one name contained in the other (two words or more)."""
+    return len(min(a, b, key=len)) >= 2 and (a <= b or b <= a)
+
+
+def _apply_dismissals(
+    roles: list[Role], dismissals: Sequence[BoeHit], nombre: str, warnings: list[str]
+) -> list[Role]:
+    """A BOE dismissal also closes the same office taken from another source (Wikidata
+    "Consejero de Presidencia" open until 2018, dismissed by the BOE in October 2017)."""
+    me = fold(nombre)
+    out = []
+    for r in roles:
+        if r.source.tipo == "secundaria" and r.inicio is not None:
+            words = set(name_words(_norm(r.cargo)))
+            ends = [
+                d.decree_date()
+                for d in dismissals
+                if (x := dismissal(d)) and fold(x[1]) == me
+                and _same_office(set(name_words(_norm(x[0]))), words)
+                and r.inicio <= d.decree_date() and (r.fin is None or d.decree_date() < r.fin)
+            ]  # fmt: skip
+            if ends:
+                warnings.append(f"BOE: «{r.cargo}» termina el {min(ends)} (cese), no el {r.fin}")
+                r = r.model_copy(update={"fin": min(ends)})
+        out.append(r)
+    return out
+
+
 def _wd_source(facts: WdFacts) -> PoliticianSource:
     return PoliticianSource(
         organismo="Wikidata",
@@ -421,13 +538,17 @@ def from_wikidata(facts: WdFacts, today: dt.date) -> tuple[list[Role], list[Memb
         and not any(k in fold(p.label) for k in _BOE_COVERED)
         and (p.end is None or p.end >= p.start)
         and p.label != p.qid  # no label in Spanish or English: unreadable for a reviewer
+        and len(p.label.split()) > 1  # "presidente" alone: of what?
+        # Spokespeople come from the Congreso's Junta de Portavoces (official dates).
+        and not any(k in fold(p.label) for k in ("portavoz del grupo", "lider del grupo"))
     ]
     roles = _close_open_terms(roles)  # fmt: skip
-    dated = [
-        p for p in facts.parties if p.start is not None and (p.end is None or p.end >= p.start)
-    ]
+    real = [p for p in facts.parties if "independiente" not in fold(p.label)]
+    dated = [p for p in real if p.start is not None and (p.end is None or p.end >= p.start)]
     parties = [Membership(partido=p.label, inicio=p.start, fin=p.end, source=source) for p in dated]
-    undated_open = [p for p in facts.parties if p.start is None and p.end is None]
+    # An undated party is only taken when Wikidata cites a source for it (not just
+    # "imported from another Wikipedia").
+    undated_open = [p for p in real if p.start is None and p.end is None and p.sourced]
     if not any(p.end is None for p in dated) and len(undated_open) == 1:
         # One party with no dates and nothing else current: seen in Wikidata today.
         parties.append(
@@ -450,6 +571,7 @@ def build_politician(
     current_checks: dict[str, BoeHit | None],
     facts: WdFacts | None,
     congreso: list[CongresoSeat] = (),  # type: ignore[assignment]
+    dismissals: Sequence[BoeHit] = (),
 ) -> Collected:
     """Assemble one curated entry; `current_checks` maps each BOE office of the seed to its
     latest appointment (whoever it names)."""
@@ -459,9 +581,9 @@ def build_politician(
     birth = birth_source = None
     if facts is not None:
         wd_roles, parties = from_wikidata(facts, today)
-        official_now = {fold(o.cargo) for o in seed.cargos_actuales if o.fuente is not None}
+        official_now = {_norm(o.cargo) for o in seed.cargos_actuales if o.fuente is not None}
         # The official page already says it holds today: drop the secondary open duplicate.
-        roles += [r for r in wd_roles if not (r.fin is None and fold(r.cargo) in official_now)]
+        roles += [r for r in wd_roles if not (r.fin is None and _norm(r.cargo) in official_now)]
         if facts.birth:
             birth, birth_source = facts.birth, _wd_source(facts)
     else:
@@ -515,6 +637,7 @@ def build_politician(
     if not parties:
         warnings.append("sin partido con fecha")
     roles = [_close_at_dissolution(r) for r in roles]
+    roles = _apply_dismissals(roles, dismissals, seed.nombre, warnings)
     stale = today - _STALE_OPEN_TERM
     confirmed = {_norm(o.cargo) for o in seed.cargos_actuales}
     kept = []

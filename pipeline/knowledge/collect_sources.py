@@ -65,6 +65,10 @@ def _get(client: httpx.Client, url: str, params: list | dict) -> httpx.Response:
 _APPOINTMENT_RE = re.compile(
     r"por (?:el|la) que se nombra (?P<cargo>.+?) a (?:don|doña) (?P<nombre>[^.]+)\.$"
 )
+_ASSUMES_RE = re.compile(
+    r"se dispone que (?:don|doña) (?P<nombre>[^,]+),[^.]*? asuma las funciones de"
+    r" (?P<cargo>[^.]+)\.$"
+)
 _DECREE_DATE_RE = re.compile(r", de (\d{1,2}) de (\w+)(?: de (\d{4}))?,")
 
 
@@ -79,8 +83,9 @@ class BoeHit:
         return f"https://www.boe.es/diario_boe/txt.php?id={self.ident}"
 
     def appointment(self) -> tuple[str, str] | None:
-        """(cargo, nombre) if the title appoints someone."""
-        m = _APPOINTMENT_RE.search(self.title)
+        """(cargo, nombre) if the title appoints someone, also "se dispone que doña X, …,
+        asuma las funciones de Portavoz del Gobierno"."""
+        m = _APPOINTMENT_RE.search(self.title) or _ASSUMES_RE.search(self.title)
         return (m.group("cargo"), m.group("nombre").strip()) if m else None
 
     def decree_date(self) -> dt.date:
@@ -146,7 +151,7 @@ def boe_search(client: httpx.Client, terms: str, until: dt.date | None = None) -
 _DISMISSAL_RE = re.compile(
     # "Se declara el cese … como Presidente del Gobierno" after an election only opens the
     # caretaker period: roles_from_boe decides with `declared` (see there).
-    r"se (?:dispone|declara) el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
+    r"se (?:dispone|declara) el cese (?:de|como) (?:don|doña|D\.ª?|Dª) (?P<nombre>.+?),?"
     r" como (?P<cargo>[^.]+?)(?:,? a petición propia|, por [^.]+)?\.$"
 )
 
@@ -178,6 +183,15 @@ class WdStatement:
     label: str
     start: dt.date | None
     end: dt.date | None
+    # A reference other than "imported from Wikimedia project" / "retrieved".
+    sourced: bool = False
+
+
+_IMPORT_ONLY = {"P143", "P4656", "P813"}
+
+
+def _sourced(statement: dict) -> bool:
+    return any(set(ref.get("snaks", {})) - _IMPORT_ONLY for ref in statement.get("references", []))
 
 
 @dataclass
@@ -254,6 +268,7 @@ def parse_entity(entity: dict, labels: dict[str, str]) -> WdFacts:
                     label=labels.get(qid, qid),
                     start=_qualifier_date(s, "P580"),
                     end=_qualifier_date(s, "P582"),
+                    sourced=_sourced(s),
                 )
             )
     return facts
@@ -423,3 +438,29 @@ def congreso_junta(client: httpx.Client, legislatura: str = "XV") -> list[Congre
     if response.status_code != 200:
         raise CollectError(f"HTTP {response.status_code} en la Junta de Portavoces")
     return parse_junta(response.json(), legislatura)
+
+
+# --- Dismissals named only in the body (Article 155, 2017) ---------------------
+
+_BODY_DISMISSAL_RE = re.compile(
+    # "el cese de don X como Y" or a list "el cese de: D. X, como Y; D. Z, como W"
+    r"(?:(?:cese|cesar) (?:de|a):? |[:;] )(?P<art>don|doña|D\.ª?|Dª\.?) (?P<nombre>[^,;]+?),?"
+    r" como (?P<cargo>[^.;,]+)"
+)
+
+
+def dismissals_in_body(hit: BoeHit, body: str) -> list[BoeHit]:
+    """Dismissals whose names are only in the decree's text, as one hit per person."""
+    prefix = _DECREE_PREFIX_RE.match(hit.title)
+    if prefix is None:
+        return []
+    text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", body)).split())
+    return [
+        BoeHit(
+            hit.ident,
+            hit.published,
+            f"{prefix.group(1)}, por el que se dispone el cese de don"
+            f" {m.group('nombre').strip()} como {m.group('cargo').strip()}.",
+        )
+        for m in _BODY_DISMISSAL_RE.finditer(text)
+    ]

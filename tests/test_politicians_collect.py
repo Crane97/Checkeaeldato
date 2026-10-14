@@ -243,12 +243,12 @@ def test_an_undated_party_counts_as_seen_today_only_when_it_is_the_only_current_
     def facts(*parties):
         return WdFacts(qid="Q1", label="X", parties=list(parties))
 
-    only = WdStatement("Q10", "Partido Popular", None, None)
+    only = WdStatement("Q10", "Partido Popular", None, None, sourced=True)
     [m] = from_wikidata(facts(only), TODAY)[1]
     assert (m.partido, m.constatado_en) == ("Partido Popular", TODAY)
     dated_current = WdStatement("Q12", "Vox", D(2014, 1, 1), None)
     assert [m.partido for m in from_wikidata(facts(only, dated_current), TODAY)[1]] == ["Vox"]
-    two = WdStatement("Q13", "Otro", None, None)
+    two = WdStatement("Q13", "Otro", None, None, sourced=True)
     assert from_wikidata(facts(only, two), TODAY)[1] == []
 
 
@@ -746,3 +746,249 @@ def test_a_same_day_dismissal_ends_the_previous_term_not_the_renewal():
         (D(2021, 7, 13), D(2023, 11, 22)),
         (D(2023, 11, 22), None),
     ]
+
+
+def test_undated_parties_need_a_real_reference_and_independents_are_no_party():
+    def facts(*parties):
+        return WdFacts(qid="Q1", label="X", parties=list(parties))
+
+    imported = WdStatement("Q10", "Partido Socialista Obrero Español", None, None)
+    assert from_wikidata(facts(imported), TODAY)[1] == []
+    independent = WdStatement("Q327591", "político independiente", D(2018, 1, 1), None)
+    assert from_wikidata(facts(independent), TODAY)[1] == []
+
+
+def test_office_names_match_across_genders_and_searches_try_both():
+    from pipeline.knowledge.politicians_collect import _norm, other_gender
+
+    assert _norm("Presidenta de la Sala de lo Penal") == _norm("Presidente de la Sala de lo Penal")
+    assert _norm("Vicepresidenta Primera del Gobierno") == _norm(
+        "Vicepresidente Primero del Gobierno"
+    )
+    assert other_gender("Presidente de la Sala de lo Penal") == "Presidenta de la Sala de lo Penal"
+    assert other_gender("Ministra de Sanidad") == "Ministro de Sanidad"
+
+    judge = _appoint(
+        "J",
+        D(2012, 3, 6),
+        D(2012, 3, 5),
+        "Presidente de la Sala de lo Penal",
+        "Fernando Grande-Marlaska Gómez",
+        art="don",
+    )
+    successor = _appoint(
+        "E",
+        D(2017, 6, 3),
+        D(2017, 6, 2),
+        "Presidenta de la Sala de lo Penal",
+        "Concepción Espejel Jorquera",
+    )
+    [role] = roles_from_boe(
+        "Fernando Grande-Marlaska Gómez",
+        [judge],
+        [],
+        lambda c, s: [judge, successor],
+        default_governments(),
+    )
+    assert role.fin == D(2017, 6, 1)
+
+
+def test_another_member_of_a_board_does_not_replace_this_one():
+    name = "Félix Bolaños García"
+    vocal = _appoint(
+        "V",
+        D(2018, 6, 23),
+        D(2018, 6, 22),
+        "Vocal del Consejo de Administración del Patrimonio Nacional",
+        name,
+        art="don",
+    )
+    other = _appoint(
+        "O",
+        D(2018, 7, 21),
+        D(2018, 7, 20),
+        "Vocal del Consejo de Administración del Patrimonio Nacional",
+        "Eva Sol",
+    )
+    cese = hit(
+        "C",
+        D(2021, 7, 28),
+        "Real Decreto 644/2021, de 27 de julio, por el que se dispone"
+        " el cese de don Félix Bolaños García como Vocal del Consejo de Administración del"
+        " Patrimonio Nacional.",
+    )
+    [role] = roles_from_boe(
+        name, [vocal], [cese], lambda c, s: [vocal, other], default_governments()
+    )
+    assert role.fin == D(2021, 7, 27)
+
+
+def test_assuming_the_functions_of_an_office_is_an_appointment():
+    saiz = hit(
+        "BOE-A-2025-26354",
+        D(2025, 12, 23),
+        "Real Decreto 1185/2025, de 22 de diciembre,"
+        " por el que se dispone que doña Elma Saiz Delgado, Ministra de Inclusión, Seguridad"
+        " Social y Migraciones, asuma las funciones de Portavoz del Gobierno.",
+    )
+    assert saiz.appointment() == ("Portavoz del Gobierno", "Elma Saiz Delgado")
+
+
+def test_dismissals_written_with_d_and_a_comma_and_named_only_in_the_body():
+    from pipeline.knowledge.collect_sources import dismissals_in_body
+
+    turull = hit(
+        "T",
+        D(2017, 10, 28),
+        "Real Decreto 943/2017, de 27 de octubre, por el que se"
+        " dispone el cese de D. JORDI TURULL i NEGRE, como Consejero de Presidencia.",
+    )
+    assert dismissal(turull) == ("Consejero de Presidencia", "JORDI TURULL i NEGRE")
+    decree = hit(
+        "BOE-A-2017-12332",
+        D(2017, 10, 28),
+        "Real Decreto 942/2017, de 27 de octubre,"
+        " por el que se dispone, en virtud de las medidas autorizadas…, el cese del M.H."
+        " Sr. Presidente de la Generalitat de Cataluña.",
+    )
+    body = (
+        "<p>Vengo en disponer el cese de don Carles Puigdemont i Casamajó como Presidente de"
+        " la Generalitat de Cataluña.</p>"
+    )
+    [cese] = dismissals_in_body(decree, body)
+    assert dismissal(cese) == (
+        "Presidente de la Generalitat de Cataluña",
+        "Carles Puigdemont i Casamajó",
+    )
+    assert cese.decree_date() == D(2017, 10, 27)
+
+
+def test_a_president_who_loses_an_election_stays_in_caretaker_until_the_successor():
+    name = "Felipe González Márquez"
+    fg = _appoint("F", D(1993, 7, 10), D(1993, 7, 9), "Presidente del Gobierno", name, art="don")
+    aznar = _appoint(
+        "A",
+        D(1996, 5, 5),
+        D(1996, 5, 4),
+        "Presidente del Gobierno",
+        "José María Aznar López",
+        art="don",
+    )
+    declared_cese = hit(
+        "C",
+        D(1996, 3, 5),
+        "Real Decreto 439/1996, de 4 de marzo, por el que se"
+        " declara el cese de don Felipe González Márquez como Presidente del Gobierno.",
+    )
+    rows = roles_from_boe(
+        name, [fg], [declared_cese], lambda c, s: [fg, aznar], default_governments()
+    )
+    assert [(r.inicio, r.fin, r.en_funciones) for r in rows] == [
+        (D(1993, 7, 9), D(1996, 3, 3), False),
+        (D(1996, 3, 4), D(1996, 5, 3), True),
+    ]
+
+
+def test_wikidata_spokesperson_offices_are_left_to_the_congreso():
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[
+            WdStatement(
+                "Q7", "líder del Grupo Vasco en el Congreso", D(2012, 12, 18), D(2026, 10, 6)
+            )
+        ],
+    )
+    assert from_wikidata(facts, TODAY)[0] == []
+
+
+def test_a_boe_dismissal_closes_the_same_office_taken_from_wikidata():
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[
+            WdStatement(
+                "Q8",
+                "Consejero de Presidencia de la Generalidad de Cataluña",
+                D(2017, 7, 14),
+                D(2018, 10, 27),
+            )
+        ],
+        parties=[WdStatement("Q10", "Junts", D(2020, 1, 1), None)],
+    )
+    cese = hit(
+        "T",
+        D(2017, 10, 28),
+        "Real Decreto 943/2017, de 27 de octubre, por el que se dispone el cese de D. JORDI"
+        " TURULL i NEGRE, como Consejero de Presidencia.",
+    )
+    seed = SeedPerson(nombre="Jordi Turull i Negre", categoria="x")
+    result = build_politician(
+        seed, today=TODAY, boe_roles=[], current_checks={}, facts=facts, dismissals=[cese]
+    )
+    [role] = result.politician.roles
+    assert role.fin == D(2017, 10, 27)
+
+
+def test_overlapping_caretaker_periods_give_valid_rows():
+    name = "Pedro Sánchez Pérez-Castejón"
+    s1 = _appoint("S1", D(2018, 6, 2), D(2018, 6, 1), "Presidente del Gobierno", name, art="don")
+    s2 = _appoint("S2", D(2020, 1, 8), D(2020, 1, 7), "Presidente del Gobierno", name, art="don")
+    declared_cese = hit(
+        "C",
+        D(2019, 4, 30),
+        "Real Decreto 336/2019, de 29 de abril, por el que se declara el cese de don Pedro"
+        " Sánchez Pérez-Castejón como Presidente del Gobierno.",
+    )
+    rows = roles_from_boe(
+        name, [s1, s2], [declared_cese], lambda c, s: [s1, s2], default_governments()
+    )
+    assert all(r.fin is None or r.fin >= r.inicio for r in rows)
+    assert [(r.inicio, r.fin, r.en_funciones) for r in rows if r.source.url.endswith("S1")] == [
+        (D(2018, 6, 1), D(2019, 4, 28), False),
+        (D(2019, 4, 29), D(2020, 1, 6), True),
+    ]
+
+
+def test_a_published_dismissal_wins_over_the_inferred_incompatibility():
+    name = "Félix Bolaños García"
+    vocal = _appoint(
+        "V",
+        D(2018, 6, 23),
+        D(2018, 6, 22),
+        "Vocal del Consejo de Administración del Patrimonio Nacional",
+        name,
+        art="don",
+    )
+    minister = _appoint(
+        "M", D(2021, 7, 12), D(2021, 7, 10), "Ministro de la Presidencia", name, art="don"
+    )
+    cese = hit(
+        "C",
+        D(2021, 7, 28),
+        "Real Decreto 644/2021, de 27 de julio, por el que se dispone"
+        " el cese de don Félix Bolaños García como Vocal del Consejo de Administración del"
+        " Patrimonio Nacional.",
+    )
+    rows = roles_from_boe(name, [vocal, minister], [cese], lambda c, s: [], default_governments())
+    [role] = [r for r in rows if r.cargo.startswith("Vocal")]
+    assert role.fin == D(2021, 7, 27)
+
+
+def test_listed_dismissals_in_a_decree_body():
+    from pipeline.knowledge.collect_sources import dismissals_in_body
+
+    decree = hit(
+        "BOE-A-2017-12333",
+        D(2017, 10, 28),
+        "Real Decreto 943/2017, de 27 de octubre,"
+        " por el que se dispone, en virtud de las medidas autorizadas…, el cese del"
+        " Vicepresidente y de los Consejeros.",
+    )
+    body = (
+        "<p>Vengo en disponer el cese de: D. ORIOL JUNQUERAS i VIES, como Titular del"
+        " Departamento de la Vicepresidencia; D. JORDI TURULL i NEGRE, como Consejero de"
+        " Presidencia; Dª. CLARA PONSATÍ i OBIOLS, como Consejera de Enseñanza.</p>"
+    )
+    ceses = [dismissal(x) for x in dismissals_in_body(decree, body)]
+    assert ("Consejero de Presidencia", "JORDI TURULL i NEGRE") in ceses and len(ceses) == 3
