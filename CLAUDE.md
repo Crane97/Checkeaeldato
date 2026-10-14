@@ -6,8 +6,10 @@ Plataforma web que analiza vídeos de discursos y debates políticos en español
 de todas las afirmaciones factuales que se hacen, cuántas son verdaderas, engañosas, falsas
 o no verificables, con fuentes para cada una.
 
-Contexto: elecciones generales en España el **30 de noviembre de 2026**. La campaña empieza
-~15 días antes. Objetivo: **beta pública antes del 13 de noviembre**.
+Contexto: elecciones generales en España el **domingo 29 de noviembre de 2026** (Real Decreto
+806/2026, de 5 de octubre, BOE-A-2026-20742: disuelve las Cortes el 6 de octubre). La campaña
+va del **13 al 27 de noviembre**. Objetivo: **beta pública antes del 13 de noviembre** (el
+primer día de campaña).
 
 Fase futura: análisis en tiempo real (streaming) de debates en directo.
 
@@ -312,7 +314,7 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 - **Tabla de gobiernos** `data/knowledge/governments.json` (versionada; única excepción
   al `.gitignore` de `data/`): mandatos con partidos, socios de coalición, periodos en
   funciones y decretos de nombramiento, contrastados con La Moncloa y el BOE. **Se
-  actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 30-11-2026). El
+  actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 29-11-2026). El
   esquema admite niveles autonómico y municipal; solo se usa el nacional.
 
 ## Base de indicadores oficiales (decidido 2026-10-13)
@@ -385,7 +387,7 @@ Base de quién es quién para identificar oradores sin gastar búsquedas
   `data/knowledge/politicians.json` y `politicians_avisos.txt`, `uv run conocimiento
   cargar-politicos` y aprobar con `uv run conocimiento revisar --tipo politico` (antes,
   `data-verifier`). Lo curado entra `pendiente` y **no se usa hasta aprobarlo**.
-  Actualizar tras las elecciones del 30-11-2026.
+  Actualizar tras las elecciones del 29-11-2026.
 - **Uso en el análisis:** `speaker_research` busca primero en la base (todas las palabras
   del nombre en el nombre o un alias; ante ambigüedad, nada) el partido y los cargos en la
   fecha del discurso; solo si no los sabe, investiga en la web.
