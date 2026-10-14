@@ -91,6 +91,13 @@ def _appoint(ident, published, decree_day, cargo, nombre, verb="nombra", art="do
 
 def test_offices_end_at_the_dismissal_or_the_next_appointment():
     first = _appoint("A1", D(2018, 6, 7), D(2018, 6, 6), "Ministra de Hacienda", "Ana Gil Ruiz")
+    # Every minister is appointed again after each investiture (here 2020 and 2023).
+    again_2020 = _appoint(
+        "A0", D(2020, 1, 13), D(2020, 1, 12), "Ministra de Hacienda", "Ana Gil Ruiz"
+    )
+    again_2023 = _appoint(
+        "A1b", D(2023, 11, 21), D(2023, 11, 20), "Ministra de Hacienda", "Ana Gil Ruiz"
+    )
     renewed = _appoint("A2", D(2024, 1, 3), D(2024, 1, 2), "Ministra de Hacienda", "Ana Gil Ruiz")
     other = _appoint("A3", D(2026, 3, 28), D(2026, 3, 27), "Ministra de Hacienda", "Eva Sol")
     cese = hit(
@@ -99,25 +106,22 @@ def test_offices_end_at_the_dismissal_or_the_next_appointment():
         "Real Decreto 9/2026, de 26 de marzo, por el que se dispone el cese de doña Ana Gil Ruiz"
         " como Ministra de Hacienda.",
     )
-    successors = {"Ministra de Hacienda": [first, renewed, other]}
+    successors = {"Ministra de Hacienda": [first, again_2020, again_2023, renewed, other]}
     roles = roles_from_boe(
         "Ana Gil Ruiz",
-        [first, renewed, other],
+        [first, again_2020, again_2023, renewed, other],
         [cese],
         lambda cargo, start: successors.get(cargo, []),
         default_governments(),
     )
     plain = [(r.inicio, r.fin, r.en_funciones) for r in roles]
-    # 2018-06-06 → 2024-01-01, split where Sánchez's government was in caretaker (2019, 2023).
+    # In caretaker from the dissolution until the minister is appointed again.
     assert plain[0] == (D(2018, 6, 6), D(2019, 4, 28), False)
-    assert plain[1] == (D(2019, 4, 29), D(2020, 1, 7), True)
-    assert (D(2023, 7, 24), D(2023, 11, 16), True) in plain
+    assert plain[1] == (D(2019, 4, 29), D(2020, 1, 11), True)
+    assert (D(2023, 7, 24), D(2023, 11, 19), True) in plain
     assert plain[-1] == (D(2024, 1, 2), D(2026, 3, 26), False)  # ends at the dismissal
     assert all(r.organo == "Gobierno de España" and r.source.tipo == "primaria" for r in roles)
-    assert {r.source.url for r in roles} == {
-        "https://www.boe.es/diario_boe/txt.php?id=A1",
-        "https://www.boe.es/diario_boe/txt.php?id=A2",
-    }
+    assert {r.source.url.rsplit("=", 1)[1] for r in roles} == {"A1", "A0", "A1b", "A2"}
 
 
 def test_regional_offices_get_their_territory_and_no_caretaker_split():
@@ -321,11 +325,90 @@ def test_collective_decrees_give_one_appointment_per_line():
     assert defensa.decree_date() == D(2023, 11, 20) and defensa.url.endswith("BOE-A-2023-23543")
 
 
-def test_declared_dismissals_are_recognised():
-    cese = hit(
+def test_a_declared_dismissal_after_an_election_does_not_end_the_office():
+    declared = hit(
         "X",
-        D(2024, 6, 22),
-        "Real Decreto 585/2024, de 21 de junio, por el que se declara el cese de don Iñigo"
-        " Urkullu Renteria como Presidente del Gobierno Vasco.",
+        D(2019, 4, 30),
+        "Real Decreto 336/2019, de 29 de abril, por el que se declara el cese de don Pedro"
+        " Sánchez Pérez-Castejón como Presidente del Gobierno.",
     )
-    assert dismissal(cese) == ("Presidente del Gobierno Vasco", "Iñigo Urkullu Renteria")
+    assert dismissal(declared) is None  # it opens the caretaker period
+
+
+def test_the_president_follows_the_caretaker_table_and_ministers_stay_until_replaced():
+    name = "Pedro Sánchez Pérez-Castejón"
+    pm = _appoint("P1", D(2018, 6, 2), D(2018, 6, 1), "Presidente del Gobierno", name, art="don")
+    pm2 = _appoint("P2", D(2020, 1, 8), D(2020, 1, 7), "Presidente del Gobierno", name, art="don")
+    rows = roles_from_boe(name, [pm, pm2], [], lambda c, s: [pm, pm2], default_governments())
+    assert [(r.inicio, r.fin, r.en_funciones) for r in rows][:2] == [
+        (D(2018, 6, 1), D(2019, 4, 28), False),
+        (D(2019, 4, 29), D(2020, 1, 6), True),
+    ]
+    minister = _appoint("M1", D(2023, 1, 2), D(2023, 1, 1), "Ministra de Sanidad", "Eva Sol")
+    renewed = _appoint("M2", D(2023, 11, 21), D(2023, 11, 20), "Ministra de Sanidad", "Eva Sol")
+    rows = roles_from_boe(
+        "Eva Sol", [minister, renewed], [], lambda c, s: [minister, renewed], default_governments()
+    )
+    assert [(r.inicio, r.fin, r.en_funciones) for r in rows] == [
+        (D(2023, 1, 1), D(2023, 7, 23), False),
+        (D(2023, 7, 24), D(2023, 11, 19), True),  # until her reappointment, not the investiture
+        (D(2023, 11, 20), None, False),
+    ]
+
+
+def test_non_breaking_spaces_in_collective_decrees_are_normalised():
+    from pipeline.knowledge.collect_sources import parse_collective
+
+    decree = hit(
+        "D",
+        D(2023, 11, 21),
+        "Real Decreto 835/2023, de 20 de noviembre, por el que se nombran Ministros del Gobierno.",
+    )
+    body = (
+        "<p>Ministro de Derechos Sociales, Consumo y Agenda\u00a02030"
+        " a don Pablo Bustinduy Amador.</p>"
+    )
+    [line] = parse_collective(decree, body)
+    cargo = "Ministro de Derechos Sociales, Consumo y Agenda 2030"
+    assert latest_appointment([line], cargo) is line
+
+
+def test_open_wikidata_terms_close_when_the_next_one_starts_and_unlabelled_ones_go():
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[
+            WdStatement("Q5", "diputado de España", D(2019, 12, 3), None),
+            WdStatement("Q5", "diputado de España", D(2023, 8, 17), None),
+            WdStatement("Q54856736", "Q54856736", D(2012, 5, 7), D(2013, 9, 9)),
+        ],
+    )
+    roles, _ = from_wikidata(facts, TODAY)
+    assert [(r.inicio, r.fin) for r in roles] == [
+        (D(2019, 12, 3), D(2023, 8, 16)),
+        (D(2023, 8, 17), None),
+    ]
+
+
+def test_a_new_appointment_never_starts_in_caretaker():
+    name = "Pedro Sánchez Pérez-Castejón"
+    pm = _appoint("P1", D(2018, 6, 2), D(2018, 6, 1), "Presidente del Gobierno", name, art="don")
+    pm2 = _appoint("P2", D(2020, 1, 8), D(2020, 1, 7), "Presidente del Gobierno", name, art="don")
+    rows = roles_from_boe(name, [pm, pm2], [], lambda c, s: [pm, pm2], default_governments())
+    second = [r for r in rows if r.source.url.endswith("P2")]
+    assert (second[0].inicio, second[0].en_funciones) == (D(2020, 1, 7), False)
+
+
+def test_old_open_secondary_offices_are_left_out_and_listed_for_review():
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[WdStatement("Q5", "diputado de España", D(2019, 12, 3), None)],
+        parties=[WdStatement("Q10", "Partido Popular", D(2015, 1, 1), None)],
+    )
+    seed = SeedPerson(nombre="Ana Gil Ruiz", categoria="x")
+    result = build_politician(seed, today=TODAY, boe_roles=[], current_checks={}, facts=facts)
+    assert any(
+        "descartado «diputado de España», abierto desde 2019-12-03" in w for w in result.warnings
+    )
+    assert result.politician.roles == []

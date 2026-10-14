@@ -130,14 +130,34 @@ def _organ(cargo: str) -> tuple[str | None, str]:
     return None, "ES"
 
 
+_CABINET_DELAY = dt.timedelta(days=30)
+# A secondary office open for longer than this is probably a term Wikidata never closed.
+_STALE_OPEN_TERM = dt.timedelta(days=4 * 365)
+
+
 def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
-    """Rows of a national government office, cut where the government was in caretaker."""
+    """Rows of a national government office, cut where the government was in caretaker.
+
+    The president is in caretaker for the periods of the governments table. Ministers stay
+    in caretaker from the start of that period until their successor (or they themselves)
+    is appointed, i.e. until the end of the row."""
     if role.organo != "Gobierno de España" or role.inicio is None:
         return [role]
     cuts: list[tuple[dt.date, dt.date | None]] = []
+    president = fold(role.cargo) in ("presidente del gobierno", "presidenta del gobierno")
     for term in governments.knowledge.governments:
-        if term.level == "nacional":
-            cuts += [(c.start, c.end) for c in term.caretaker]
+        if term.level != "nacional":
+            continue
+        for c in term.caretaker:
+            if c.start <= role.inicio:
+                continue  # an appointment ends the caretaker period: it never starts in it
+            if president:
+                cuts.append((c.start, c.end))
+            elif role.inicio < c.start and (role.fin is None or c.start <= role.fin):
+                # Safety cap: the new cabinet is appointed days after the investiture; a
+                # missing decree must not stretch the caretaker period for years.
+                ends = [x for x in (role.fin, c.end and c.end + _CABINET_DELAY) if x]
+                cuts.append((c.start, min(ends) + dt.timedelta(days=1) if ends else None))
     rows, cursor, end = [], role.inicio, role.fin
     for c_start, c_end in sorted(cuts):
         last = c_end - dt.timedelta(days=1) if c_end else None  # caretaker end is exclusive
@@ -211,14 +231,39 @@ def _wd_source(facts: WdFacts) -> PoliticianSource:
     )
 
 
+def _close_open_terms(roles: list[Role]) -> list[Role]:
+    """Wikidata often leaves old terms open ("diputado" of two legislatures at once): an open
+    term ends the day before the next term with the same name starts."""
+    out = []
+    by_name: dict[str, list[Role]] = {}
+    for r in roles:
+        by_name.setdefault(fold(r.cargo), []).append(r)
+    for same in by_name.values():
+        same.sort(key=lambda r: r.inicio or dt.date.min)
+        for r, nxt in zip(same, [*same[1:], None], strict=True):
+            if (
+                r.fin is None
+                and nxt is not None
+                and nxt.inicio
+                and r.inicio
+                and nxt.inicio > r.inicio
+            ):
+                r = r.model_copy(update={"fin": nxt.inicio - dt.timedelta(days=1)})
+            out.append(r)
+    return out
+
+
 def from_wikidata(facts: WdFacts, today: dt.date) -> tuple[list[Role], list[Membership]]:
     source = _wd_source(facts)
     roles = [
         Role(cargo=p.label, inicio=p.start, fin=p.end, source=source)
         for p in facts.positions
-        if p.start is not None and not any(k in fold(p.label) for k in _BOE_COVERED)
+        if p.start is not None
+        and not any(k in fold(p.label) for k in _BOE_COVERED)
         and (p.end is None or p.end >= p.start)
-    ]  # fmt: skip
+        and p.label != p.qid  # no label in Spanish or English: unreadable for a reviewer
+    ]
+    roles = _close_open_terms(roles)  # fmt: skip
     dated = [
         p for p in facts.parties if p.start is not None and (p.end is None or p.end >= p.start)
     ]
@@ -254,7 +299,9 @@ def build_politician(
     birth = birth_source = None
     if facts is not None:
         wd_roles, parties = from_wikidata(facts, today)
-        roles += wd_roles
+        official_now = {fold(o.cargo) for o in seed.cargos_actuales if o.fuente is not None}
+        # The official page already says it holds today: drop the secondary open duplicate.
+        roles += [r for r in wd_roles if not (r.fin is None and fold(r.cargo) in official_now)]
         if facts.birth:
             birth, birth_source = facts.birth, _wd_source(facts)
     else:
@@ -287,6 +334,15 @@ def build_politician(
             warnings.append(f"«{office.cargo}» sin fuente")
     if not parties:
         warnings.append("sin partido con fecha")
+    stale = today - _STALE_OPEN_TERM
+    kept = []
+    for r in roles:
+        if r.source.tipo == "secundaria" and r.fin is None and r.inicio and r.inicio < stale:
+            # The analysis would take it as current: left out, and listed for the reviewer.
+            warnings.append(f"Wikidata: descartado «{r.cargo}», abierto desde {r.inicio}")
+        else:
+            kept.append(r)
+    roles = kept
 
     politician = Politician(
         id=slug(seed.nombre),

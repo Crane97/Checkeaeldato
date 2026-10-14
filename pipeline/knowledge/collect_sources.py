@@ -124,7 +124,9 @@ def boe_search(client: httpx.Client, terms: str) -> list[BoeHit]:
 
 
 _DISMISSAL_RE = re.compile(
-    r"se (?:dispone|declara) el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
+    # Only "dispone el cese": "se declara el cese de … como Presidente del Gobierno" (and of
+    # "los miembros del Gobierno") follows an election and opens the caretaker period.
+    r"se dispone el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
     r" como (?P<cargo>[^.]+?)(?:,| a petición|\.)"
 )
 
@@ -137,11 +139,8 @@ def dismissal(hit: BoeHit) -> tuple[str, str] | None:
 
 def latest_appointment(hits: list[BoeHit], cargo: str) -> BoeHit | None:
     """The newest appointment to exactly this office (case-insensitive)."""
-    found = [
-        h
-        for h in hits
-        if (a := h.appointment()) is not None and a[0].casefold() == cargo.casefold()
-    ]
+    wanted = " ".join(cargo.split()).casefold()
+    found = [h for h in hits if (a := h.appointment()) is not None and a[0].casefold() == wanted]
     return max(found, key=lambda h: h.published, default=None)
 
 
@@ -266,6 +265,9 @@ def parse_collective(hit: BoeHit, body: str) -> list[BoeHit]:
     for line in (x.strip() for x in text.split("\n")):
         m = _BODY_LINE_RE.match(line)
         if m:
+            line = " ".join(line.split())  # the BOE uses non-breaking spaces ("Agenda 2030")
+            m = _BODY_LINE_RE.match(line)
+            assert m is not None
             title = (
                 f"{prefix.group(1)}, por el que se nombra {m.group('cargo')} a"
                 f" {m.group('art')} {m.group('nombre').strip()}."
