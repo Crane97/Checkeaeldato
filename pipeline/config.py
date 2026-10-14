@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     email_from: str | None = None  # defaults to SMTP_USER
 
+    # Supabase Postgres of the DEVELOPMENT project (knowledge base, migrations, ingestion).
+    supabase_db_url: SecretStr | None = None
+
     data_dir: Path = Path("data")
 
     def model_for(self, step: LlmStep) -> str:
