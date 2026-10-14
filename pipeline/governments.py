@@ -85,7 +85,7 @@ class Knowledge(BaseModel):
 
 def load_knowledge(path: Path = DEFAULT_KNOWLEDGE_PATH) -> Knowledge:
     try:
-        return Knowledge.model_validate(json.loads(path.read_text()))
+        return Knowledge.model_validate(json.loads(path.read_text(encoding="utf-8")))
     except FileNotFoundError as exc:
         raise KnowledgeError(f"No existe la tabla de gobiernos {path}") from exc
     except (ValidationError, ValueError) as exc:

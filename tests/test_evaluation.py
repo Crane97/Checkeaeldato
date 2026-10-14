@@ -119,7 +119,7 @@ def test_bundled_gold_cases_are_valid():
 
 
 def test_invalid_gold_case_reports_file(tmp_path: Path):
-    (tmp_path / "malo.json").write_text('{"id": "x"}')
+    (tmp_path / "malo.json").write_text('{"id": "x"}', encoding="utf-8")
     with pytest.raises(ValueError, match="malo.json"):
         load_gold_cases(tmp_path)
 

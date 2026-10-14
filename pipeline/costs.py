@@ -35,7 +35,11 @@ class Pricing(BaseModel):
 
 
 def load_pricing(path: Path | None = None) -> Pricing:
-    text = path.read_text() if path else files("pipeline").joinpath("pricing.toml").read_text()
+    text = (
+        path.read_text(encoding="utf-8")
+        if path
+        else files("pipeline").joinpath("pricing.toml").read_text(encoding="utf-8")
+    )
     return Pricing.model_validate(tomllib.loads(text))
 
 

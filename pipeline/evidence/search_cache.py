@@ -61,7 +61,7 @@ class SearchCache:
             return None
         path = self._path(cache_key(request))
         try:
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
             saved_at = dt.datetime.fromisoformat(data["saved_at"])
             response = data["response"]
         except FileNotFoundError:
@@ -80,7 +80,7 @@ class SearchCache:
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-            with os.fdopen(fd, "w") as f:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(entry, f, ensure_ascii=False)
             os.replace(tmp, path)
         except OSError as exc:

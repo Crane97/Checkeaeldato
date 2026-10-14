@@ -126,7 +126,8 @@ def _write(tmp_path: Path, governments: list[dict]) -> Path:
     path.write_text(
         json.dumps(
             {"version": 1, "updated": "2026-01-01", "parties": {}, "governments": governments}
-        )
+        ),
+        encoding="utf-8",
     )
     return path
 

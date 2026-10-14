@@ -18,9 +18,13 @@ MAX_QUERIES = 3
 
 def _load(path: Path | None) -> dict[str, dict[str, str]]:
     if path:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
     else:
-        text = files("pipeline.evidence").joinpath("fuentes_oficiales.toml").read_text()
+        text = (
+            files("pipeline.evidence")
+            .joinpath("fuentes_oficiales.toml")
+            .read_text(encoding="utf-8")
+        )
     return tomllib.loads(text)
 
 

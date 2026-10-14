@@ -120,7 +120,7 @@ def run(path: Path, data_dir: Path, deps: FakeDeps, **kwargs: Any):
 @pytest.fixture
 def article(tmp_path: Path) -> Path:
     path = tmp_path / "articulo.txt"
-    path.write_text(ARTICLE)
+    path.write_text(ARTICLE, encoding="utf-8")
     return path
 
 
@@ -146,7 +146,7 @@ def test_text_article_end_to_end(article: Path, tmp_path: Path):
         assert (job_dir / name).exists(), name
     assert not (job_dir / "audio.json").exists()
 
-    report = json.loads(result.report_path.read_text())
+    report = json.loads(result.report_path.read_text(encoding="utf-8"))
     [claim] = report["claims"]
     assert claim["speaker"] == "autor"
     assert claim["text_original"] == "El paro ha bajado un 20 % este año"
@@ -173,7 +173,7 @@ def test_rerun_reuses_everything_and_new_names_only_rebuild_the_report(article, 
 
     result = run(article, tmp_path / "data", deps, author="Otro Nombre")
     assert deps.llm.calls == []
-    report = json.loads(result.report_path.read_text())
+    report = json.loads(result.report_path.read_text(encoding="utf-8"))
     assert report["speakers"] == {"autor": "Otro Nombre"}
 
 
@@ -202,7 +202,7 @@ def test_video_pipeline_with_fake_audio_and_transcriber(tmp_path, monkeypatch):
         video, tmp_path / "data", FakeDeps(), speakers={"speaker_1": "Candidata"}, purge_audio=True
     )
 
-    report = json.loads(result.report_path.read_text())
+    report = json.loads(result.report_path.read_text(encoding="utf-8"))
     [claim] = report["claims"]
     assert (claim["speaker"], claim["start"], claim["end"]) == ("speaker_1", 3.0, 6.0)
     assert "Candidata" in report["by_speaker"]
@@ -231,7 +231,10 @@ def test_new_speaker_info_reidentifies_speakers(tmp_path):
     from pipeline.models import SpeakerInfo
 
     text = tmp_path / "debate.txt"
-    text.write_text("Ana Ruiz: Hola a todos.\nLuis Gómez: El paro ha bajado un 20 % este año.\n")
+    text.write_text(
+        "Ana Ruiz: Hola a todos.\nLuis Gómez: El paro ha bajado un 20 % este año.\n",
+        encoding="utf-8",
+    )
     deps = FakeDeps()
     run(text, tmp_path / "data", deps)
     deps.llm.calls.clear()
@@ -303,7 +306,7 @@ def test_context_is_resolved_with_the_speakers_party(tmp_path):
     from pipeline.models import SpeakerInfo
 
     text = tmp_path / "debate.txt"
-    text.write_text(DEBATE)
+    text.write_text(DEBATE, encoding="utf-8")
     deps = FakeDeps()
     deps.llm = ContextLLM(addressee="Luis Gómez")
     result = run(
@@ -324,7 +327,7 @@ def test_context_is_resolved_with_the_speakers_party(tmp_path):
 
 def test_unresolved_context_skips_evidence_and_is_no_verificable(tmp_path):
     text = tmp_path / "debate.txt"
-    text.write_text(DEBATE)
+    text.write_text(DEBATE, encoding="utf-8")
     deps = FakeDeps()
     deps.llm = ContextLLM(addressee="")
     result = run(text, tmp_path / "data", deps, speech_date=dt.date(2023, 7, 10))
@@ -398,12 +401,14 @@ class PromiseLLM(FakeLLM):
 
 def test_promises_go_to_their_own_section(tmp_path: Path):
     path = tmp_path / "mitin.txt"
-    path.write_text("Hola.\n\nEl paro ha bajado un 20 % este año. Bajaremos el paro al 0 %.\n")
+    path.write_text(
+        "Hola.\n\nEl paro ha bajado un 20 % este año. Bajaremos el paro al 0 %.\n", encoding="utf-8"
+    )
     deps = FakeDeps()
     deps.llm = PromiseLLM()
     result = run(path, tmp_path / "data", deps)
 
-    report = json.loads(result.report_path.read_text())
+    report = json.loads(result.report_path.read_text(encoding="utf-8"))
     assert [c["kind"] for c in report["claims"]] == ["afirmacion"]
     [promise] = report["promises"]
     assert promise["assessment"] == "inviable"
@@ -447,9 +452,11 @@ def test_without_tavily_key_there_is_no_search_cost(tmp_path: Path):
 
 def test_report_has_the_explanation_but_not_the_audit_analysis(article: Path, tmp_path: Path):
     result = run(article, tmp_path / "data", FakeDeps())
-    [claim] = json.loads(result.report_path.read_text())["claims"]
+    [claim] = json.loads(result.report_path.read_text(encoding="utf-8"))["claims"]
     assert claim["explanation"] and "analysis" not in claim and "evidence_used" not in claim
-    [verdict] = json.loads((result.report_path.parent / "verdicts.json").read_text())
+    [verdict] = json.loads(
+        (result.report_path.parent / "verdicts.json").read_text(encoding="utf-8")
+    )
     assert verdict["analysis"]["conclusion"] and verdict["evidence_used"] == ["E1"]
 
 

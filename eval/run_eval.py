@@ -45,7 +45,7 @@ def _input_file(case: GoldCase) -> Path:
         return Path(__file__).resolve().parent.parent / str(case.entrada.ruta)
     path = EVAL_DIR / "entradas" / f"{case.id}.txt"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(case.entrada.texto or "")
+    path.write_text(case.entrada.texto or "", encoding="utf-8", newline="\n")
     return path
 
 
@@ -281,7 +281,8 @@ def main(
             },
             ensure_ascii=False,
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
     typer.echo(f"Resultados guardados en {out}")
 

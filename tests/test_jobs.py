@@ -29,7 +29,7 @@ def video(tmp_path: Path) -> Path:
 def prompts_dir(tmp_path: Path) -> Path:
     path = tmp_path / "prompts"
     path.mkdir()
-    (path / "deteccion.md").write_text("v1")
+    (path / "deteccion.md").write_text("v1", encoding="utf-8")
     return path
 
 
@@ -128,7 +128,7 @@ def test_from_step_reruns_that_step_and_later(store, prompts_dir):
 def test_changed_prompt_reruns_from_its_step(store, prompts_dir):
     rec = Recorder()
     run_steps(store, rec.steps(), prompts_dir)
-    (prompts_dir / "deteccion.md").write_text("v2")
+    (prompts_dir / "deteccion.md").write_text("v2", encoding="utf-8")
 
     assert plan_steps(store.manifest, rec.steps(), prompts_dir) == [
         "claims",

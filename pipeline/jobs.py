@@ -95,7 +95,7 @@ class JobStore:
             store.save_manifest()
             return store, None
 
-        manifest = JobManifest.model_validate_json(manifest_path.read_text())
+        manifest = JobManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
         invalidated: StepName | None = None
         if manifest.speech_date != speech_date:
             invalidated = "claims"

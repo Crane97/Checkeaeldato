@@ -40,4 +40,4 @@ def test_neutral_text_passes(text):
 
 @pytest.mark.parametrize("prompt", sorted(PROMPTS_DIR.glob("*.md")), ids=lambda p: p.name)
 def test_every_prompt_is_neutral(prompt: Path):
-    assert neutrality_problems(prompt.read_text()) == []
+    assert neutrality_problems(prompt.read_text(encoding="utf-8")) == []

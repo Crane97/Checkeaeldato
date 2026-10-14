@@ -58,7 +58,7 @@ def test_home_page_has_the_form(client):
 
 def test_page_uses_neutral_wording():
     for path in STATIC_DIR.glob("*"):
-        assert not FORBIDDEN_WORDS_RE.search(path.read_text()), path.name
+        assert not FORBIDDEN_WORDS_RE.search(path.read_text(encoding="utf-8")), path.name
 
 
 def test_analysis_runs_and_returns_the_report(client, deps):
@@ -140,8 +140,8 @@ def test_only_one_analysis_at_a_time(tmp_path, deps):
 
 
 def test_page_has_per_speaker_table():
-    assert 'id="oradores"' in (STATIC_DIR / "index.html").read_text()
-    assert "by_speaker" in (STATIC_DIR / "report.js").read_text()
+    assert 'id="oradores"' in (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+    assert "by_speaker" in (STATIC_DIR / "report.js").read_text(encoding="utf-8")
 
 
 def test_report_is_emailed_when_an_address_is_given(client, sender):

@@ -66,7 +66,7 @@ class FakeAnthropic:
 
 @pytest.fixture
 def prompts_dir(tmp_path: Path) -> Path:
-    (tmp_path / "clasificar.md").write_text("Eres un clasificador neutral.")
+    (tmp_path / "clasificar.md").write_text("Eres un clasificador neutral.", encoding="utf-8")
     return tmp_path
 
 

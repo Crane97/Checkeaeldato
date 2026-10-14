@@ -12,7 +12,7 @@ runner = CliRunner()
 @pytest.fixture
 def article(tmp_path: Path) -> Path:
     path = tmp_path / "articulo.txt"
-    path.write_text(ARTICLE)
+    path.write_text(ARTICLE, encoding="utf-8")
     return path
 
 
@@ -113,14 +113,14 @@ def test_invalid_email_option_is_rejected(article, fake_deps):
 
 def test_speakers_file_is_parsed_and_bad_files_explained(article, fake_deps, tmp_path):
     good = tmp_path / "speakers.json"
-    good.write_text('{"autor": {"name": "Ana Ruiz", "party": "PSOE"}}')
+    good.write_text('{"autor": {"name": "Ana Ruiz", "party": "PSOE"}}', encoding="utf-8")
     result = runner.invoke(
         cli.app, [str(article), "--fecha", "2026-11-20", "--speakers", str(good)]
     )
     assert result.exit_code == 0, result.output
 
     bad = tmp_path / "bad.json"
-    bad.write_text("no es json")
+    bad.write_text("no es json", encoding="utf-8")
     result = runner.invoke(cli.app, [str(article), "--fecha", "2026-11-20", "--speakers", str(bad)])
     assert result.exit_code == 2
     assert "SPEAKER_0" in result.output

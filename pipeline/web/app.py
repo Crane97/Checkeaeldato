@@ -98,7 +98,8 @@ class JobManager:
         inputs = self.data_dir / "web"
         inputs.mkdir(parents=True, exist_ok=True)
         path = inputs / f"{job_id}.txt"
-        path.write_text(text)
+        # "\n" verbatim: the job id is the file's hash and must match the text's.
+        path.write_text(text, encoding="utf-8", newline="\n")
 
         def work() -> None:
             state = self.states[job_id]
@@ -150,7 +151,7 @@ class JobManager:
         path = self.data_dir / job_id / "report.json"
         if not path.exists():
             raise HTTPException(404, "Informe no encontrado")
-        return Report.model_validate_json(path.read_text())
+        return Report.model_validate_json(path.read_text(encoding="utf-8"))
 
     def status(self, job_id: str) -> dict[str, Any]:
         job_dir = self.data_dir / job_id
@@ -162,7 +163,7 @@ class JobManager:
         steps: dict[str, Any] = {}
         kind = "texto"
         if manifest_path.exists():
-            manifest = json.loads(manifest_path.read_text())
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             steps, kind = manifest.get("steps", {}), manifest.get("input_kind", "texto")
         report_path = job_dir / "report.json"
         if state is None:  # e.g. after a server restart
@@ -183,7 +184,7 @@ class JobManager:
             "error": state.error,
             "correo": state.correo,
             "pasos": pasos,
-            "informe": json.loads(report_path.read_text()) if done else None,
+            "informe": json.loads(report_path.read_text(encoding="utf-8")) if done else None,
         }
 
 

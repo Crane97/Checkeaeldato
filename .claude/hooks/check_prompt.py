@@ -19,7 +19,7 @@ def main() -> None:
     if path.suffix != ".md" or path.resolve().parent != project / "prompts" or not path.is_file():
         return
 
-    problems = neutrality_problems(path.read_text())
+    problems = neutrality_problems(path.read_text(encoding="utf-8"))
     reminder = (
         f"Has modificado {path.name}. Según CLAUDE.md, ejecuta la evaluación "
         "(uv run python eval/run_eval.py) y reporta las métricas antes/después."

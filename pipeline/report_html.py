@@ -33,13 +33,13 @@ def report_subtitle(report: Report) -> str:
 
 def render_report_html(report: Report) -> str:
     values = {
-        "CSS": (STATIC_DIR / "report.css").read_text(),
-        "JS": (STATIC_DIR / "report.js").read_text(),
+        "CSS": (STATIC_DIR / "report.css").read_text(encoding="utf-8"),
+        "JS": (STATIC_DIR / "report.js").read_text(encoding="utf-8"),
         "TITLE": html.escape(report.source),
         "SUBTITLE": html.escape(report_subtitle(report)),
         "GENERATED": report.generated_at.strftime("%d/%m/%Y %H:%M UTC"),
         "REPORT_JSON": _script_safe_json(report),
     }
-    template = (STATIC_DIR / "informe.html").read_text()
+    template = (STATIC_DIR / "informe.html").read_text(encoding="utf-8")
     # One pass, so placeholder-like text inside the data is never substituted again.
     return _PLACEHOLDER_RE.sub(lambda m: values[m.group(1)], template)

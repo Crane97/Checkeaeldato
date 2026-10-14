@@ -78,7 +78,7 @@ def load_gold_cases(directory: Path = GOLD_DIR) -> list[GoldCase]:
     cases = []
     for path in sorted(directory.glob("*.json")):
         try:
-            cases.append(GoldCase.model_validate(json.loads(path.read_text())))
+            cases.append(GoldCase.model_validate(json.loads(path.read_text(encoding="utf-8"))))
         except (ValidationError, ValueError) as exc:
             raise ValueError(f"Caso gold inválido en {path.name}: {exc}") from exc
     return cases

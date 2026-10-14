@@ -92,7 +92,7 @@ def test_corrupt_entry_is_ignored(tmp_path: Path):
     route = ok(respx.post(API_URL))
     make(tmp_path).search("paro")
     [entry] = list((tmp_path / "cache").rglob("*.json"))
-    entry.write_text("{no es json")
+    entry.write_text("{no es json", encoding="utf-8")
     make(tmp_path).search("paro")
     assert route.call_count == 2
 
@@ -102,10 +102,10 @@ def test_entry_keeps_query_parameters_and_date_for_auditing(tmp_path: Path):
     ok(respx.post(API_URL))
     make(tmp_path).search("paro", country="spain")
     [entry] = list((tmp_path / "cache").rglob("*.json"))
-    data = json.loads(entry.read_text())
+    data = json.loads(entry.read_text(encoding="utf-8"))
     assert data["request"]["query"] == "paro" and data["request"]["country"] == "spain"
     assert data["saved_at"].startswith("2026-10-13")
-    assert "tvly-KEY" not in entry.read_text()
+    assert "tvly-KEY" not in entry.read_text(encoding="utf-8")
 
 
 @respx.mock

@@ -141,7 +141,7 @@ class LLMClient:
         path = self._prompts_dir / name
         if not path.is_file():
             raise LLMError(f"No existe el prompt {path}")
-        return path.read_text()
+        return path.read_text(encoding="utf-8")
 
     def structured(
         self,

@@ -19,7 +19,9 @@ class AudioError(RuntimeError):
 def _run(cmd: list[str]) -> str:
     if shutil.which(cmd[0]) is None:
         raise AudioError(f"No se encuentra {cmd[0]}; instálalo con `brew install ffmpeg`")
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
+    )
     if result.returncode != 0:
         tail = "\n".join(result.stderr.strip().splitlines()[-5:])
         raise AudioError(f"{cmd[0]} falló (código {result.returncode}):\n{tail}")
