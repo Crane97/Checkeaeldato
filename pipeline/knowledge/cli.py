@@ -29,7 +29,10 @@ def migrar(
         migrations = load_migrations()
         with _connect() as conn:
             todo = pending(conn, migrations)
-            conn.commit()  # the ledger table, if it did not exist
+            if simular:
+                conn.rollback()  # not even the ledger table is created
+            else:
+                conn.commit()  # the ledger table, if it did not exist
             if not todo:
                 typer.echo("No hay migraciones pendientes.")
                 return
