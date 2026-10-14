@@ -1,0 +1,10 @@
+# Bloquea commits que contengan claves o secretos (gitleaks, instalado con brew).
+# Instalar el hook en un clon nuevo: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (claves y secretos)
+        entry: gitleaks git --pre-commit --staged --redact --verbose
+        language: system
+        pass_filenames: false
