@@ -7,17 +7,22 @@ alter table ref.governments
         check (estado in ('pendiente', 'aprobado', 'rechazado')),
     add column revisado_por text,
     add column revisado_en  timestamptz,
-    add constraint governments_revision_chk
-        check ((estado = 'pendiente') = (revisado_en is null)
-               and (estado = 'pendiente' or revisado_por is not null));
+    add constraint governments_revision_chk check (case estado
+        when 'pendiente' then revisado_en is null and revisado_por is null
+        else revisado_en is not null and nullif(btrim(revisado_por), '') is not null
+    end);
 
 alter table ref.parties
     add column estado       text not null default 'pendiente'
         check (estado in ('pendiente', 'aprobado', 'rechazado')),
     add column revisado_por text,
     add column revisado_en  timestamptz,
-    add constraint parties_revision_chk
-        check ((estado = 'pendiente') = (revisado_en is null)
-               and (estado = 'pendiente' or revisado_por is not null));
+    add constraint parties_revision_chk check (case estado
+        when 'pendiente' then revisado_en is null and revisado_por is null
+        else revisado_en is not null and nullif(btrim(revisado_por), '') is not null
+    end);
 
-create index government_partners_government_idx on ref.government_partners (government_id);
+-- Los socios de coalición deben ser partidos conocidos. (governments.partidos es un array y
+-- no admite FK: el código de aprobación y de resolución comprueba que estén aprobados.)
+alter table ref.government_partners
+    add constraint government_partners_partido_fk foreign key (partido) references ref.parties (id);

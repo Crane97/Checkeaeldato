@@ -301,3 +301,51 @@ def test_governments_json_loads_pending_and_is_idempotent(db, tmp_path):
     edited.write_text(json.dumps(data, ensure_ascii=False))
     report = load_governments(db, edited)
     assert report.changed == [f"gobierno {data['governments'][0]['id']}"]  # warned, not overwritten
+
+
+@pytest.mark.supabase
+def test_update_overwrites_and_sends_approved_rows_back_to_review(db, tmp_path):
+    import json
+
+    from pipeline.governments import DEFAULT_KNOWLEDGE_PATH
+    from pipeline.knowledge.governments_load import load_governments
+
+    load_governments(db)
+    gid = "es-2018-sanchez"
+    db.execute(
+        "update ref.governments set estado = 'aprobado', revisado_por = 'Jorge',"
+        " revisado_en = now() where id = %s",
+        (gid,),
+    )
+    data = json.loads(DEFAULT_KNOWLEDGE_PATH.read_text(encoding="utf-8"))
+    next(g for g in data["governments"] if g["id"] == gid)["notes"] = "nota corregida"
+    edited = tmp_path / "governments.json"
+    edited.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    report = load_governments(db, edited, update=True)
+    assert report.updated == [f"gobierno {gid}"]
+    row = db.execute(
+        "select notas, estado, revisado_por from ref.governments where id = %s", (gid,)
+    ).fetchone()
+    assert row == ("nota corregida", "pendiente", None)
+
+
+@pytest.mark.supabase
+def test_pending_rows_cannot_carry_a_reviewer_and_partners_must_be_parties(db):
+    db.execute(
+        "insert into ref.governments (id, nivel, territorio, presidente, partidos, inicio)"
+        " values ('es-y', 'nacional', 'España', 'Y', '{A}', '2018-06-02')"
+    )
+    _fails(db, "update ref.governments set revisado_por = 'Jorge' where id = 'es-y'", match="check")
+    _fails(
+        db,
+        "update ref.governments set estado = 'aprobado', revisado_por = ' ', revisado_en = now()"
+        " where id = 'es-y'",
+        match="check",
+    )
+    _fails(
+        db,
+        "insert into ref.government_partners (government_id, partido, inicio)"
+        " values ('es-y', 'Inexistente', '2019-01-01')",
+        match="foreign key",
+    )

@@ -61,14 +61,22 @@ def version() -> None:
 
 
 @app.command("cargar-gobiernos")
-def cargar_gobiernos() -> None:
-    """Carga data/knowledge/governments.json (entran pendientes de revisión)."""
+def cargar_gobiernos(
+    actualizar: Annotated[
+        bool,
+        typer.Option(
+            "--actualizar", help="Sobrescribe lo que cambió en el JSON (vuelve a revisión)"
+        ),
+    ] = False,
+) -> None:
+    """Carga data/knowledge/governments.json (entran pendientes de revisión), todo o nada."""
     with _connect() as conn:
-        report = load_governments(conn)
+        report = load_governments(conn, update=actualizar)
         conn.commit()
     typer.echo(
         f"Nuevos: {len(report.new)} · sin cambios: {len(report.unchanged)} · "
-        f"cambiados en el JSON (no sobrescritos): {len(report.changed)}"
+        f"cambiados en el JSON (no sobrescritos): {len(report.changed)} · "
+        f"actualizados y devueltos a revisión: {len(report.updated)}"
     )
     for item in report.changed:
         typer.secho(f"  Cambiado, revisar a mano: {item}", fg=typer.colors.YELLOW)

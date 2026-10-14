@@ -3,7 +3,8 @@
 Los gobiernos se curan a mano: entran como `pendiente` y una persona los aprueba con
 `uv run conocimiento revisar`. La carga es idempotente: lo que ya está igual no se toca, y
 si un gobierno o partido ya cargado cambió en el JSON se avisa en lugar de sobrescribirlo
-(un dato ya revisado no se pisa en silencio).
+(un dato ya revisado no se pisa en silencio). Con `update=True` se actualiza, y si estaba
+aprobado vuelve a `pendiente` para revisarlo otra vez.
 """
 
 import datetime as dt
@@ -21,14 +22,21 @@ class LoadReport:
     new: list[str] = field(default_factory=list)
     unchanged: list[str] = field(default_factory=list)
     changed: list[str] = field(default_factory=list)  # differs from the DB: not overwritten
+    updated: list[str] = field(default_factory=list)  # overwritten (update=True), back to review
 
 
 def _date(value: str | None) -> dt.date | None:
     return dt.date.fromisoformat(value) if value else None
 
 
-def load_governments(conn: psycopg.Connection, path: Path = DEFAULT_KNOWLEDGE_PATH) -> LoadReport:
-    data = json.loads(path.read_text())
+_BACK_TO_REVIEW = "estado = 'pendiente', revisado_por = null, revisado_en = null"
+
+
+def load_governments(
+    conn: psycopg.Connection, path: Path = DEFAULT_KNOWLEDGE_PATH, *, update: bool = False
+) -> LoadReport:
+    """Load in the caller's transaction (it commits or rolls back the whole load)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
     report = LoadReport()
 
     for party_id, party in data["parties"].items():
@@ -44,6 +52,13 @@ def load_governments(conn: psycopg.Connection, path: Path = DEFAULT_KNOWLEDGE_PA
             report.new.append(f"partido {party_id}")
         elif (row[0], sorted(row[1])) == wanted:
             report.unchanged.append(f"partido {party_id}")
+        elif update:
+            conn.execute(
+                f"update ref.parties set nombre = %s, aliases = %s, {_BACK_TO_REVIEW}"
+                " where id = %s",
+                (*wanted, party_id),
+            )
+            report.updated.append(f"partido {party_id}")
         else:
             report.changed.append(f"partido {party_id}")
 
@@ -74,18 +89,7 @@ def load_governments(conn: psycopg.Connection, path: Path = DEFAULT_KNOWLEDGE_PA
                 " inicio, fin, nombramiento, notas) values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (g["id"], *wanted),
             )
-            for party, start, end in partners:
-                conn.execute(
-                    "insert into ref.government_partners (government_id, partido, inicio, fin)"
-                    " values (%s, %s, %s, %s)",
-                    (g["id"], party, start, end),
-                )
-            for start, end in caretaker:
-                conn.execute(
-                    "insert into ref.government_caretaker (government_id, inicio, fin)"
-                    " values (%s, %s, %s)",
-                    (g["id"], start, end),
-                )
+            _insert_terms(conn, g["id"], partners, caretaker)
             report.new.append(f"gobierno {g['id']}")
             continue
         stored_partners = sorted(
@@ -102,6 +106,33 @@ def load_governments(conn: psycopg.Connection, path: Path = DEFAULT_KNOWLEDGE_PA
         )
         if tuple(row) == wanted and stored_partners == partners and stored_caretaker == caretaker:
             report.unchanged.append(f"gobierno {g['id']}")
+        elif update:
+            conn.execute(
+                "update ref.governments set nivel = %s, territorio = %s, presidente = %s,"
+                " partidos = %s, inicio = %s, fin = %s, nombramiento = %s, notas = %s,"
+                f" {_BACK_TO_REVIEW} where id = %s",
+                (*wanted, g["id"]),
+            )
+            conn.execute("delete from ref.government_partners where government_id = %s", (g["id"],))
+            conn.execute(
+                "delete from ref.government_caretaker where government_id = %s", (g["id"],)
+            )
+            _insert_terms(conn, g["id"], partners, caretaker)
+            report.updated.append(f"gobierno {g['id']}")
         else:
             report.changed.append(f"gobierno {g['id']}")
     return report
+
+
+def _insert_terms(conn: psycopg.Connection, gov_id: str, partners: list, caretaker: list) -> None:
+    for party, start, end in partners:
+        conn.execute(
+            "insert into ref.government_partners (government_id, partido, inicio, fin)"
+            " values (%s, %s, %s, %s)",
+            (gov_id, party, start, end),
+        )
+    for start, end in caretaker:
+        conn.execute(
+            "insert into ref.government_caretaker (government_id, inicio, fin) values (%s, %s, %s)",
+            (gov_id, start, end),
+        )
