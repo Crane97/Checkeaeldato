@@ -1,0 +1,258 @@
+"""Esquema de la base de conocimiento.
+
+Los tests marcados `supabase` corren contra el proyecto de DESARROLLO dentro de una
+transacción que se deshace al final (en Postgres el DDL también es transaccional): se
+aplican las migraciones desde cero y no queda nada en la base.
+"""
+
+from pathlib import Path
+
+import psycopg
+import pytest
+
+from pipeline.knowledge.migrate import (
+    MIGRATIONS_DIR,
+    MigrationError,
+    apply,
+    load_migrations,
+)
+
+SCHEMAS = ("ref", "evid", "verif", "ops")
+
+
+def test_migrations_are_numbered_and_unique():
+    migrations = load_migrations()
+    assert [m.version for m in migrations][:2] == ["0001", "0002"]
+    assert all(m.sql.strip() for m in migrations)
+
+
+def test_misnamed_migration_is_rejected(tmp_path: Path):
+    (tmp_path / "esquema.sql").write_text("select 1;")
+    with pytest.raises(MigrationError, match="esquema.sql"):
+        load_migrations(tmp_path)
+
+
+def test_migrations_never_update_or_delete_observations():
+    for m in load_migrations(MIGRATIONS_DIR):
+        sql = m.sql.lower()
+        assert "update ref.observations" not in sql and "delete from ref.observations" not in sql
+
+
+@pytest.fixture
+def db(supabase_url: str):
+    """Fresh schema inside a transaction that is always rolled back."""
+    with psycopg.connect(supabase_url, connect_timeout=20) as conn:
+        try:
+            for schema in SCHEMAS:
+                conn.execute(f"drop schema if exists {schema} cascade")
+            conn.execute(
+                "create schema ops; create table ops.schema_migrations (version text primary key,"
+                " nombre text not null, checksum text not null, aplicada_en timestamptz not null"
+                " default now())"
+            )
+            for m in load_migrations():
+                apply(conn, m)
+            yield conn
+        finally:
+            conn.rollback()
+
+
+def _observation(conn, **overrides) -> int:
+    conn.execute(
+        "insert into ref.indicators (id, nombre, definicion, unidad, frecuencia, organismo, tema)"
+        " values ('smi', 'SMI', 'Salario mínimo', 'euros/mes', 'anual', 'BOE', 'empleo')"
+        " on conflict do nothing"
+    )
+    source = conn.execute(
+        "insert into ref.sources (organismo, titulo, url, tipo) values"
+        " ('BOE', 'RD 1077/2017', 'https://www.boe.es/x', 'primaria')"
+        " on conflict (organismo, titulo, url) do update set tipo = excluded.tipo returning id"
+    ).fetchone()[0]
+    row = {
+        "indicator_id": "smi",
+        "periodo": "2018",
+        "periodo_inicio": "2018-01-01",
+        "periodo_fin": "2018-12-31",
+        "valor": 735.90,
+        "unidad": "euros/mes",
+        "fecha_publicacion": "2017-12-30",
+        "estado": "pendiente",
+        "source_id": source,
+        "version": 1,
+        "vigente": True,
+    } | overrides
+    cols = ", ".join(row)
+    marks = ", ".join(["%s"] * len(row))
+    return conn.execute(
+        f"insert into ref.observations ({cols}) values ({marks}) returning id",
+        list(row.values()),
+    ).fetchone()[0]
+
+
+def _fails(conn, sql: str, params=(), match: str = "") -> None:
+    conn.execute("savepoint t")
+    with pytest.raises(psycopg.Error, match=match):
+        conn.execute(sql, params)
+    conn.execute("rollback to savepoint t")
+
+
+@pytest.mark.supabase
+def test_all_tables_are_created(db):
+    tables = {
+        f"{s}.{t}"
+        for s, t in db.execute(
+            "select table_schema, table_name from information_schema.tables"
+            " where table_schema = any(%s)",
+            (list(SCHEMAS),),
+        ).fetchall()
+    }
+    assert {
+        "ref.indicators",
+        "ref.territories",
+        "ref.observations",
+        "ref.sources",
+        "ref.facts",
+        "ref.governments",
+        "evid.web_facts",
+        "verif.claims",
+        "ops.ingest_runs",
+        "ops.source_state",
+        "ref.observation_events",
+    } <= tables
+
+
+@pytest.mark.supabase
+def test_observations_cannot_be_deleted_truncated_or_edited(db):
+    obs = _observation(db)
+    _fails(db, "delete from ref.observations where id = %s", (obs,), "inmutable")
+    _fails(db, "truncate ref.observations", match="TRUNCATE")
+    _fails(db, "update ref.observations set valor = 736 where id = %s", (obs,), "inmutable")
+    _fails(
+        db,
+        "update ref.observations set fecha_publicacion = '2018-01-01' where id = %s",
+        (obs,),
+        "inmutable",
+    )
+
+
+@pytest.mark.supabase
+def test_only_allowed_state_changes_and_they_are_logged(db):
+    obs = _observation(db)
+    db.execute("update ref.observations set estado = 'aprobado' where id = %s", (obs,))
+    _fails(db, "update ref.observations set estado = 'pendiente' where id = %s", (obs,), "estado")
+    db.execute("update ref.observations set vigente = false where id = %s", (obs,))
+    _fails(db, "update ref.observations set vigente = true where id = %s", (obs,), "vigente")
+    events = db.execute(
+        "select campo, antes, despues from ref.observation_events where observation_id = %s"
+        " order by id",
+        (obs,),
+    ).fetchall()
+    assert events == [("estado", "pendiente", "aprobado"), ("vigente", "true", "false")]
+    _fails(db, "delete from ref.observation_events", match="solo inserción")
+
+
+@pytest.mark.supabase
+def test_a_revision_is_a_new_version_and_only_one_is_current(db):
+    first = _observation(db)
+    # Two current versions of the same datum are not allowed…
+    db.execute("savepoint dup")
+    with pytest.raises(psycopg.errors.UniqueViolation):
+        _observation(db, version=2)
+    db.execute("rollback to savepoint dup")
+    # …so a revision first retires the previous one, then inserts the next version.
+    db.execute("update ref.observations set vigente = false where id = %s", (first,))
+    second = _observation(db, version=2, valor=735.9, fecha_publicacion="2018-01-20")
+    rows = db.execute(
+        "select id, version, vigente from ref.observations"
+        " where indicator_id = 'smi' order by version"
+    ).fetchall()
+    assert rows == [(first, 1, False), (second, 2, True)]
+
+
+@pytest.mark.supabase
+def test_web_facts_need_exact_keys(db):
+    _fails(
+        db,
+        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente)"
+        " values ('x', '{\"indicador\": \"smi\"}', 'https://a.es', 'medio')",
+        match="check",
+    )
+
+
+def _run(conn) -> int:
+    return conn.execute(
+        "insert into ops.ingest_runs (conector) values ('ine') returning id"
+    ).fetchone()[0]
+
+
+@pytest.mark.supabase
+def test_inserts_follow_the_version_chain(db):
+    _observation(db)
+    for overrides, match in (
+        ({"version": 3}, "versión esperada 2"),  # a gap in the chain
+        ({"version": 2, "fecha_publicacion": "2017-01-01"}, "anterior"),  # going back in time
+        ({"periodo": "2019", "version": 2}, "debe ser la 1"),  # first version must be 1
+    ):
+        db.execute("savepoint s")
+        with pytest.raises(psycopg.Error, match=match):
+            _observation(db, **overrides)
+        db.execute("rollback to savepoint s")
+
+
+@pytest.mark.supabase
+def test_only_automatic_ingestion_inserts_approved_rows(db):
+    db.execute("savepoint s")
+    with pytest.raises(psycopg.Error, match="pendiente"):
+        _observation(db, estado="aprobado")  # hand-curated data enters as pending
+    db.execute("rollback to savepoint s")
+    assert _observation(db, estado="aprobado", ingest_run_id=_run(db))
+
+
+@pytest.mark.supabase
+def test_events_record_the_connection_role_and_the_reviewer(db):
+    obs = _observation(db)
+    db.execute("select set_config('app.revisor', 'Jorge', true)")
+    db.execute("update ref.observations set estado = 'aprobado' where id = %s", (obs,))
+    por, revisor = db.execute(
+        "select por, revisor from ref.observation_events where observation_id = %s", (obs,)
+    ).fetchone()
+    assert por == db.execute("select session_user").fetchone()[0] and revisor == "Jorge"
+
+
+@pytest.mark.supabase
+def test_source_identity_and_nan_values_are_protected(db):
+    _observation(db)
+    _fails(db, "update ref.sources set url = 'https://otra.es'", match="identidad")
+    _fails(db, "update ref.indicators set unidad = 'euros/año'", match="unidad")
+    db.execute("savepoint s")
+    with pytest.raises(psycopg.Error, match="check"):
+        _observation(db, periodo="2020", valor=float("nan"))
+    db.execute("rollback to savepoint s")
+
+
+@pytest.mark.supabase
+@pytest.mark.parametrize(
+    "claves",
+    [
+        '{"indicador": "smi", "territorio": "ES", "periodo": 2018}',  # number, not text
+        '{"indicador": "smi", "territorio": "ES", "periodo": "2018", "x": "y"}',  # extra key
+    ],
+)
+def test_web_fact_keys_are_exactly_three_strings(db, claves):
+    _fails(
+        db,
+        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente)"
+        " values ('x', %s::jsonb, 'https://a.es', 'medio')",
+        (claves,),
+        "check",
+    )
+
+
+@pytest.mark.supabase
+def test_rls_is_enabled_on_every_table(db):
+    without = db.execute(
+        "select n.nspname || '.' || c.relname from pg_class c join pg_namespace n"
+        " on n.oid = c.relnamespace where n.nspname in ('ref','evid','verif','ops')"
+        " and c.relkind = 'r' and not c.relrowsecurity and c.relname <> 'schema_migrations'"
+    ).fetchall()
+    assert without == []
