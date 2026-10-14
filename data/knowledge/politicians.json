@@ -281,7 +281,7 @@
       "roles": [
         {
           "inicio": "2016-11-18",
-          "fin": "2023-12-28",
+          "fin": "2020-03-11",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -653,7 +653,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Yolanda Díaz (Q3393973)",
+            "url": "https://www.wikidata.org/wiki/Q3393973",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Grupo Parlamentario Podemos-En Comú Podem-En Marea"
+        }
+      ],
       "categoria": "gobierno"
     },
     {
@@ -717,7 +731,7 @@
         },
         {
           "inicio": "2020-01-18",
-          "fin": "2024-11-25",
+          "fin": "2024-11-24",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -818,7 +832,7 @@
         },
         {
           "inicio": "2018-06-19",
-          "fin": "2020-01-29",
+          "fin": "2020-01-28",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -849,21 +863,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Manuel Albares (Q64595113)",
-            "url": "https://www.wikidata.org/wiki/Q64595113",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -901,7 +901,7 @@
         },
         {
           "inicio": "2018-06-22",
-          "fin": "2018-07-19",
+          "fin": "2021-07-27",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -965,7 +965,7 @@
         },
         {
           "inicio": "2018-06-07",
-          "fin": "2021-07-11",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -980,21 +980,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Félix Bolaños (Q58331783)",
-            "url": "https://www.wikidata.org/wiki/Q58331783",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -1259,7 +1245,7 @@
         },
         {
           "inicio": "2023-12-06",
-          "fin": "2026-03-27",
+          "fin": "2026-03-26",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -1311,7 +1297,7 @@
       "roles": [
         {
           "inicio": "2012-03-05",
-          "fin": "2018-06-05",
+          "fin": "2017-06-01",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -1491,21 +1477,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Óscar Puente (Q6174903)",
-            "url": "https://www.wikidata.org/wiki/Q6174903",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -1590,21 +1562,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Milagros Tolón (Q20087023)",
-            "url": "https://www.wikidata.org/wiki/Q20087023",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -1684,22 +1642,6 @@
             "tipo": "secundaria"
           },
           "cargo": "diputado provincial de Barcelona",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2020-10-09",
-          "fin": "2023-11-21",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jordi Hereu (Q953762)",
-            "url": "https://www.wikidata.org/wiki/Q953762",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -1837,7 +1779,7 @@
         },
         {
           "inicio": "2004-05-01",
-          "fin": "2010-10-05",
+          "fin": "2010-10-04",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -1916,38 +1858,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "1986-01-01",
-          "fin": "1989-07-24",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Luis Planas (Q11689876)",
-            "url": "https://www.wikidata.org/wiki/Q11689876",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "1989-07-25",
-          "fin": "1993-12-28",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Luis Planas (Q11689876)",
-            "url": "https://www.wikidata.org/wiki/Q11689876",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2014-03-01",
           "fin": "2018-06-07",
           "constatado_en": null,
@@ -1981,7 +1891,7 @@
         },
         {
           "inicio": "2010-10-05",
-          "fin": "2011-12-31",
+          "fin": "2011-12-30",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -2095,21 +2005,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ángel Víctor Torres Pérez (Q14100014)",
-            "url": "https://www.wikidata.org/wiki/Q14100014",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -2288,21 +2184,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Isabel Rodríguez García (Q5920849)",
-            "url": "https://www.wikidata.org/wiki/Q5920849",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -2337,41 +2219,23 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2014-07-01",
-          "fin": "2019-07-01",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ernest Urtasun (Q15564103)",
-            "url": "https://www.wikidata.org/wiki/Q15564103",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2019-07-02",
-          "fin": "2023-11-20",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ernest Urtasun (Q15564103)",
-            "url": "https://www.wikidata.org/wiki/Q15564103",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Ernest Urtasun (Q15564103)",
+            "url": "https://www.wikidata.org/wiki/Q15564103",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Catalunya en Comú"
+        }
+      ],
       "categoria": "gobierno"
     },
     {
@@ -2454,7 +2318,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Mónica García Gómez (Q62591710)",
+            "url": "https://www.wikidata.org/wiki/Q62591710",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Podemos"
+        }
+      ],
       "categoria": "gobierno"
     },
     {
@@ -2640,21 +2518,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Diana Morant (Q29906177)",
-            "url": "https://www.wikidata.org/wiki/Q29906177",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -2739,21 +2603,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ana Redondo García (Q5674051)",
-            "url": "https://www.wikidata.org/wiki/Q5674051",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -2806,6 +2656,22 @@
           "en_funciones": false
         },
         {
+          "inicio": "2025-12-22",
+          "fin": null,
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 1185/2025, de 22 de diciembre, por el que se dispone que doña Elma Saiz Delgado, Ministra de Inclusión, Seguridad Social y Migraciones, asuma las funciones de Portavoz del Gobierno.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2025-26354",
+            "fecha": "2025-12-22",
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Gobierno",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2023-06-17",
           "fin": "2023-11-20",
           "constatado_en": null,
@@ -2822,21 +2688,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Elma Saiz Delgado (Q8775044)",
-            "url": "https://www.wikidata.org/wiki/Q8775044",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -2999,21 +2851,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Óscar López Águeda (Q6174855)",
-            "url": "https://www.wikidata.org/wiki/Q6174855",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "gobierno"
     },
     {
@@ -3061,22 +2899,6 @@
             "tipo": "secundaria"
           },
           "cargo": "concejal del Ayuntamiento de Rivas-Vaciamadrid",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2019-07-02",
-          "fin": "2023-11-20",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Sira Rego (Q61743771)",
-            "url": "https://www.wikidata.org/wiki/Q61743771",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -3411,6 +3233,22 @@
         },
         {
           "inicio": "2023-11-20",
+          "fin": null,
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 836/2023, de 20 de noviembre, por el que se dispone que doña María del Pilar Alegría Continente, Ministra de Educación, Formación Profesional y Deportes, asuma las funciones de Portavoz del Gobierno.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2023-23544",
+            "fecha": "2023-11-21",
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Gobierno",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2023-11-20",
           "fin": "2025-12-22",
           "constatado_en": null,
           "source": {
@@ -3475,7 +3313,7 @@
         },
         {
           "inicio": "2020-02-11",
-          "fin": "2021-07-12",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -3506,21 +3344,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Pilar Alegría Continente (Q20908838)",
-            "url": "https://www.wikidata.org/wiki/Q20908838",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "exmiembro_gobierno"
     },
     {
@@ -3782,7 +3606,7 @@
         },
         {
           "inicio": "2006-11-25",
-          "fin": "2008-04-22",
+          "fin": "2008-04-21",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -3992,21 +3816,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Nadia Calviño (Q20535388)",
-            "url": "https://www.wikidata.org/wiki/Q20535388",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "político independiente"
-        }
-      ],
+      "parties": [],
       "categoria": "exmiembro_gobierno"
     },
     {
@@ -4121,39 +3931,9 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2014-02-21",
-          "fin": "2015-09-23",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Luis Escrivá Belmonte (Q23939777)",
-            "url": "https://www.wikidata.org/wiki/Q23939777",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Luis Escrivá Belmonte (Q23939777)",
-            "url": "https://www.wikidata.org/wiki/Q23939777",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "exmiembro_gobierno"
     },
     {
@@ -4175,7 +3955,7 @@
       "roles": [
         {
           "inicio": "1982-12-01",
-          "fin": "1986-07-22",
+          "fin": "1986-06-22",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4190,8 +3970,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "1986-06-23",
+          "fin": "1986-07-22",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 3285/1982, de 1 de diciembre, por el que se nombra Presidente del Gobierno a don Felipe González Márquez.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1982-31635",
+            "fecha": "1982-12-02",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
+        },
+        {
           "inicio": "1986-07-23",
-          "fin": "1989-12-04",
+          "fin": "1989-10-29",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4206,8 +4002,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "1989-10-30",
+          "fin": "1989-12-04",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 1514/1986, de 23 de julio, por el que se nombra Presidente del Gobierno a don Felipe González Márquez.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1986-19914",
+            "fecha": "1986-07-24",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
+        },
+        {
           "inicio": "1989-12-05",
-          "fin": "1993-07-08",
+          "fin": "1993-06-06",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4222,8 +4034,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "1993-06-07",
+          "fin": "1993-07-08",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 1452/1989, de 5 de diciembre, por el que se nombra Presidente del Gobierno a don Felipe González Márquez.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1989-28901",
+            "fecha": "1989-12-06",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
+        },
+        {
           "inicio": "1993-07-09",
-          "fin": "1996-03-04",
+          "fin": "1996-03-03",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4236,6 +4064,22 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": false
+        },
+        {
+          "inicio": "1996-03-04",
+          "fin": "1996-05-03",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 1106/1993, de 9 de julio, por el que se nombra Presidente del Gobierno a don Felipe González Márquez.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1993-18045",
+            "fecha": "1993-07-10",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
         },
         {
           "inicio": "1977-07-02",
@@ -4398,21 +4242,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Felipe González (Q156799)",
-            "url": "https://www.wikidata.org/wiki/Q156799",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "expresidente_gobierno"
     },
     {
@@ -4451,7 +4281,7 @@
         },
         {
           "inicio": "1996-05-04",
-          "fin": "2000-04-25",
+          "fin": "2000-03-12",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4466,8 +4296,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "2000-03-13",
+          "fin": "2000-04-25",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 757/1996, de 4 de mayo, por el que se nombra Presidente del Gobierno a don José María Aznar López.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1996-9942",
+            "fecha": "1996-05-05",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
+        },
+        {
           "inicio": "2000-04-26",
-          "fin": "2004-03-15",
+          "fin": "2004-03-14",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4480,6 +4326,22 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": false
+        },
+        {
+          "inicio": "2004-03-15",
+          "fin": "2004-04-15",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 555/2000, de 26 de abril, por el que se nombra Presidente del Gobierno a don José María Aznar López.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2000-7840",
+            "fecha": "2000-04-27",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
         },
         {
           "inicio": "1990-04-01",
@@ -4632,7 +4494,7 @@
       "roles": [
         {
           "inicio": "2004-04-16",
-          "fin": "2008-04-10",
+          "fin": "2008-03-09",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4647,8 +4509,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "2008-03-10",
+          "fin": "2008-04-10",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 552/2004, de 16 de abril, por el que se nombra Presidente del Gobierno a don José Luis Rodríguez Zapatero.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2004-6855",
+            "fecha": "2004-04-17",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
+        },
+        {
           "inicio": "2008-04-11",
-          "fin": "2011-11-21",
+          "fin": "2011-11-20",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4661,6 +4539,22 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": false
+        },
+        {
+          "inicio": "2011-11-21",
+          "fin": "2011-12-19",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 431/2008, de 11 de abril, por el que se nombra Presidente del Gobierno a don José Luis Rodríguez Zapatero.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2008-6470",
+            "fecha": "2008-04-12",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": true
         },
         {
           "inicio": "1986-07-15",
@@ -5503,55 +5397,9 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2000-04-08",
-          "fin": "2007-06-16",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jorge Azcón Navarro (Q64625515)",
-            "url": "https://www.wikidata.org/wiki/Q64625515",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "concejal",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2011-06-11",
-          "fin": "2023-06-17",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jorge Azcón Navarro (Q64625515)",
-            "url": "https://www.wikidata.org/wiki/Q64625515",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "concejal",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jorge Azcón Navarro (Q64625515)",
-            "url": "https://www.wikidata.org/wiki/Q64625515",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -5652,21 +5500,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Adrián Barbón Rodríguez (Q14026688)",
-            "url": "https://www.wikidata.org/wiki/Q14026688",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Federación Socialista Asturiana"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -5751,7 +5585,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Margarita Prohens Rigo (Q66663490)",
+            "url": "https://www.wikidata.org/wiki/Q66663490",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Partido Popular"
+        }
+      ],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -5804,21 +5652,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Fernando Clavijo Batlle (Q5859396)",
-            "url": "https://www.wikidata.org/wiki/Q5859396",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Coalición Canaria"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -5855,21 +5689,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María José Sáenz de Buruaga (Q6004085)",
-            "url": "https://www.wikidata.org/wiki/Q6004085",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6035,21 +5855,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Alfonso Fernández Mañueco (Q5666820)",
-            "url": "https://www.wikidata.org/wiki/Q5666820",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6263,21 +6069,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Emiliano García-Page (Q3052296)",
-            "url": "https://www.wikidata.org/wiki/Q3052296",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Socialista Obrero Español"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6471,21 +6263,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juanfran Pérez Llorca (Q120000125)",
-            "url": "https://www.wikidata.org/wiki/Q120000125",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6538,21 +6316,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María Guardiola (Q115151208)",
-            "url": "https://www.wikidata.org/wiki/Q115151208",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6605,21 +6369,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Alfonso Rueda (Q588412)",
-            "url": "https://www.wikidata.org/wiki/Q588412",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6852,21 +6602,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Fernando López Miras (Q29168668)",
-            "url": "https://www.wikidata.org/wiki/Q29168668",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -6983,7 +6719,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "María Chivite Navascués (Q12263205)",
+            "url": "https://www.wikidata.org/wiki/Q12263205",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Partido Socialista de Navarra-PSOE"
+        }
+      ],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -7167,21 +6917,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Gonzalo Capellán de Miguel (Q117808424)",
-            "url": "https://www.wikidata.org/wiki/Q117808424",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -7314,21 +7050,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juan Jesús Vivas (Q3028184)",
-            "url": "https://www.wikidata.org/wiki/Q3028184",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -7445,21 +7167,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juan José Imbroda (Q1969815)",
-            "url": "https://www.wikidata.org/wiki/Q1969815",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_autonomica"
     },
     {
@@ -7512,54 +7220,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2004-04-07",
-          "fin": "2007-03-04",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Francina Armengol (Q5412268)",
-            "url": "https://www.wikidata.org/wiki/Q5412268",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "portavoz",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2011-06-27",
-          "fin": "2015-03-31",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Francina Armengol (Q5412268)",
-            "url": "https://www.wikidata.org/wiki/Q5412268",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "portavoz",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-20",
-          "fin": "2023-07-24",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Francina Armengol (Q5412268)",
-            "url": "https://www.wikidata.org/wiki/Q5412268",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "portavoz",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2023-08-17",
           "fin": "2026-10-06",
           "constatado_en": null,
@@ -7571,22 +7231,6 @@
             "tipo": "secundaria"
           },
           "cargo": "diputado de España",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-08-17",
-          "fin": "2026-10-06",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Francina Armengol (Q5412268)",
-            "url": "https://www.wikidata.org/wiki/Q5412268",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente del Congreso de los Diputados",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -7719,21 +7363,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Pedro Rollán (Q5401435)",
-            "url": "https://www.wikidata.org/wiki/Q5401435",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "presidencia_camara"
     },
     {
@@ -7782,22 +7412,6 @@
           },
           "cargo": "Portavoz del Grupo Parlamentario Socialista",
           "organo": "Congreso de los Diputados",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2009-05-07",
-          "fin": "2012-12-13",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Patxi López (Q465161)",
-            "url": "https://www.wikidata.org/wiki/Q465161",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Lendakari",
-          "organo": null,
           "territorio": "ES",
           "en_funciones": false
         },
@@ -8093,21 +7707,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ester Muñoz (Q28872696)",
-            "url": "https://www.wikidata.org/wiki/Q28872696",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "portavoz_grupo_congreso"
     },
     {
@@ -8856,21 +8456,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Alberto Núñez Feijóo (Q2457783)",
-            "url": "https://www.wikidata.org/wiki/Q2457783",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "direccion_partido"
     },
     {
@@ -8903,38 +8489,6 @@
           },
           "cargo": "Portavoz del Grupo Parlamentario Popular en el Congreso",
           "organo": "Congreso de los Diputados",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-11-30",
-          "fin": "2025-07-05",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Miguel Tellado (Q20535248)",
-            "url": "https://www.wikidata.org/wiki/Q20535248",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "portavoz",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2022-04-01",
-          "fin": "2022-05-02",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Miguel Tellado (Q20535248)",
-            "url": "https://www.wikidata.org/wiki/Q20535248",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente",
-          "organo": null,
           "territorio": "ES",
           "en_funciones": false
         },
@@ -9415,7 +8969,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Ione Belarra (Q24524789)",
+            "url": "https://www.wikidata.org/wiki/Q24524789",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "partido": "Sumar"
+        }
+      ],
       "categoria": "direccion_partido"
     },
     {
@@ -9616,38 +9184,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2009-07-14",
-          "fin": "2011-12-31",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Oriol Junqueras (Q116812)",
-            "url": "https://www.wikidata.org/wiki/Q116812",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2019-07-02",
-          "fin": "2020-01-02",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Oriol Junqueras (Q116812)",
-            "url": "https://www.wikidata.org/wiki/Q116812",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "eurodiputado",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2019-05-21",
           "fin": "2019-09-24",
           "constatado_en": null,
@@ -9717,7 +9253,7 @@
       "roles": [
         {
           "inicio": "2016-01-11",
-          "fin": "2018-05-14",
+          "fin": "2017-10-27",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -10025,22 +9561,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2015-10-26",
-          "fin": "2017-07-25",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jordi Turull (Q17037054)",
-            "url": "https://www.wikidata.org/wiki/Q17037054",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2010-12-16",
           "fin": "2015-10-26",
           "constatado_en": null,
@@ -10058,7 +9578,7 @@
         },
         {
           "inicio": "2017-07-14",
-          "fin": "2018-10-27",
+          "fin": "2017-10-27",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -10448,22 +9968,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2012-12-18",
-          "fin": "2026-10-06",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Aitor Esteban (Q5661421)",
-            "url": "https://www.wikidata.org/wiki/Q5661421",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Líder del Grupo Vasco en el Congreso de los Diputados",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "1995-06-26",
           "fin": "1999-04-20",
           "constatado_en": null,
@@ -10512,21 +10016,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Aitor Esteban (Q5661421)",
-            "url": "https://www.wikidata.org/wiki/Q5661421",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Nacionalista Vasco"
-        }
-      ],
+      "parties": [],
       "categoria": "direccion_partido"
     },
     {
@@ -10626,38 +10116,6 @@
             "tipo": "primaria"
           },
           "cargo": "Director de la División Jurídico-Institucional de la Autoridad Independiente de Responsabilidad Fiscal",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2020-02-26",
-          "fin": "2021-07-26",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 416/2020, de 26 de febrero, por el que se nombra Vocal del Consejo de Administración del Patrimonio Nacional a don José Luis Martínez-Almeida Navasqüés.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-2751",
-            "fecha": "2020-02-27",
-            "tipo": "primaria"
-          },
-          "cargo": "Vocal del Consejo de Administración del Patrimonio Nacional",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2017-04-24",
-          "fin": "2019-06-15",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Luis Martínez-Almeida (Q29636954)",
-            "url": "https://www.wikidata.org/wiki/Q29636954",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Portavoz del Grupo Municipal PP en el Ayuntamiento",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -10899,8 +10357,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Ajuntament de València",
-            "titulo": "Web oficial del Ajuntament de València",
-            "url": "https://www.valencia.es",
+            "titulo": "Procesión cívica del 9 d'Octubre (noticia oficial, 09-10-2026)",
+            "url": "https://www.valencia.es/cas/actualidad/-/content/procesi%C3%B3n-c%C3%ADvica-9-octubre-val%C3%A8ncia",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
@@ -10910,21 +10368,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María José Català (Q4891079)",
-            "url": "https://www.wikidata.org/wiki/Q4891079",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "alcaldia"
     },
     {
@@ -10961,21 +10405,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Luis Sanz Ruiz (Q14119009)",
-            "url": "https://www.wikidata.org/wiki/Q14119009",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "alcaldia"
     },
     {
@@ -11012,21 +10442,7 @@
           "en_funciones": false
         }
       ],
-      "parties": [
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Natalia Chueca (Q118836337)",
-            "url": "https://www.wikidata.org/wiki/Q118836337",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "partido": "Partido Popular"
-        }
-      ],
+      "parties": [],
       "categoria": "alcaldia"
     }
   ]

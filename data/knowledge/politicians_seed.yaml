@@ -339,7 +339,7 @@
   categoria: alcaldia
   alias: [María José Catalá]
   cargos_actuales:
-    - {cargo: Alcaldesa de Valencia, organo: Ajuntament de València, territorio: ES-VC, fuente: {organismo: Ajuntament de València, titulo: Web oficial del Ajuntament de València, url: "https://www.valencia.es"}}
+    - {cargo: Alcaldesa de Valencia, organo: Ajuntament de València, territorio: ES-VC, fuente: {organismo: Ajuntament de València, titulo: "Procesión cívica del 9 d'Octubre (noticia oficial, 09-10-2026)", url: "https://www.valencia.es/cas/actualidad/-/content/procesi%C3%B3n-c%C3%ADvica-9-octubre-val%C3%A8ncia"}}
 - nombre: José Luis Sanz Ruiz
   categoria: alcaldia
   alias: [José Luis Sanz]
