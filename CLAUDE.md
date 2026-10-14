@@ -462,3 +462,29 @@ uv run ruff check . && uv run ruff format .
 - **Agentes** (bajo demanda): `refactor-cleaner` (código muerto),
   `silent-failure-hunter` (errores silenciados; tras los pasos de evidencia y veredicto),
   `type-design-analyzer` (modelos pydantic). Adaptados de Everything Claude Code (MIT).
+
+## Agentes y herramientas
+
+Cuándo usar cada agente (los del proyecto están en `.claude/agents/`; los de ECC, en
+`~/.claude/agents/`):
+
+| Agente | Cuándo |
+|---|---|
+| `data-verifier` | **Antes de aprobar datos curados a mano** (SMI, hechos institucionales, gobiernos): contrasta cada dato pendiente con su fuente primaria. No aprueba nada. |
+| `neutrality-auditor` | **Tras cambiar cualquier prompt de `prompts/`** y antes de cada publicación. |
+| `verdict-reviewer` | **Tras cada análisis completo**: revisa cada veredicto `falso` antes de publicarlo. |
+| `database-reviewer` (ECC) | **En cada migración** de base de datos (`db/migrations/`). |
+| `planner`, `architect` (ECC) | Planes de cambios grandes (usan Opus: más caros). |
+| `python-reviewer`, `security-reviewer` (ECC) | Revisión de código Python y de seguridad. |
+| `refactor-cleaner`, `silent-failure-hunter`, `type-design-analyzer` | Ver "Harness de Claude Code". |
+
+Skills de ECC instaladas en `~/.claude/skills/` (solo estas): `postgres-patterns`,
+`database-migrations`, `tdd-workflow`, `python-testing`, `verification-loop`. La skill
+`tdd` del proyecto sigue siendo la de referencia para los tests.
+
+- **MCP de Supabase** (`.mcp.json`): proyecto de **desarrollo**, en modo **solo lectura**
+  (`read_only=true`) salvo que el responsable del proyecto diga lo contrario. El token se
+  lee de la variable `CHECKEA_SUPABASE_TOKEN` del entorno; nunca se escribe en archivos ni
+  se pide por el chat.
+- **gitleaks** (`.pre-commit-config.yaml`): bloquea commits con claves. En un clon nuevo:
+  `pre-commit install`. Para revisar todo el historial: `gitleaks git --redact .`
