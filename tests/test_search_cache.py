@@ -8,7 +8,7 @@ import respx
 
 from pipeline.costs import search_cost
 from pipeline.evidence.base import EvidenceError
-from pipeline.evidence.search_cache import SearchCache, cache_key
+from pipeline.evidence.search_cache import SearchCache, cache_key, legacy_cache_key
 from pipeline.evidence.tavily import API_URL, TavilyClient
 
 NOW = dt.datetime(2026, 10, 13, 12, 0, tzinfo=dt.UTC)
@@ -127,3 +127,56 @@ def test_search_cost_entry():
         4,
     )
     assert entry.usd == pytest.approx(0.04)
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    [
+        ("Tasa de paro EPA 2023", "tasa paro EPA 2023"),  # stopwords
+        ("población España INE", "poblacion espana ine"),  # accents
+        ("deuda pública 2020 PIB", "PIB deuda pública 2020"),  # word order
+        ("paro 26,9 %", "paro 26.9%"),  # decimal comma and spacing
+    ],
+)
+def test_normalized_key_ignores_case_accents_stopwords_order_and_punctuation(a, b):
+    assert cache_key({"query": a, "max_results": 5}) == cache_key({"query": b, "max_results": 5})
+
+
+def test_normalized_key_still_separates_different_queries_and_parameters():
+    assert cache_key({"query": "paro 2023"}) != cache_key({"query": "paro 2024"})
+    assert cache_key({"query": "paro 2023", "country": "spain"}) != cache_key(
+        {"query": "paro 2023"}
+    )
+
+
+@respx.mock
+def test_entries_saved_with_the_old_key_are_still_found_and_migrated(tmp_path: Path):
+    route = ok(respx.post(API_URL))
+    cache = SearchCache(tmp_path / "cache", now=lambda: NOW)
+    request = {"query": "Tasa de paro EPA 2023", "max_results": 5}
+    old = legacy_cache_key(request)
+    (tmp_path / "cache" / old[:2]).mkdir(parents=True)
+    (tmp_path / "cache" / old[:2] / f"{old}.json").write_text(
+        json.dumps({"saved_at": NOW.isoformat(), "request": request, "response": {"results": []}})
+    )
+    assert cache.get(request) == {"results": []}
+    assert route.call_count == 0
+    new = cache_key(request)
+    assert (tmp_path / "cache" / new[:2] / f"{new}.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("query", "days", "fresh"),
+    [
+        ("tasa de paro 2015", 400, True),  # closed period (≤ current year − 2): never expires
+        ("paro entre 2018 y 2024", 400, True),
+        ("tasa de paro 2025", 40, False),  # can still be revised: 30 days
+        ("paro entre 2018 y 2025", 40, False),  # the most recent year decides
+        ("tasa de paro actual", 40, False),  # no year: 30 days
+    ],
+)
+def test_closed_periods_never_expire(tmp_path: Path, query, days, fresh):
+    request = {"query": query}
+    SearchCache(tmp_path / "c", now=lambda: NOW).put(request, {"results": []})
+    later = SearchCache(tmp_path / "c", now=lambda: NOW + dt.timedelta(days=days))
+    assert (later.get(request) is not None) is fresh

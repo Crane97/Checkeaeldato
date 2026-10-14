@@ -99,6 +99,8 @@ _STOPWORDS = {
     "cifra",
     "total",
 }
+# Shared with the search cache key.
+SPANISH_STOPWORDS = frozenset(_STOPWORDS)
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
 _NUMBER_RE = re.compile(r"\d[\d.,]*")
 
