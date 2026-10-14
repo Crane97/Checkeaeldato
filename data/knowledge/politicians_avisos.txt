@@ -1,10 +1,12 @@
 Pedro Sánchez Pérez-Castejón: Wikidata: descartado «secretario general del Partido Socialista Obrero Español», abierto desde 2017-06-18
 Carlos Cuerpo Caballero: sin partido con fecha
-Carlos Cuerpo Caballero: Boletín Oficial del Estado: descartado «Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal», abierto desde 2016-11-18
-Carlos Cuerpo Caballero: Boletín Oficial del Estado: descartado «Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE)», abierto desde 2021-09-14
+Carlos Cuerpo Caballero: fin deducido: «Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal» termina el 2023-12-28 (entrada en el Gobierno)
+Carlos Cuerpo Caballero: fin deducido: «Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE)» termina el 2023-12-28 (entrada en el Gobierno)
 Yolanda Díaz Pérez: sin partido con fecha
 Sara Aagesen Muñoz: sin partido con fecha
+Félix Bolaños García: Wikidata: descartado «Minister of the Presidency, Justice and Relations with the Cortes», abierto desde 2023-11-21
 Fernando Grande-Marlaska Gómez: sin partido con fecha
+Fernando Grande-Marlaska Gómez: fin deducido: «Presidente de la Sala de lo Penal de la Audiencia Nacional» termina el 2018-06-05 (entrada en el Gobierno)
 Óscar Puente Santiago: Wikidata: descartado «concejal del Ayuntamiento de Valladolid», abierto desde 2007-06-16
 Jordi Hereu Boher: Wikidata: descartado «vocal», abierto desde 2019-07-24
 Isabel Rodríguez García: Wikidata: descartado «concejal del Ayuntamiento de Puertollano», abierto desde 2019-06-15
@@ -13,56 +15,80 @@ Ernest Urtasun Domènech: Wikidata: descartado «portavoz», abierto desde 2016-
 Mónica García Gómez: sin partido con fecha
 Pablo Bustinduy Amador: sin partido con fecha
 Pablo Bustinduy Amador: Wikidata: descartado «representante de la Asamblea Parlamentaria del Consejo de Europa», abierto desde 2017-11-24
+Diana Morant Ripoll: Wikidata: descartado «General Secretary PSPV», abierto desde 2024-03-23
 Ana María del Carmen Redondo García: Wikidata: descartado «concejal del Ayuntamiento de Valladolid», abierto desde 2015-06-13
+Ana María del Carmen Redondo García: fin deducido: «Profesora titular de Universidad» termina el 2023-11-19 (entrada en el Gobierno)
+Elma Saiz Delgado: Wikidata: descartado «portavoz del Gobierno de España», abierto desde 2025-12-22
 Sira Abed Rego: sin partido con fecha
-José Luis Escrivá Belmonte: Boletín Oficial del Estado: descartado «Presidente de la Autoridad Independiente de Responsabilidad Fiscal», abierto desde 2014-02-21
+Teresa Ribera Rodríguez: Wikidata: descartado «Comisario europeo de Competencia», abierto desde 2024-12-01
+Nadia María Calviño Santamaría: Wikidata: descartado «President of the European Investment Bank», abierto desde 2024-01-01
 José Luis Escrivá Belmonte: Wikidata: descartado «presidente», abierto desde 2015-09-24
+José Luis Escrivá Belmonte: Wikidata: descartado «gobernador del Banco de España», abierto desde 2024-09-06
 Felipe González Márquez: Boletín Oficial del Estado: descartado «Embajador Extraordinario y Plenipotenciario para la Conmemoración de los Bicentenerios de la Independencia de las Repúblicas Iberoamericanas», abierto desde 2007-07-31
 José María Aznar López: sin partido con fecha
 Mariano Rajoy Brey: Wikidata: descartado «portavoz del Gobierno de España», abierto desde 2002-07-10
 Juan Manuel Moreno Bonilla: Wikidata: descartado «presidente», abierto desde 2014-03-01
+Jorge Antonio Azcón Navarro: Wikidata: descartado «diputado en las Cortes de Aragón», abierto desde 2023-06-23
 Jorge Antonio Azcón Navarro: Wikidata: descartado «presidente», abierto desde 2021-12-19
 Adrián Barbón Rodríguez: Wikidata: descartado «diputado de la Junta General del Principado de Asturias», abierto desde 2019-06-24
 Adrián Barbón Rodríguez: Wikidata: descartado «Secretario general de la FSA-PSOE», abierto desde 2017-09-17
 Margarita Prohens Rigo: sin partido con fecha
 Margarita Prohens Rigo: Wikidata: descartado «presidente del Partido Popular de las Islas Baleares», abierto desde 2021-07-24
-Fernando Clavijo Batlle: Boletín Oficial del Estado: descartado «Presidente del Gobierno de Canarias», abierto desde 2015-07-08
+María José Sáenz de Buruaga Gómez: Wikidata: descartado «presidente de Cantabria», abierto desde 2023-07-05
 Alfonso Fernández Mañueco: Wikidata: descartado «presidente de la Diputación Provincial de Salamanca», abierto desde 1996-07-12
 Alfonso Fernández Mañueco: Wikidata: descartado «procurador en las Cortes de Castilla y León», abierto desde 2022-03-10
 Emiliano García-Page Sánchez: Wikidata: descartado «diputado en las Cortes de Castilla-La Mancha», abierto desde 2015-06-18
 Emiliano García-Page Sánchez: Wikidata: descartado «secretario general», abierto desde 2012-02-26
 Salvador Illa Roca: Wikidata: descartado «secretario de Organización del Partido de los Socialistas de Cataluña», abierto desde 2016-11-06
+Salvador Illa Roca: Wikidata: descartado «diputado en el Parlamento de Cataluña», abierto desde 2024-06-10
 Salvador Illa Roca: Wikidata: descartado «Primer Secretario del PSC», abierto desde 2021-12-19
+Salvador Illa Roca: Wikidata: descartado «Presidente de la Generalidad de Cataluña», abierto desde 2024-08-08
+Juan Francisco Pérez Llorca: Wikidata: descartado «presidente de la Generalidad Valenciana», abierto desde 2025-11-27
+Juan Francisco Pérez Llorca: Wikidata: descartado «President of the Land of Valencia PP party», abierto desde 2025-12-22
+Juan Francisco Pérez Llorca: Wikidata: descartado «diputado en las Cortes Valencianas», abierto desde 2023-06-26
+María Guardiola Martín: Wikidata: descartado «diputado en la Asamblea de Extremadura», abierto desde 2023-06-20
 Alfonso Rueda Valenzuela: Wikidata: descartado «presidente del Partido Popular de Galicia», abierto desde 2022-05-22
 Alfonso Rueda Valenzuela: Wikidata: descartado «diputado en el Parlamento de Galicia», abierto desde 2009-04-01
 Isabel Natividad Díaz Ayuso: Wikidata: descartado «diputado en la Asamblea de Madrid», abierto desde 2021-06-08
 Fernando López Miras: Wikidata: descartado «diputado en la Asamblea Regional de Murcia», abierto desde 2015-06-15
 Fernando López Miras: Wikidata: descartado «presidente», abierto desde 2017-09-29
 María Victoria Chivite Navascués: sin partido con fecha
+Imanol Pradales Gil: Wikidata: descartado «Lendakari», abierto desde 2024-06-22
+Imanol Pradales Gil: Wikidata: descartado «diputado del Parlamento Vasco», abierto desde 2024-05-14
 Francina Armengol Socias: sin partido con fecha
 Francina Armengol Socias: Wikidata: descartado «secretario general», abierto desde 2012-02-26
 Pedro Rollán Ojeda: Wikidata: descartado «presidente del Canal de Isabel II», abierto desde 2018-06-26
+Pedro Rollán Ojeda: Wikidata: descartado «presidente del Senado de España», abierto desde 2023-08-17
 Pedro Rollán Ojeda: «Presidente del Senado»: https://www.senado.es/web/composicionorganizacion/presidenciasenado/index.html respondió 403: compruébalo a mano
 Verónica Martínez Barbero: sin partido con fecha
+Gabriel Rufián Romero: Wikidata: descartado «concejal del Ayuntamiento de Santa Coloma de Gramenet», abierto desde 2023-06-17
 Alberto Núñez Feijóo: Wikidata: descartado «diputado en el Parlamento de Galicia», abierto desde 2005-07-18
 Santiago Abascal Conde: sin partido con fecha
 Santiago Abascal Conde: «Presidente de Vox»: https://www.voxespana.es respondió 403: compruébalo a mano
+Ignacio Garriga Vaz de Concicao: Wikidata: descartado «diputado en el Parlamento de Cataluña», abierto desde 2024-06-10
 Ignacio Garriga Vaz de Concicao: «Secretario general de Vox»: https://www.voxespana.es respondió 403: compruébalo a mano
 Ione Belarra Urteaga: sin partido con fecha
 Ione Belarra Urteaga: Wikidata: descartado «Secretario general de Podemos», abierto desde 2021-06-13
 Ione Belarra Urteaga: «Secretaria general de Podemos»: https://podemos.info respondió 403: compruébalo a mano
-Antonio Maíllo Cañadas: sin partido con fecha
+Antonio Maíllo Cañadas: Wikidata: descartado «coordinador federal de Izquierda Unida», abierto desde 2024-05-14
 Oriol Junqueras Vies: «Presidente de Esquerra Republicana de Catalunya»: https://www.esquerra.cat respondió 403: compruébalo a mano
 Carles Puigdemont i Casamajó: sin partido con fecha
+Carles Puigdemont i Casamajó: Wikidata: descartado «diputado en el Parlamento de Cataluña», abierto desde 2024-06-10
 Carles Puigdemont i Casamajó: Wikidata: descartado «eurodiputado», abierto desde 2019-07-02
 Carles Puigdemont i Casamajó: Wikidata: descartado «president of the Council for the Republic», abierto desde 2018-03-08
-Jordi Turull i Negre: sin partido con fecha
 Jordi Turull i Negre: Wikidata: descartado «diputado provincial de Barcelona», abierto desde 1995-07-06
+Arnaldo Otegi Mondragon: Wikidata: descartado partido «Batasuna» (la fuente oficial dice otro)
 Arnaldo Otegi Mondragon: Wikidata: descartado «Secretario general de Euskal Herria Bildu», abierto desde 2017-06-17
+Aitor Esteban Bravo: Wikidata: descartado «presidente del Partido Nacionalista Vasco», abierto desde 2025-03-30
+Ana Belén Pontón Mondelo: Wikidata: descartado partido «Galician Nationalist Bloc» (la fuente oficial dice otro)
 Ana Belén Pontón Mondelo: Wikidata: descartado «diputado en el Parlamento de Galicia», abierto desde 2004-02-07
 José Luis Martínez-Almeida Navasqüés: Wikidata: descartado «concejal del Ayuntamiento de Madrid», abierto desde 2015-06-13
 José Luis Martínez-Almeida Navasqüés: «Alcalde de Madrid»: https://www.madrid.es/portales/munimadrid/ayuntamiento.html respondió 403: compruébalo a mano
 Jaume Collboni Cuadrado: Wikidata: descartado «concejal del Ayuntamiento de Barcelona», abierto desde 2015-06-13
+Jaume Collboni Cuadrado: Wikidata: descartado «presidente del Área Metropolitana de Barcelona», abierto desde 2023-07-27
+María José Catalá Verdet: Wikidata: descartado «diputado en las Cortes Valencianas», abierto desde 2023-06-26
 María José Catalá Verdet: Wikidata: descartado «concejal del Ayuntamiento de Valencia», abierto desde 2019-06-15
+María José Catalá Verdet: Wikidata: descartado «alcalde de Valencia», abierto desde 2023-06-17
 María José Catalá Verdet: «Alcaldesa de Valencia»: el nombre no aparece en https://www.valencia.es: compruébalo a mano
 José Luis Sanz Ruiz: «Alcalde de Sevilla»: no se pudo abrir https://www.sevilla.org (ConnectTimeout): compruébalo a mano
+Natalia Chueca Muñoz: Wikidata: descartado «alcalde de Zaragoza», abierto desde 2023-06-19

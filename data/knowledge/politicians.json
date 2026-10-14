@@ -280,6 +280,22 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "2016-11-18",
+          "fin": "2023-12-28",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Orden HFP/1805/2016, de 18 de noviembre, por la que se publica el Acuerdo del Consejo de Ministros de 18 de noviembre de 2016, por el que se nombra Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal a don Carlos Cuerpo Caballero.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2016-10965",
+            "fecha": "2016-11-22",
+            "tipo": "primaria"
+          },
+          "cargo": "Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2020-02-04",
           "fin": "2021-08-24",
           "constatado_en": null,
@@ -307,6 +323,22 @@
             "tipo": "primaria"
           },
           "cargo": "Secretario General del Tesoro y Financiación Internacional",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2021-09-14",
+          "fin": "2023-12-28",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 803/2021, de 14 de septiembre, por el que se nombra Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE) a don Carlos Cuerpo Caballero.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-14985",
+            "fecha": "2021-09-15",
+            "tipo": "primaria"
+          },
+          "cargo": "Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE)",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -853,7 +885,7 @@
       "roles": [
         {
           "inicio": "2018-06-08",
-          "fin": "2019-04-28",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -863,25 +895,9 @@
             "tipo": "primaria"
           },
           "cargo": "Secretario General de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
+          "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2019-04-29",
-          "fin": "2020-01-11",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 367/2018, de 8 de junio, por el que se nombra Secretario General de la Presidencia del Gobierno a don Félix Bolaños García.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7714",
-            "fecha": "2018-06-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Secretario General de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
         },
         {
           "inicio": "2018-06-22",
@@ -959,22 +975,6 @@
             "tipo": "secundaria"
           },
           "cargo": "secretario general de la Presidencia del Gobierno",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-11-21",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Félix Bolaños (Q58331783)",
-            "url": "https://www.wikidata.org/wiki/Q58331783",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Minister of the Presidency, Justice and Relations with the Cortes",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -1311,7 +1311,7 @@
       "roles": [
         {
           "inicio": "2012-03-05",
-          "fin": "2025-03-24",
+          "fin": "2018-06-05",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2048,7 +2048,7 @@
       "roles": [
         {
           "inicio": "2019-07-15",
-          "fin": "2023-07-12",
+          "fin": "2023-07-13",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2638,22 +2638,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-03-23",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Diana Morant (Q29906177)",
-            "url": "https://www.wikidata.org/wiki/Q29906177",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "General Secretary PSPV",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -2692,7 +2676,7 @@
       "roles": [
         {
           "inicio": "2002-11-14",
-          "fin": "2024-12-04",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2822,22 +2806,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2025-12-22",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Elma Saiz Delgado (Q8775044)",
-            "url": "https://www.wikidata.org/wiki/Q8775044",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "portavoz del Gobierno de España",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2023-06-17",
           "fin": "2023-11-20",
           "constatado_en": null,
@@ -2888,7 +2856,7 @@
       "roles": [
         {
           "inicio": "2021-07-13",
-          "fin": "2023-07-23",
+          "fin": "2023-11-22",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2898,25 +2866,9 @@
             "tipo": "primaria"
           },
           "cargo": "Director del Gabinete de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
+          "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-24",
-          "fin": "2023-11-19",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 540/2021, de 13 de julio, por el que se nombra Director del Gabinete de la Presidencia del Gobierno a don Óscar López Águeda.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-11688",
-            "fecha": "2021-07-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Director del Gabinete de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
         },
         {
           "inicio": "2023-11-22",
@@ -2930,7 +2882,7 @@
             "tipo": "primaria"
           },
           "cargo": "Director del Gabinete de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
+          "organo": null,
           "territorio": "ES",
           "en_funciones": false
         },
@@ -3843,22 +3795,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-12-01",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Teresa Ribera (Q54806936)",
-            "url": "https://www.wikidata.org/wiki/Q54806936",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Comisario europeo de Competencia",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -4054,22 +3990,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-01-01",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Nadia Calviño (Q20535388)",
-            "url": "https://www.wikidata.org/wiki/Q20535388",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "President of the European Investment Bank",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -4106,6 +4026,22 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
+        {
+          "inicio": "2014-02-21",
+          "fin": "2020-01-12",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 118/2014, de 21 de febrero, por el que se nombra Presidente de la Autoridad Independiente de Responsabilidad Fiscal a don José Luis Escrivá Belmonte.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2014-1935",
+            "fecha": "2014-02-22",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente de la Autoridad Independiente de Responsabilidad Fiscal",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
         {
           "inicio": "2020-01-12",
           "fin": "2023-07-23",
@@ -4201,22 +4137,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-09-06",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "José Luis Escrivá Belmonte (Q23939777)",
-            "url": "https://www.wikidata.org/wiki/Q23939777",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "gobernador del Banco de España",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -4303,7 +4223,7 @@
         },
         {
           "inicio": "1993-07-09",
-          "fin": "1996-05-03",
+          "fin": "1996-03-04",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4547,7 +4467,7 @@
         },
         {
           "inicio": "2000-04-26",
-          "fin": "2004-04-15",
+          "fin": "2004-03-15",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4728,7 +4648,7 @@
         },
         {
           "inicio": "2008-04-11",
-          "fin": "2011-12-19",
+          "fin": "2011-11-21",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5036,7 +4956,7 @@
         },
         {
           "inicio": "2016-10-30",
-          "fin": "2018-05-31",
+          "fin": "2018-06-01",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5615,22 +5535,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-23",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jorge Azcón Navarro (Q64625515)",
-            "url": "https://www.wikidata.org/wiki/Q64625515",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en las Cortes de Aragón",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -5868,6 +5772,22 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "2015-07-08",
+          "fin": "2019-07-15",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
+            "fecha": "2015-07-09",
+            "tipo": "primaria"
+          },
+          "cargo": "Presidente del Gobierno de Canarias",
+          "organo": null,
+          "territorio": "ES-CN",
+          "en_funciones": false
+        },
+        {
           "inicio": "2023-07-13",
           "fin": null,
           "constatado_en": null,
@@ -5932,22 +5852,6 @@
           "cargo": "Presidenta de la Comunidad Autónoma de Cantabria",
           "organo": null,
           "territorio": "ES-CB",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-05",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María José Sáenz de Buruaga (Q6004085)",
-            "url": "https://www.wikidata.org/wiki/Q6004085",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente de Cantabria",
-          "organo": null,
-          "territorio": "ES",
           "en_funciones": false
         }
       ],
@@ -6488,38 +6392,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-06-10",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Salvador Illa (Q64577417)",
-            "url": "https://www.wikidata.org/wiki/Q64577417",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en el Parlamento de Cataluña",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2024-08-08",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Salvador Illa (Q64577417)",
-            "url": "https://www.wikidata.org/wiki/Q64577417",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Presidente de la Generalidad de Cataluña",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -6597,54 +6469,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2025-11-27",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juanfran Pérez Llorca (Q120000125)",
-            "url": "https://www.wikidata.org/wiki/Q120000125",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente de la Generalidad Valenciana",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2025-12-22",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juanfran Pérez Llorca (Q120000125)",
-            "url": "https://www.wikidata.org/wiki/Q120000125",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "President of the Land of Valencia PP party",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-26",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Juanfran Pérez Llorca (Q120000125)",
-            "url": "https://www.wikidata.org/wiki/Q120000125",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en las Cortes Valencianas",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -6711,22 +6535,6 @@
           "cargo": "Presidenta de la Comunidad Autónoma de Extremadura",
           "organo": null,
           "territorio": "ES-EX",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-20",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María Guardiola (Q115151208)",
-            "url": "https://www.wikidata.org/wiki/Q115151208",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en la Asamblea de Extremadura",
-          "organo": null,
-          "territorio": "ES",
           "en_funciones": false
         }
       ],
@@ -7258,38 +7066,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2024-06-22",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Imanol Pradales (Q123536880)",
-            "url": "https://www.wikidata.org/wiki/Q123536880",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "Lendakari",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2024-05-14",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Imanol Pradales (Q123536880)",
-            "url": "https://www.wikidata.org/wiki/Q123536880",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado del Parlamento Vasco",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -7638,7 +7414,7 @@
         },
         {
           "inicio": "2015-07-06",
-          "fin": "2019-06-17",
+          "fin": "2019-06-18",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -7895,22 +7671,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2023-08-17",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Pedro Rollán (Q5401435)",
-            "url": "https://www.wikidata.org/wiki/Q5401435",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente del Senado de España",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2020-02-03",
           "fin": "2023-08-16",
           "constatado_en": null,
@@ -7995,7 +7755,7 @@
       "roles": [
         {
           "inicio": "2009-05-06",
-          "fin": "2012-12-13",
+          "fin": "2012-12-14",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -8568,22 +8328,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-17",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Gabriel Rufián (Q20876620)",
-            "url": "https://www.wikidata.org/wiki/Q20876620",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "concejal del Ayuntamiento de Santa Coloma de Gramenet",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -9049,7 +8793,7 @@
         },
         {
           "inicio": "2020-09-03",
-          "fin": "2022-05-11",
+          "fin": "2022-04-29",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -9412,22 +9156,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2024-06-10",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ignacio Garriga De Vaz de Conceição (Q62585987)",
-            "url": "https://www.wikidata.org/wiki/Q62585987",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en el Parlamento de Cataluña",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": null,
           "fin": null,
           "constatado_en": "2026-10-14",
@@ -9724,22 +9452,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2024-05-14",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Antonio Maíllo (Q16301005)",
-            "url": "https://www.wikidata.org/wiki/Q16301005",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "coordinador federal de Izquierda Unida",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": null,
           "fin": null,
           "constatado_en": "2026-10-14",
@@ -9756,7 +9468,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Izquierda Unida",
+            "titulo": "Coordinación General",
+            "url": "https://izquierdaunida.org/coordinacion-general/",
+            "fecha": "2026-10-14",
+            "tipo": "primaria"
+          },
+          "partido": "Izquierda Unida"
+        }
+      ],
       "categoria": "direccion_partido"
     },
     {
@@ -10072,22 +9798,6 @@
         {
           "inicio": "2018-01-17",
           "fin": "2020-01-07",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Carles Puigdemont (Q4740163)",
-            "url": "https://www.wikidata.org/wiki/Q4740163",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en el Parlamento de Cataluña",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2024-06-10",
-          "fin": null,
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -10427,7 +10137,21 @@
           "en_funciones": false
         }
       ],
-      "parties": [],
+      "parties": [
+        {
+          "inicio": null,
+          "fin": null,
+          "constatado_en": "2026-10-14",
+          "source": {
+            "organismo": "Junts per Catalunya",
+            "titulo": "Web oficial de Junts",
+            "url": "https://junts.cat",
+            "fecha": "2026-10-14",
+            "tipo": "primaria"
+          },
+          "partido": "Junts per Catalunya"
+        }
+      ],
       "categoria": "direccion_partido"
     },
     {
@@ -10531,17 +10255,17 @@
       ],
       "parties": [
         {
-          "inicio": "2001-06-23",
+          "inicio": null,
           "fin": null,
-          "constatado_en": null,
+          "constatado_en": "2026-10-14",
           "source": {
-            "organismo": "Wikidata",
-            "titulo": "Arnaldo Otegi (Q547356)",
-            "url": "https://www.wikidata.org/wiki/Q547356",
-            "fecha": null,
-            "tipo": "secundaria"
+            "organismo": "EH Bildu",
+            "titulo": "Mahai Politikoa",
+            "url": "https://ehbildu.eus/mahaipolitikoa",
+            "fecha": "2026-10-14",
+            "tipo": "primaria"
           },
-          "partido": "Batasuna"
+          "partido": "EH Bildu"
         }
       ],
       "categoria": "direccion_partido"
@@ -10740,22 +10464,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2025-03-30",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Aitor Esteban (Q5661421)",
-            "url": "https://www.wikidata.org/wiki/Q5661421",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente del Partido Nacionalista Vasco",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "1995-06-26",
           "fin": "1999-04-20",
           "constatado_en": null,
@@ -10861,13 +10569,13 @@
           "fin": null,
           "constatado_en": "2026-10-14",
           "source": {
-            "organismo": "Wikidata",
-            "titulo": "Ana Belén Pontón Mondelo (Q12382958)",
-            "url": "https://www.wikidata.org/wiki/Q12382958",
-            "fecha": null,
-            "tipo": "secundaria"
+            "organismo": "Bloque Nacionalista Galego",
+            "titulo": "Executiva Nacional",
+            "url": "https://www.bng.gal/estaticas/executiva-nacional.html",
+            "fecha": "2026-10-14",
+            "tipo": "primaria"
           },
-          "partido": "Galician Nationalist Bloc"
+          "partido": "Bloque Nacionalista Galego"
         }
       ],
       "categoria": "direccion_partido"
@@ -11055,22 +10763,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2023-07-27",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Jaume Collboni (Q11927262)",
-            "url": "https://www.wikidata.org/wiki/Q11927262",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "presidente del Área Metropolitana de Barcelona",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": null,
           "fin": null,
           "constatado_en": "2026-10-14",
@@ -11154,22 +10846,6 @@
           "en_funciones": false
         },
         {
-          "inicio": "2023-06-26",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María José Català (Q4891079)",
-            "url": "https://www.wikidata.org/wiki/Q4891079",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "diputado en las Cortes Valencianas",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2014-05-29",
           "fin": "2015-06-29",
           "constatado_en": null,
@@ -11213,22 +10889,6 @@
             "tipo": "secundaria"
           },
           "cargo": "síndic del Grupo Popular en las Cortes Valencianas",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-06-17",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "María José Català (Q4891079)",
-            "url": "https://www.wikidata.org/wiki/Q4891079",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "alcalde de Valencia",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -11335,22 +10995,6 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
-        {
-          "inicio": "2023-06-19",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Wikidata",
-            "titulo": "Natalia Chueca (Q118836337)",
-            "url": "https://www.wikidata.org/wiki/Q118836337",
-            "fecha": null,
-            "tipo": "secundaria"
-          },
-          "cargo": "alcalde de Zaragoza",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
         {
           "inicio": null,
           "fin": null,

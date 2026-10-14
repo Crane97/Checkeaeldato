@@ -289,6 +289,7 @@
   alias: [Antonio Maíllo]
   cargos_actuales:
     - {cargo: Coordinador general de Izquierda Unida, organo: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Coordinación General, url: "https://izquierdaunida.org/coordinacion-general/"}}
+  partido_actual: {partido: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Coordinación General, url: "https://izquierdaunida.org/coordinacion-general/"}}
 - nombre: Oriol Junqueras Vies
   categoria: direccion_partido
   alias: [Oriol Junqueras, Junqueras]
@@ -304,11 +305,13 @@
   alias: [Jordi Turull]
   cargos_actuales:
     - {cargo: Secretario general de Junts per Catalunya, organo: Junts, fuente: *junts}
+  partido_actual: {partido: Junts per Catalunya, fuente: *junts}
 - nombre: Arnaldo Otegi Mondragon
   categoria: direccion_partido
   alias: [Arnaldo Otegi, Otegi]
   cargos_actuales:
     - {cargo: Secretario general de EH Bildu, organo: EH Bildu, fuente: {organismo: EH Bildu, titulo: Mahai Politikoa, url: "https://ehbildu.eus/mahaipolitikoa"}}
+  partido_actual: {partido: EH Bildu, fuente: {organismo: EH Bildu, titulo: Mahai Politikoa, url: "https://ehbildu.eus/mahaipolitikoa"}}
 - nombre: Aitor Esteban Bravo
   categoria: direccion_partido
   alias: [Aitor Esteban]
@@ -321,6 +324,7 @@
     - {cargo: Portavoz nacional del BNG, organo: BNG, fuente: {organismo: Bloque Nacionalista Galego, titulo: Executiva Nacional, url: "https://www.bng.gal/estaticas/executiva-nacional.html"}}
 
 # ── Alcaldías de las cinco ciudades más pobladas ───────────────────────────────
+  partido_actual: {partido: Bloque Nacionalista Galego, fuente: {organismo: Bloque Nacionalista Galego, titulo: Executiva Nacional, url: "https://www.bng.gal/estaticas/executiva-nacional.html"}}
 - nombre: José Luis Martínez-Almeida Navasqüés
   categoria: alcaldia
   alias: [José Luis Martínez-Almeida, Martínez-Almeida]
