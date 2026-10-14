@@ -325,14 +325,154 @@ def test_collective_decrees_give_one_appointment_per_line():
     assert defensa.decree_date() == D(2023, 11, 20) and defensa.url.endswith("BOE-A-2023-23543")
 
 
-def test_a_declared_dismissal_after_an_election_does_not_end_the_office():
-    declared = hit(
-        "X",
-        D(2019, 4, 30),
-        "Real Decreto 336/2019, de 29 de abril, por el que se declara el cese de don Pedro"
-        " Sánchez Pérez-Castejón como Presidente del Gobierno.",
+def test_a_declared_dismissal_ends_the_presidency_only_if_someone_else_follows():
+    def declared_cese(ident, day, name):
+        return hit(
+            ident,
+            day,
+            f"Real Decreto 1/{day.year}, de {day.day} de abril, por el que"
+            f" se declara el cese de don {name} como Presidente del Gobierno.",
+        )
+
+    s1 = _appoint(
+        "S1",
+        D(2018, 6, 2),
+        D(2018, 6, 1),
+        "Presidente del Gobierno",
+        "Pedro Sánchez Pérez-Castejón",
+        art="don",
     )
-    assert dismissal(declared) is None  # it opens the caretaker period
+    s2 = _appoint(
+        "S2",
+        D(2020, 1, 8),
+        D(2020, 1, 7),
+        "Presidente del Gobierno",
+        "Pedro Sánchez Pérez-Castejón",
+        art="don",
+    )
+    after_election = declared_cese("C1", D(2019, 4, 29), "Pedro Sánchez Pérez-Castejón")
+    rows = roles_from_boe(
+        "Pedro Sánchez Pérez-Castejón",
+        [s1, s2],
+        [after_election],
+        lambda c, s: [s1, s2],
+        default_governments(),
+    )
+    assert any(r.en_funciones and r.inicio == D(2019, 4, 29) for r in rows)  # caretaker
+
+    r1 = _appoint(
+        "R1",
+        D(2016, 10, 31),
+        D(2016, 10, 30),
+        "Presidente del Gobierno",
+        "Mariano Rajoy Brey",
+        art="don",
+    )
+    censure = hit(
+        "C2",
+        D(2018, 6, 2),
+        "Real Decreto 353/2018, de 1 de junio, por el que se"
+        " declara el cese de don Mariano Rajoy Brey como Presidente del Gobierno.",
+    )
+    rows = roles_from_boe(
+        "Mariano Rajoy Brey", [r1], [censure], lambda c, s: [r1, s1], default_governments()
+    )
+    assert rows[-1].fin == D(2018, 6, 1)  # motion of no confidence: a real end
+
+
+def test_staff_of_the_presidency_are_not_members_of_the_government():
+    from pipeline.knowledge.politicians_collect import is_national_government
+
+    assert not is_national_government("Secretario General de la Presidencia del Gobierno")
+    assert not is_national_government("Director del Gabinete de la Presidencia del Gobierno")
+
+
+def test_joining_the_government_closes_other_public_offices():
+    judge = _appoint(
+        "J",
+        D(2012, 3, 6),
+        D(2012, 3, 5),
+        "Presidente de la Sala de lo Penal de la Audiencia Nacional",
+        "Fernando Grande-Marlaska Gómez",
+        art="don",
+    )
+    nxt = _appoint(
+        "J2",
+        D(2025, 3, 26),
+        D(2025, 3, 25),
+        "Presidente de la Sala de lo Penal de la Audiencia Nacional",
+        "Otra Persona",
+        art="don",
+    )
+    minister = _appoint(
+        "M",
+        D(2018, 6, 7),
+        D(2018, 6, 6),
+        "Ministro del Interior",
+        "Fernando Grande-Marlaska Gómez",
+        art="don",
+    )
+    notes: list[str] = []
+    rows = roles_from_boe(
+        "Fernando Grande-Marlaska Gómez",
+        [judge, minister],
+        [],
+        lambda c, s: [judge, nxt, minister],
+        default_governments(),
+        notes=notes,
+    )
+    [sala] = [r for r in rows if "Sala" in r.cargo]
+    assert sala.fin == D(2018, 6, 5)
+    assert any("fin deducido" in n for n in notes)
+
+
+def test_named_implied_dismissals_in_collective_decrees():
+    from pipeline.knowledge.collect_sources import implied_in_body
+
+    decree = hit(
+        "BOE-A-2020-416",
+        D(2020, 1, 13),
+        "Real Decreto 8/2020, de 12 de enero, por el que se nombran Ministros del Gobierno.",
+    )
+    body = (
+        "<p>El nombramiento conlleva el cese de don José Luis Escrivá Belmonte como"
+        " Presidente de la Autoridad Independiente de Responsabilidad Fiscal.</p>"
+    )
+    [cese] = implied_in_body(decree, body)
+    assert dismissal(cese) == (
+        "Presidente de la Autoridad Independiente de Responsabilidad Fiscal",
+        "José Luis Escrivá Belmonte",
+    )
+    assert cese.decree_date() == D(2020, 1, 12)
+
+
+def test_open_secondary_offices_are_never_loaded_and_the_official_party_wins():
+    from pipeline.knowledge.politicians_collect import SeedParty
+
+    facts = WdFacts(
+        qid="Q1",
+        label="X",
+        positions=[WdStatement("Q5", "concejal de Lugo", D(2023, 6, 17), None)],
+        parties=[WdStatement("Q9", "Batasuna", D(2001, 1, 1), None)],
+    )
+    seed = SeedPerson(
+        nombre="Ana Gil Ruiz",
+        categoria="x",
+        partido_actual=SeedParty(
+            partido="EH Bildu",
+            fuente=SeedSource(
+                organismo="EH Bildu",
+                titulo="Mahai Politikoa",
+                url="https://ehbildu.eus/mahaipolitikoa",
+            ),
+        ),
+    )
+    result = build_politician(seed, today=TODAY, boe_roles=[], current_checks={}, facts=facts)
+    assert result.politician.roles == []
+    assert [(m.partido, m.constatado_en, m.source.tipo) for m in result.politician.parties] == [
+        ("EH Bildu", TODAY, "primaria")
+    ]
+    assert any("Batasuna" in w for w in result.warnings)
 
 
 def test_the_president_follows_the_caretaker_table_and_ministers_stay_until_replaced():
@@ -569,3 +709,40 @@ def test_dismissals_keep_commas_in_the_office_name():
         " Nadia María Calviño Santamaría como Ministra de Economía, Comercio y Empresa.",
     )
     assert dismissal(cese)[0] == "Ministra de Economía, Comercio y Empresa"
+
+
+def test_offices_taken_while_in_government_are_not_closed_by_a_later_appointment():
+    name = "Carlos Cuerpo Caballero"
+    minister = _appoint(
+        "M", D(2023, 12, 29), D(2023, 12, 29), "Ministro de Economía", name, art="don"
+    )
+    imf = _appoint(
+        "F", D(2024, 1, 30), D(2024, 1, 30), "Gobernador por España en el FMI", name, art="don"
+    )
+    vp = _appoint(
+        "V", D(2026, 3, 27), D(2026, 3, 26), "Vicepresidente Primero del Gobierno", name, art="don"
+    )
+    rows = roles_from_boe(name, [minister, imf, vp], [], lambda c, s: [], default_governments())
+    [governor] = [r for r in rows if "FMI" in r.cargo]
+    assert governor.fin is None
+
+
+def test_a_same_day_dismissal_ends_the_previous_term_not_the_renewal():
+    name = "Óscar López Águeda"
+    first = _appoint("A", D(2021, 7, 14), D(2021, 7, 13), "Director del Gabinete", name, art="don")
+    again = _appoint(
+        "B", D(2023, 11, 23), D(2023, 11, 22), "Director del Gabinete", name, art="don"
+    )
+    cese = hit(
+        "C",
+        D(2023, 11, 23),
+        "Real Decreto 838/2023, de 22 de noviembre, por el que se"
+        " declara el cese de don Óscar López Águeda como Director del Gabinete.",
+    )
+    rows = roles_from_boe(
+        name, [first, again], [cese], lambda c, s: [first, again], default_governments()
+    )
+    assert [(r.inicio, r.fin) for r in rows] == [
+        (D(2021, 7, 13), D(2023, 11, 22)),
+        (D(2023, 11, 22), None),
+    ]

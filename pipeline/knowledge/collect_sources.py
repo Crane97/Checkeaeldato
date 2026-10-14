@@ -144,9 +144,9 @@ def boe_search(client: httpx.Client, terms: str, until: dt.date | None = None) -
 
 
 _DISMISSAL_RE = re.compile(
-    # Only "dispone el cese": "se declara el cese de … como Presidente del Gobierno" (and of
-    # "los miembros del Gobierno") follows an election and opens the caretaker period.
-    r"se dispone el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
+    # "Se declara el cese … como Presidente del Gobierno" after an election only opens the
+    # caretaker period: roles_from_boe decides with `declared` (see there).
+    r"se (?:dispone|declara) el cese (?:de|como) (?:don|doña) (?P<nombre>.+?)"
     r" como (?P<cargo>[^.]+?)(?:,? a petición propia|, por [^.]+)?\.$"
 )
 
@@ -155,6 +155,11 @@ def dismissal(hit: BoeHit) -> tuple[str, str] | None:
     """(cargo, nombre) if the title dismisses someone."""
     m = _DISMISSAL_RE.search(hit.title)
     return (m.group("cargo").strip(), m.group("nombre").strip()) if m else None
+
+
+def declared(hit: BoeHit) -> bool:
+    """ "Se declara el cese" (as opposed to "se dispone el cese")."""
+    return "se declara el cese" in hit.title
 
 
 def latest_appointment(hits: list[BoeHit], cargo: str) -> BoeHit | None:
@@ -309,6 +314,30 @@ def document_body(client: httpx.Client, ident: str) -> str:
 _IMPLIED_RE = re.compile(
     r"conlleva(?:rá)? el cese(?: de (?:don|doña) [^,]+?)? como (?P<cargo>[^.;]+?)(?:[.;]|, )"
 )
+
+
+_IMPLIED_NAMED_RE = re.compile(
+    r"conlleva(?:rá)? el cese de (?P<art>don|doña) (?P<nombre>[^,]+?)"
+    r" como (?P<cargo>[^.;]+?)(?:[.;]|, )"
+)
+
+
+def implied_in_body(hit: BoeHit, body: str) -> list[BoeHit]:
+    """Every "conlleva el cese de don X como Y" in a decree (also collective ones, e.g. the
+    2020 cabinet decree ending Escrivá's presidency of the AIReF), dated as the decree."""
+    prefix = _DECREE_PREFIX_RE.match(hit.title)
+    if prefix is None:
+        return []
+    text = " ".join(html.unescape(re.sub(r"<[^>]+>", " ", body)).split())
+    return [
+        BoeHit(
+            hit.ident,
+            hit.published,
+            f"{prefix.group(1)}, por el que se dispone el cese de {m.group('art')}"
+            f" {m.group('nombre').strip()} como {m.group('cargo').strip()}.",
+        )
+        for m in _IMPLIED_NAMED_RE.finditer(text)
+    ]
 
 
 def implied_dismissals(hit: BoeHit, body: str, nombre: str) -> list[BoeHit]:

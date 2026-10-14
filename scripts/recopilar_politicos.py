@@ -31,8 +31,10 @@ from pipeline.knowledge.collect_sources import (  # noqa: E402
     _get,
     boe_search,
     congreso_junta,
+    dismissal,
     document_body,
     implied_dismissals,
+    implied_in_body,
     latest_appointment,
     parse_collective,
     wd_entities,
@@ -91,20 +93,26 @@ def body(client: httpx.Client, ident: str) -> str:
     return path.read_text("utf-8")
 
 
-def collective_index(client: httpx.Client, boe: Boe) -> tuple[list[BoeHit], list[dt.date]]:
-    """Appointments made in collective decrees (whole cabinets), one per person, and the
-    dates of those decrees (each one replaces the whole cabinet)."""
+def collective_index(
+    client: httpx.Client, boe: Boe
+) -> tuple[list[BoeHit], list[dt.date], list[BoeHit]]:
+    """Appointments made in collective decrees (whole cabinets), one per person; the dates
+    of those decrees (each one replaces the whole cabinet); and the dismissals they imply
+    ("conlleva el cese de don X como …")."""
     out: list[BoeHit] = []
+    implied: list[BoeHit] = []
     dates: set[dt.date] = set()
     for terms in COLLECTIVE_SEARCHES:
         for hit in boe.search(terms):
             if hit.published.year < FIRST_YEAR or hit.title.startswith("Corrección"):
                 continue
-            appointed = parse_collective(hit, body(client, hit.ident))
+            text = body(client, hit.ident)
+            appointed = parse_collective(hit, text)
             out += appointed
+            implied += implied_in_body(hit, text)
             if appointed and "Ministros" in hit.title:
                 dates.add(hit.decree_date())
-    return out, sorted(dates)
+    return out, sorted(dates), implied
 
 
 def congreso_rows(client: httpx.Client) -> list:
@@ -209,7 +217,7 @@ def main(
     out, report = [], []
     with httpx.Client(timeout=60, follow_redirects=True) as client:
         boe = Boe(client)
-        collective, cabinet_changes = collective_index(client, boe)
+        collective, cabinet_changes, collective_ceses = collective_index(client, boe)
         junta = congreso_rows(client)
         qids = {}
         for person in seed:
@@ -225,7 +233,9 @@ def main(
             appointments = boe.search(f"nombra {person.nombre}") + [
                 h for h in collective if (a := h.appointment()) and fold(a[1]) == mine
             ]
-            dismissals = boe.search(f"cese {person.nombre}")
+            dismissals = boe.search(f"cese {person.nombre}") + [
+                h for h in collective_ceses if (x := dismissal(h)) and fold(x[1]) == mine
+            ]
             for h in boe.search(f"nombra {person.nombre}"):
                 a = h.appointment()
                 if a and fold(a[1]) == mine and is_national_government(a[0]):
@@ -241,8 +251,15 @@ def main(
                     + [h for h in collective if (a := h.appointment()) and fold(a[0]) == same]
                 )
 
+            notes: list[str] = []
             roles = roles_from_boe(
-                person.nombre, appointments, dismissals, successors, governments, cabinet_changes
+                person.nombre,
+                appointments,
+                dismissals,
+                successors,
+                governments,
+                cabinet_changes,
+                notes=notes,
             )
             checks = {
                 # Only the latest appointment matters here: first page (until = date.max).
@@ -259,6 +276,7 @@ def main(
                 facts=facts.get(q) if q else None,
                 congreso=junta,
             )
+            collected.warnings += notes
             for office in person.cargos_actuales:
                 if office.fuente is not None and (
                     warning := page_mentions(client, office.fuente.url, person)

@@ -14,6 +14,7 @@ Todo sale como `curado` + `pendiente`: nada se usa hasta que una persona lo revi
 
 import datetime as dt
 import logging
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -27,6 +28,7 @@ from pipeline.knowledge.collect_sources import (
     BoeHit,
     CongresoSeat,
     WdFacts,
+    declared,
     dismissal,
 )
 from pipeline.politicians import (
@@ -108,12 +110,19 @@ class SeedOffice(BaseModel):
     fuente: SeedSource | None = None
 
 
+class SeedParty(BaseModel):
+    partido: str
+    fuente: SeedSource
+
+
 class SeedPerson(BaseModel):
     nombre: str  # official full name, as in the BOE
     categoria: str
     alias: list[str] = Field(default_factory=list)
     wikidata: str | None = Field(default=None, pattern=r"^Q\d+$")
     cargos_actuales: list[SeedOffice] = Field(default_factory=list)
+    # Current party seen today in an official source, when Wikidata is wrong or missing.
+    partido_actual: SeedParty | None = None
 
 
 def load_seed(path: Path = SEED_PATH) -> list[SeedPerson]:
@@ -134,11 +143,17 @@ def _boe_source(hit: BoeHit) -> PoliticianSource:
     )
 
 
+_MEMBER_RE = re.compile(
+    r"(?:vice)?president[ae](?: (?:primer|segund|tercer|cuart)[oa])? del gobierno"
+)
+
+
 def is_national_government(cargo: str) -> bool:
-    """Ministers, vice-presidents and the president of the Government of Spain (not
-    "Presidente del Gobierno de Canarias" or "del Gobierno Vasco")."""
+    """Members of the Government of Spain: ministers, vice-presidents and the president.
+    Not "Presidente del Gobierno de Canarias", nor "Secretario General de la Presidencia
+    del Gobierno" or "Director del Gabinete…" (staff, not members)."""
     folded = fold(" ".join(cargo.split()))
-    return folded.startswith("ministr") or folded.endswith("del gobierno")
+    return folded.startswith("ministr") or _MEMBER_RE.fullmatch(folded) is not None
 
 
 def _organ(cargo: str) -> tuple[str | None, str]:
@@ -202,6 +217,18 @@ def _split_caretaker(role: Role, governments: Governments) -> list[Role]:
     return rows
 
 
+def _ends_office(d: BoeHit, president: bool, later: list[BoeHit], me: str) -> bool:
+    """After an election the president's "cese" is declared and the same person is
+    appointed again: caretaker, not an end. After a motion of no confidence (2018)
+    someone else is appointed: a real end. Any other dismissal ends the office."""
+    if not (president and declared(d)):
+        return True
+    following = [s for s in later if s.decree_date() >= d.decree_date()]
+    nxt = min(following, key=lambda s: s.decree_date(), default=None)
+    appointed = nxt.appointment() if nxt else None
+    return appointed is not None and fold(appointed[1]) != me
+
+
 def roles_from_boe(
     nombre: str,
     appointments: list[BoeHit],
@@ -209,6 +236,7 @@ def roles_from_boe(
     successors: Callable[[str, dt.date], list[BoeHit]],
     governments: Governments,
     cabinet_changes: Sequence[dt.date] = (),
+    notes: list[str] | None = None,
 ) -> list[Role]:
     """Official offices of a person: start at the appointment decree; end at the dismissal
     (its date) or, without one, the day before the next appointment to the same office.
@@ -216,25 +244,29 @@ def roles_from_boe(
     (`cabinet_changes`): a new cabinet replaces every member, reappointed ones included."""
     me = fold(nombre)
     roles = []
+    notes = notes if notes is not None else []
     for hit in sorted(appointments, key=lambda h: h.published):
         a = hit.appointment()
         if a is None or fold(a[1]) != me:
             continue
         cargo, start = a[0], hit.decree_date()
         same = _norm(cargo)
-        dismissed = [
-            d.decree_date()
-            for d in dismissals
-            if (x := dismissal(d)) and fold(x[1]) == me and _norm(x[0]) == same
-            and d.decree_date() >= start
-        ]  # fmt: skip
-        replaced = [
-            s.decree_date()
+        later = [
+            s
             for s in successors(cargo, start)
             if s.ident != hit.ident and s.decree_date() > start
             and (x := s.appointment()) and _norm(x[0]) == same
         ]  # fmt: skip
         president = same in ("presidente del gobierno", "presidenta del gobierno")
+
+        dismissed = [
+            d.decree_date()
+            for d in dismissals
+            if (x := dismissal(d)) and fold(x[1]) == me and _norm(x[0]) == same
+            # Strictly after: a same-day dismissal ends the previous term, not a renewal.
+            and d.decree_date() > start and _ends_office(d, president, later, me)
+        ]  # fmt: skip
+        replaced = [s.decree_date() for s in later]
         if is_national_government(cargo) and not president:
             replaced += [c for c in cabinet_changes if c > start]
         d, s = min(dismissed, default=None), min(replaced, default=None)
@@ -252,7 +284,35 @@ def roles_from_boe(
             source=_boe_source(hit),
         )
         roles += _split_caretaker(role, governments)
-    return roles
+    return _incompatible(roles, notes)
+
+
+def _incompatible(roles: list[Role], notes: list[str]) -> list[Role]:
+    """Joining the Government is incompatible with other public offices: an office held
+    before and still open (or ending later) closes the day before; listed in `notes`
+    because the date is inferred, not read from a dismissal."""
+    member = [r for r in roles if is_national_government(r.cargo) and r.inicio]
+
+    def in_government(day: dt.date) -> bool:
+        return any(r.inicio <= day and (r.fin is None or day <= r.fin) for r in member)  # type: ignore[operator]
+
+    joins = sorted(r.inicio for r in member)  # type: ignore[type-var]
+    out = []
+    for r in roles:
+        # Offices taken while already in the Government (e.g. a minister's ex officio seats
+        # at the IMF) are not closed by a later appointment in the Government.
+        if (
+            not is_national_government(r.cargo)
+            and r.inicio is not None
+            and not in_government(r.inicio)
+        ):
+            join = next((j for j in joins if j > r.inicio), None)
+            if join is not None and (r.fin is None or r.fin > join):
+                end = join - dt.timedelta(days=1)
+                notes.append(f"fin deducido: «{r.cargo}» termina el {end} (entrada en el Gobierno)")
+                r = r.model_copy(update={"fin": end})
+        out.append(r)
+    return out
 
 
 def _norm(cargo: str) -> str:
@@ -432,6 +492,26 @@ def build_politician(
             )
         else:
             warnings.append(f"«{office.cargo}» sin fuente")
+    if seed.partido_actual is not None:
+        now = seed.partido_actual
+        other_open = [m for m in parties if m.fin is None and fold(m.partido) != fold(now.partido)]
+        for m in other_open:
+            warnings.append(
+                f"Wikidata: descartado partido «{m.partido}» (la fuente oficial dice otro)"
+            )
+        parties = [m for m in parties if m not in other_open]
+        parties.append(
+            Membership(
+                partido=now.partido,
+                constatado_en=today,
+                source=PoliticianSource(
+                    organismo=now.fuente.organismo,
+                    titulo=now.fuente.titulo,
+                    url=now.fuente.url,
+                    fecha=today,
+                ),
+            )
+        )
     if not parties:
         warnings.append("sin partido con fecha")
     roles = [_close_at_dissolution(r) for r in roles]
@@ -440,7 +520,9 @@ def build_politician(
     kept = []
     for r in roles:
         old_open = r.fin is None and r.inicio is not None and r.inicio < stale
-        if old_open and _norm(r.cargo) not in confirmed:
+        # Wikidata often never closes a term: current offices come from official sources.
+        secondary_open = r.fin is None and r.source.tipo == "secundaria"
+        if (old_open or secondary_open) and _norm(r.cargo) not in confirmed:
             # The analysis would take it as current: left out, and listed for the reviewer.
             warnings.append(
                 f"{r.source.organismo}: descartado «{r.cargo}», abierto desde {r.inicio}"
