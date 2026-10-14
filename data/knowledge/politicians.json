@@ -230,7 +230,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -280,22 +280,6 @@
       "estado": "pendiente",
       "roles": [
         {
-          "inicio": "2016-11-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Orden HFP/1805/2016, de 18 de noviembre, por la que se publica el Acuerdo del Consejo de Ministros de 18 de noviembre de 2016, por el que se nombra Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal a don Carlos Cuerpo Caballero.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2016-10965",
-            "fecha": "2016-11-22",
-            "tipo": "primaria"
-          },
-          "cargo": "Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2020-02-04",
           "fin": "2021-08-24",
           "constatado_en": null,
@@ -313,7 +297,7 @@
         },
         {
           "inicio": "2021-08-24",
-          "fin": null,
+          "fin": "2023-12-29",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -323,22 +307,6 @@
             "tipo": "primaria"
           },
           "cargo": "Secretario General del Tesoro y Financiación Internacional",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2021-09-14",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 803/2021, de 14 de septiembre, por el que se nombra Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE) a don Carlos Cuerpo Caballero.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-14985",
-            "fecha": "2021-09-15",
-            "tipo": "primaria"
-          },
-          "cargo": "Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE)",
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
@@ -478,7 +446,7 @@
         },
         {
           "inicio": "2021-03-30",
-          "fin": "2021-07-09",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -605,6 +573,22 @@
           "en_funciones": false
         },
         {
+          "inicio": "2019-12-03",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Yolanda Díaz (Q3393973)",
+            "url": "https://www.wikidata.org/wiki/Q3393973",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "diputado de España",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2005-11-07",
           "fin": "2017-06-03",
           "constatado_en": null,
@@ -653,7 +637,7 @@
       "roles": [
         {
           "inicio": "2020-01-17",
-          "fin": null,
+          "fin": "2024-11-24",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -738,7 +722,7 @@
       "roles": [
         {
           "inicio": "2018-06-18",
-          "fin": null,
+          "fin": "2020-01-28",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -885,7 +869,7 @@
         },
         {
           "inicio": "2019-04-29",
-          "fin": "2020-02-07",
+          "fin": "2020-01-11",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -898,22 +882,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2020-02-08",
-          "fin": "2021-07-19",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 367/2018, de 8 de junio, por el que se nombra Secretario General de la Presidencia del Gobierno a don Félix Bolaños García.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7714",
-            "fecha": "2018-06-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Secretario General de la Presidencia del Gobierno",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2018-06-22",
@@ -949,7 +917,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -962,22 +930,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 530/2021, de 10 de julio, por el que se nombra Ministro de la Presidencia, Relaciones con las Cortes y Memoria Democrática a don Félix Bolaños García.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-11536",
-            "fecha": "2021-07-12",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de la Presidencia, Relaciones con las Cortes y Memoria Democrática",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2023-11-20",
@@ -1227,7 +1179,7 @@
       "roles": [
         {
           "inicio": "2023-12-05",
-          "fin": null,
+          "fin": "2026-03-26",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -1575,7 +1527,7 @@
       "roles": [
         {
           "inicio": "2023-12-12",
-          "fin": null,
+          "fin": "2025-12-22",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -1585,8 +1537,8 @@
             "tipo": "primaria"
           },
           "cargo": "Delegada del Gobierno en la Comunidad Autónoma de Castilla-La Mancha",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
+          "organo": null,
+          "territorio": "ES-CM",
           "en_funciones": false
         },
         {
@@ -2193,7 +2145,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2206,22 +2158,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 531/2021, de 10 de julio, por el que se nombra Ministra de Política Territorial a doña Isabel Rodríguez García.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-11537",
-            "fecha": "2021-07-12",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Política Territorial",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2023-11-20",
@@ -2641,7 +2577,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2654,22 +2590,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 533/2021, de 10 de julio, por el que se nombra Ministra de Ciencia e Innovación a doña Diana Morant Ripoll.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-11539",
-            "fecha": "2021-07-12",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Ciencia e Innovación",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2023-11-20",
@@ -2772,7 +2692,7 @@
       "roles": [
         {
           "inicio": "2002-11-14",
-          "fin": "2026-08-12",
+          "fin": "2024-12-04",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2871,7 +2791,7 @@
       "roles": [
         {
           "inicio": "2008-04-30",
-          "fin": "2012-01-04",
+          "fin": "2012-01-05",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -2881,8 +2801,8 @@
             "tipo": "primaria"
           },
           "cargo": "Delegada del Gobierno en la Comunidad Foral de Navarra",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
+          "organo": null,
+          "territorio": "ES-NC",
           "en_funciones": false
         },
         {
@@ -2984,7 +2904,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-11-21",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3000,7 +2920,7 @@
         },
         {
           "inicio": "2023-11-22",
-          "fin": "2024-09-09",
+          "fin": "2024-09-05",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3423,6 +3343,22 @@
           "en_funciones": false
         },
         {
+          "inicio": "2019-12-03",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "María Jesús Montero (Q6003983)",
+            "url": "https://www.wikidata.org/wiki/Q6003983",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "diputado de España",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2020-01-13",
           "fin": "2021-07-11",
           "constatado_en": null,
@@ -3475,7 +3411,7 @@
       "roles": [
         {
           "inicio": "2020-02-11",
-          "fin": "2021-07-26",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3485,8 +3421,8 @@
             "tipo": "primaria"
           },
           "cargo": "Delegada del Gobierno en la Comunidad Autónoma de Aragón",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
+          "organo": null,
+          "territorio": "ES-AR",
           "en_funciones": false
         },
         {
@@ -3507,7 +3443,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3522,24 +3458,8 @@
           "en_funciones": true
         },
         {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 529/2021, de 10 de julio, por el que se nombra Ministra de Educación y Formación Profesional a doña María del Pilar Alegría Continente.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-11535",
-            "fecha": "2021-07-12",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Educación y Formación Profesional",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2023-11-20",
-          "fin": "2025-12-21",
+          "fin": "2025-12-22",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3718,7 +3638,7 @@
         },
         {
           "inicio": "2019-04-29",
-          "fin": "2020-02-07",
+          "fin": "2020-01-11",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3731,54 +3651,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2020-02-08",
-          "fin": "2023-07-23",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra para la Transición Ecológica a doña Teresa Ribera Rodríguez.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra para la Transición Ecológica",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-24",
-          "fin": "2023-12-17",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra para la Transición Ecológica a doña Teresa Ribera Rodríguez.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra para la Transición Ecológica",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra para la Transición Ecológica a doña Teresa Ribera Rodríguez.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra para la Transición Ecológica",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2020-01-12",
@@ -3862,7 +3734,7 @@
         },
         {
           "inicio": "2023-11-20",
-          "fin": "2024-11-23",
+          "fin": "2024-11-24",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -3878,7 +3750,7 @@
         },
         {
           "inicio": "2023-11-20",
-          "fin": "2024-11-23",
+          "fin": "2024-11-24",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4041,7 +3913,7 @@
         },
         {
           "inicio": "2019-04-29",
-          "fin": "2020-02-07",
+          "fin": "2020-01-11",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4054,58 +3926,10 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2020-02-08",
-          "fin": "2023-07-23",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra de Economía y Empresa a doña Nadia María Calviño Santamaría.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Economía y Empresa",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-24",
-          "fin": "2023-12-17",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra de Economía y Empresa a doña Nadia María Calviño Santamaría.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Economía y Empresa",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 357/2018, de 6 de junio, por el que se nombra Ministra de Economía y Empresa a doña Nadia María Calviño Santamaría.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2018-7577",
-            "fecha": "2018-06-07",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Economía y Empresa",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2020-01-12",
-          "fin": "2021-03-29",
+          "fin": "2021-03-30",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4137,7 +3961,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4152,24 +3976,8 @@
           "en_funciones": true
         },
         {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 8/2020, de 12 de enero, por el que se nombra Ministra de Asuntos Económicos y Transformación Digital a doña Nadia María Calviño Santamaría.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-416",
-            "fecha": "2020-01-13",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministra de Asuntos Económicos y Transformación Digital",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2021-03-30",
-          "fin": "2021-07-09",
+          "fin": "2021-07-10",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4217,7 +4025,7 @@
         },
         {
           "inicio": "2023-11-20",
-          "fin": "2023-12-28",
+          "fin": "2023-12-29",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4233,7 +4041,7 @@
         },
         {
           "inicio": "2023-11-20",
-          "fin": null,
+          "fin": "2023-12-29",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4299,22 +4107,6 @@
       "estado": "pendiente",
       "roles": [
         {
-          "inicio": "2014-02-21",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 118/2014, de 21 de febrero, por el que se nombra Presidente de la Autoridad Independiente de Responsabilidad Fiscal a don José Luis Escrivá Belmonte.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2014-1935",
-            "fecha": "2014-02-22",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente de la Autoridad Independiente de Responsabilidad Fiscal",
-          "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
           "inicio": "2020-01-12",
           "fin": "2023-07-23",
           "constatado_en": null,
@@ -4332,7 +4124,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4345,22 +4137,6 @@
           "organo": "Gobierno de España",
           "territorio": "ES",
           "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 8/2020, de 12 de enero, por el que se nombra Ministro de Inclusión, Seguridad Social y Migraciones a don José Luis Escrivá Belmonte.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2020-416",
-            "fecha": "2020-01-13",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Inclusión, Seguridad Social y Migraciones",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
         },
         {
           "inicio": "2023-11-20",
@@ -4380,7 +4156,7 @@
         },
         {
           "inicio": "2023-12-29",
-          "fin": "2024-09-04",
+          "fin": "2024-09-05",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4479,7 +4255,7 @@
       "roles": [
         {
           "inicio": "1982-12-01",
-          "fin": "2008-04-10",
+          "fin": "1986-07-22",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4495,7 +4271,7 @@
         },
         {
           "inicio": "1986-07-23",
-          "fin": "2008-04-10",
+          "fin": "1989-12-04",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4511,7 +4287,7 @@
         },
         {
           "inicio": "1989-12-05",
-          "fin": "2008-04-10",
+          "fin": "1993-07-08",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4527,7 +4303,7 @@
         },
         {
           "inicio": "1993-07-09",
-          "fin": "2008-04-10",
+          "fin": "1996-05-03",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4538,22 +4314,6 @@
           },
           "cargo": "Presidente del Gobierno",
           "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2007-07-31",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 1074/2007, de 31 de julio, por el que se nombra Embajador Extraordinario y Plenipotenciario para la Conmemoración de los Bicentenerios de la Independencia de las Repúblicas Iberoamericanas a don Felipe González Márquez.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2007-14660",
-            "fecha": "2007-08-01",
-            "tipo": "primaria"
-          },
-          "cargo": "Embajador Extraordinario y Plenipotenciario para la Conmemoración de los Bicentenerios de la Independencia de las Repúblicas Iberoamericanas",
-          "organo": null,
           "territorio": "ES",
           "en_funciones": false
         },
@@ -4755,7 +4515,7 @@
       "roles": [
         {
           "inicio": "1987-07-27",
-          "fin": "1989-09-15",
+          "fin": "1989-09-16",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4771,7 +4531,7 @@
         },
         {
           "inicio": "1996-05-04",
-          "fin": "2008-04-10",
+          "fin": "2000-04-25",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -4787,7 +4547,7 @@
         },
         {
           "inicio": "2000-04-26",
-          "fin": "2008-04-10",
+          "fin": "2004-04-15",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5147,104 +4907,24 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "1996-05-05",
+          "fin": "1999-01-18",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 762/1996, de 5 de mayo, por el que se nombra Ministro de Administraciones Públicas a don Mariano Rajoy Brey.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1996-9947",
+            "fecha": "1996-05-06",
+            "tipo": "primaria"
+          },
+          "cargo": "Ministro de Administraciones Públicas",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "1999-01-18",
-          "fin": "2015-12-20",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2015-12-21",
-          "fin": "2016-11-30",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2016-12-01",
-          "fin": "2019-04-28",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2019-04-29",
-          "fin": "2020-02-07",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2020-02-08",
-          "fin": "2023-07-23",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-24",
-          "fin": "2023-12-17",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 76/1999, de 18 de enero, por el que se nombra Ministro de Educación y Cultura a don Mariano Rajoy Brey.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-1999-1246",
-            "fecha": "1999-01-19",
-            "tipo": "primaria"
-          },
-          "cargo": "Ministro de Educación y Cultura",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
+          "fin": "2000-04-26",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5260,7 +4940,7 @@
         },
         {
           "inicio": "2000-04-27",
-          "fin": "2003-09-02",
+          "fin": "2003-09-03",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5275,8 +4955,24 @@
           "en_funciones": false
         },
         {
+          "inicio": "2000-04-27",
+          "fin": "2001-02-27",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Boletín Oficial del Estado",
+            "titulo": "Real Decreto 561/2000, de 27 de abril, por el que se nombra Ministro de la Presidencia a don Mariano Rajoy Brey.",
+            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2000-7864",
+            "fecha": "2000-04-28",
+            "tipo": "primaria"
+          },
+          "cargo": "Ministro de la Presidencia",
+          "organo": "Gobierno de España",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2001-02-27",
-          "fin": "2002-07-08",
+          "fin": "2002-07-09",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -5292,7 +4988,7 @@
         },
         {
           "inicio": "2002-07-09",
-          "fin": "2003-09-02",
+          "fin": "2003-09-03",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -6171,118 +5867,6 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
-        {
-          "inicio": "2015-07-08",
-          "fin": "2015-12-20",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2015-12-21",
-          "fin": "2016-11-30",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2016-12-01",
-          "fin": "2019-04-28",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2019-04-29",
-          "fin": "2020-02-07",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2020-02-08",
-          "fin": "2023-07-23",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": "2023-07-24",
-          "fin": "2023-12-17",
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": true
-        },
-        {
-          "inicio": "2023-12-18",
-          "fin": null,
-          "constatado_en": null,
-          "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 632/2015, de 8 de julio, por el que se nombra Presidente del Gobierno de Canarias a don Fernando Clavijo Batlle.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2015-7666",
-            "fecha": "2015-07-09",
-            "tipo": "primaria"
-          },
-          "cargo": "Presidente del Gobierno de Canarias",
-          "organo": "Gobierno de España",
-          "territorio": "ES",
-          "en_funciones": false
-        },
         {
           "inicio": "2023-07-13",
           "fin": null,
@@ -7744,7 +7328,7 @@
       "roles": [
         {
           "inicio": "2007-10-13",
-          "fin": "2026-08-04",
+          "fin": "2012-01-23",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -7760,7 +7344,7 @@
         },
         {
           "inicio": "2012-01-24",
-          "fin": "2026-08-04",
+          "fin": "2025-03-14",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -8201,7 +7785,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -8217,7 +7801,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -8344,7 +7928,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -8423,6 +8007,22 @@
           "cargo": "Presidente del Gobierno Vasco",
           "organo": null,
           "territorio": "ES-PV",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2023-09-14",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Socialista",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
           "en_funciones": false
         },
         {
@@ -8664,22 +8264,6 @@
           "organo": null,
           "territorio": "ES",
           "en_funciones": false
-        },
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Portavoz del Grupo Parlamentario Socialista",
-          "organo": "Congreso de los Diputados",
-          "territorio": "ES",
-          "en_funciones": false
         }
       ],
       "parties": [
@@ -8717,6 +8301,22 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "2025-07-07",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Popular en el Congreso",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2018-10-08",
           "fin": "2019-06-23",
           "constatado_en": null,
@@ -8729,22 +8329,6 @@
           },
           "cargo": "sustituto en la Asamblea Parlamentaria del Consejo de Europa",
           "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Portavoz del Grupo Parlamentario Popular en el Congreso",
-          "organo": "Congreso de los Diputados",
           "territorio": "ES",
           "en_funciones": false
         }
@@ -8767,10 +8351,11 @@
       "categoria": "portavoz_grupo_congreso"
     },
     {
-      "id": "maria-jose-millan-ruiz",
-      "nombre": "María José Millán Ruiz",
+      "id": "maria-jose-rodriguez-millan-parro",
+      "nombre": "María José Rodríguez de Millán Parro",
       "alias": [
-        "Pepa Millán"
+        "Pepa Millán",
+        "María José Millán"
       ],
       "fecha_nacimiento": "1995-03-21",
       "fecha_nacimiento_source": {
@@ -8784,14 +8369,14 @@
       "estado": "pendiente",
       "roles": [
         {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
+          "inicio": "2023-09-14",
+          "fin": "2026-10-06",
+          "constatado_en": null,
           "source": {
             "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
             "tipo": "primaria"
           },
           "cargo": "Portavoz del Grupo Parlamentario VOX",
@@ -8851,14 +8436,14 @@
           "en_funciones": false
         },
         {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
+          "inicio": "2024-11-13",
+          "fin": "2026-10-06",
+          "constatado_en": null,
           "source": {
             "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
             "tipo": "primaria"
           },
           "cargo": "Portavoz del Grupo Parlamentario Plurinacional SUMAR",
@@ -8888,6 +8473,22 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
+        {
+          "inicio": "2023-09-14",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Republicano",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
         {
           "inicio": "2016-01-12",
           "fin": "2016-07-19",
@@ -8954,7 +8555,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -8981,22 +8582,6 @@
           },
           "cargo": "concejal del Ayuntamiento de Santa Coloma de Gramenet",
           "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Portavoz del Grupo Parlamentario Republicano",
-          "organo": "Congreso de los Diputados",
           "territorio": "ES",
           "en_funciones": false
         }
@@ -9036,6 +8621,22 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
+        {
+          "inicio": "2023-09-14",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Junts per Catalunya",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
         {
           "inicio": "2016-01-09",
           "fin": "2016-05-03",
@@ -9085,18 +8686,18 @@
           "en_funciones": false
         },
         {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
+          "inicio": "2019-12-03",
+          "fin": "2026-10-06",
+          "constatado_en": null,
           "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
+            "organismo": "Wikidata",
+            "titulo": "Míriam Nogueras (Q22337925)",
+            "url": "https://www.wikidata.org/wiki/Q22337925",
+            "fecha": null,
+            "tipo": "secundaria"
           },
-          "cargo": "Portavoz del Grupo Parlamentario Junts per Catalunya",
-          "organo": "Congreso de los Diputados",
+          "cargo": "diputado de España",
+          "organo": null,
           "territorio": "ES",
           "en_funciones": false
         }
@@ -9136,8 +8737,40 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "2023-09-14",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Euskal Herria Bildu",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2019-05-14",
           "fin": "2019-12-03",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Mertxe Aizpurua (Q12263472)",
+            "url": "https://www.wikidata.org/wiki/Q12263472",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "diputado de España",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2019-12-03",
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -9164,22 +8797,6 @@
           },
           "cargo": "alcalde de Usúrbil",
           "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Portavoz del Grupo Parlamentario Euskal Herria Bildu",
-          "organo": "Congreso de los Diputados",
           "territorio": "ES",
           "en_funciones": false
         }
@@ -9219,8 +8836,24 @@
       "estado": "pendiente",
       "roles": [
         {
+          "inicio": "2025-04-01",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Vasco (EAJ-PNV)",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -9327,22 +8960,6 @@
           },
           "cargo": "diputado del Parlamento Vasco",
           "organo": null,
-          "territorio": "ES",
-          "en_funciones": false
-        },
-        {
-          "inicio": null,
-          "fin": null,
-          "constatado_en": "2026-10-14",
-          "source": {
-            "organismo": "Congreso de los Diputados",
-            "titulo": "Composición de los grupos parlamentarios",
-            "url": "https://www.congreso.es/es/grupos/composicion-en-la-legislatura",
-            "fecha": "2026-10-14",
-            "tipo": "primaria"
-          },
-          "cargo": "Portavoz del Grupo Parlamentario Vasco (EAJ-PNV)",
-          "organo": "Congreso de los Diputados",
           "territorio": "ES",
           "en_funciones": false
         }
@@ -9484,8 +9101,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Partido Popular",
-            "titulo": "Web oficial del Partido Popular",
-            "url": "https://www.pp.es",
+            "titulo": "Estructura del Partido Popular",
+            "url": "https://www.pp.es/estructura/",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
@@ -9529,6 +9146,22 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
+        {
+          "inicio": "2023-12-01",
+          "fin": "2025-07-07",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Popular en el Congreso",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
         {
           "inicio": "2023-11-30",
           "fin": "2025-07-05",
@@ -9583,8 +9216,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Partido Popular",
-            "titulo": "Web oficial del Partido Popular",
-            "url": "https://www.pp.es",
+            "titulo": "Estructura del Partido Popular",
+            "url": "https://www.pp.es/estructura/",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
@@ -9664,6 +9297,22 @@
         {
           "inicio": "2019-05-14",
           "fin": "2019-12-02",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Santiago Abascal (Q11703587)",
+            "url": "https://www.wikidata.org/wiki/Q11703587",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "diputado de España",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2019-12-03",
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -9863,7 +9512,7 @@
         },
         {
           "inicio": "2023-07-24",
-          "fin": "2023-12-17",
+          "fin": "2023-11-19",
           "constatado_en": null,
           "source": {
             "organismo": "Boletín Oficial del Estado",
@@ -9878,18 +9527,50 @@
           "en_funciones": true
         },
         {
-          "inicio": "2023-12-18",
-          "fin": null,
+          "inicio": "2024-04-01",
+          "fin": "2024-06-30",
           "constatado_en": null,
           "source": {
-            "organismo": "Boletín Oficial del Estado",
-            "titulo": "Real Decreto 235/2021, de 30 de marzo, por el que se nombra Ministra de Derechos Sociales y Agenda 2030 a doña Ione Belarra Urteaga.",
-            "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-5047",
-            "fecha": "2021-03-31",
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
             "tipo": "primaria"
           },
-          "cargo": "Ministra de Derechos Sociales y Agenda 2030",
-          "organo": "Gobierno de España",
+          "cargo": "Portavoz del Grupo Parlamentario Mixto",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2025-04-01",
+          "fin": "2025-06-30",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Mixto",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
+          "inicio": "2026-04-01",
+          "fin": "2026-06-30",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Mixto",
+          "organo": "Congreso de los Diputados",
           "territorio": "ES",
           "en_funciones": false
         },
@@ -9959,7 +9640,7 @@
         },
         {
           "inicio": "2023-08-17",
-          "fin": null,
+          "fin": "2026-10-06",
           "constatado_en": null,
           "source": {
             "organismo": "Wikidata",
@@ -10043,17 +9724,33 @@
           "en_funciones": false
         },
         {
+          "inicio": "2024-05-14",
+          "fin": null,
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Antonio Maíllo (Q16301005)",
+            "url": "https://www.wikidata.org/wiki/Q16301005",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "coordinador federal de Izquierda Unida",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": null,
           "fin": null,
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Izquierda Unida",
-            "titulo": "Web oficial de Izquierda Unida",
-            "url": "https://izquierdaunida.org",
+            "titulo": "Coordinación General",
+            "url": "https://izquierdaunida.org/coordinacion-general/",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
-          "cargo": "Coordinador federal de Izquierda Unida",
+          "cargo": "Coordinador general de Izquierda Unida",
           "organo": "Izquierda Unida",
           "territorio": "ES",
           "en_funciones": false
@@ -10821,12 +10518,12 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "EH Bildu",
-            "titulo": "Web oficial de EH Bildu",
-            "url": "https://ehbildu.eus",
+            "titulo": "Mahai Politikoa",
+            "url": "https://ehbildu.eus/mahaipolitikoa",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
-          "cargo": "Coordinador general de EH Bildu",
+          "cargo": "Secretario general de EH Bildu",
           "organo": "EH Bildu",
           "territorio": "ES",
           "en_funciones": false
@@ -10866,6 +10563,22 @@
       "origen": "curado",
       "estado": "pendiente",
       "roles": [
+        {
+          "inicio": "2023-09-14",
+          "fin": "2025-04-01",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Congreso de los Diputados",
+            "titulo": "Junta de Portavoces, XV Legislatura",
+            "url": "https://www.congreso.es/es/junta-de-portavoces",
+            "fecha": null,
+            "tipo": "primaria"
+          },
+          "cargo": "Portavoz del Grupo Parlamentario Vasco (EAJ-PNV)",
+          "organo": "Congreso de los Diputados",
+          "territorio": "ES",
+          "en_funciones": false
+        },
         {
           "inicio": "2004-03-30",
           "fin": "2008-01-15",
@@ -11011,6 +10724,22 @@
           "en_funciones": false
         },
         {
+          "inicio": "2012-12-18",
+          "fin": "2026-10-06",
+          "constatado_en": null,
+          "source": {
+            "organismo": "Wikidata",
+            "titulo": "Aitor Esteban (Q5661421)",
+            "url": "https://www.wikidata.org/wiki/Q5661421",
+            "fecha": null,
+            "tipo": "secundaria"
+          },
+          "cargo": "Líder del Grupo Vasco en el Congreso de los Diputados",
+          "organo": null,
+          "territorio": "ES",
+          "en_funciones": false
+        },
+        {
           "inicio": "2025-03-30",
           "fin": null,
           "constatado_en": null,
@@ -11064,8 +10793,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "EAJ-PNV",
-            "titulo": "Web oficial del PNV",
-            "url": "https://www.eaj-pnv.eus",
+            "titulo": "Euskadi Buru Batzarra",
+            "url": "https://www.eaj-pnv.eus/eu/euskadi-buru-batzarra/",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
@@ -11115,8 +10844,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Bloque Nacionalista Galego",
-            "titulo": "Web oficial del BNG",
-            "url": "https://www.bng.gal",
+            "titulo": "Executiva Nacional",
+            "url": "https://www.bng.gal/estaticas/executiva-nacional.html",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },
@@ -11231,8 +10960,8 @@
           "constatado_en": "2026-10-14",
           "source": {
             "organismo": "Ayuntamiento de Madrid",
-            "titulo": "Web oficial del Ayuntamiento de Madrid",
-            "url": "https://www.madrid.es",
+            "titulo": "El Ayuntamiento de Madrid",
+            "url": "https://www.madrid.es/portales/munimadrid/ayuntamiento.html",
             "fecha": "2026-10-14",
             "tipo": "primaria"
           },

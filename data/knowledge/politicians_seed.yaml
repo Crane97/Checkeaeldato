@@ -5,7 +5,8 @@
 #   - expresidentes del Gobierno vivos
 #   - presidencias autonómicas y de Ceuta y Melilla (BOE)
 #   - presidencias del Congreso y del Senado
-#   - portavoces de los grupos parlamentarios del Congreso
+#   - portavoces de los grupos parlamentarios del Congreso en la XV Legislatura (disuelta el
+#     06-10-2026: ya no es un cargo actual)
 #   - dirección nacional de los partidos con representación
 #   - alcaldías de las cinco ciudades más pobladas
 # Sin confirmar en una fuente fiable (no incluidos todavía): liderazgo de Sumar, UPN, portavoz
@@ -242,56 +243,27 @@
       organo: Senado
       fuente: {organismo: Senado de España, titulo: Presidencia del Senado, url: "https://www.senado.es/web/composicionorganizacion/presidenciasenado/index.html"}
 
-# ── Portavoces de los grupos parlamentarios del Congreso ───────────────────────
-- nombre: Francisco Javier López Álvarez
+# ── Portavoces de los grupos parlamentarios del Congreso (XV Legislatura) ───────
+# Sus periodos (inicio y fin, el 06-10-2026 por la disolución de las Cortes) salen de la
+# composición histórica de la Junta de Portavoces del Congreso (fuente primaria), que el
+# recopilador consulta para todas las personas de la semilla.
+- {nombre: Francisco Javier López Álvarez, categoria: portavoz_grupo_congreso, alias: [Patxi López]}
+- {nombre: Ester Muñoz de la Iglesia, categoria: portavoz_grupo_congreso, alias: [Ester Muñoz]}
+- nombre: María José Rodríguez de Millán Parro
   categoria: portavoz_grupo_congreso
-  alias: [Patxi López]
-  cargos_actuales:
-    - cargo: Portavoz del Grupo Parlamentario Socialista
-      organo: Congreso de los Diputados
-      fuente: &grupos {organismo: Congreso de los Diputados, titulo: Composición de los grupos parlamentarios, url: "https://www.congreso.es/es/grupos/composicion-en-la-legislatura"}
-- nombre: Ester Muñoz de la Iglesia
-  categoria: portavoz_grupo_congreso
-  alias: [Ester Muñoz]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Popular en el Congreso, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: María José Millán Ruiz
-  categoria: portavoz_grupo_congreso
-  alias: [Pepa Millán]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario VOX, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: Verónica Martínez Barbero
-  categoria: portavoz_grupo_congreso
-  alias: [Verónica Barbero]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Plurinacional SUMAR, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: Gabriel Rufián Romero
-  categoria: portavoz_grupo_congreso
-  alias: [Gabriel Rufián, Rufián]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Republicano, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: Míriam Nogueras i Camero
-  categoria: portavoz_grupo_congreso
-  alias: [Míriam Nogueras, Nogueras]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Junts per Catalunya, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: Mertxe Aizpurua Arzallus
-  categoria: portavoz_grupo_congreso
-  alias: [Mertxe Aizpurua]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Euskal Herria Bildu, organo: Congreso de los Diputados, fuente: *grupos}
-- nombre: María Isabel Vaquero Montero
-  categoria: portavoz_grupo_congreso
-  alias: [Maribel Vaquero]
-  cargos_actuales:
-    - {cargo: Portavoz del Grupo Parlamentario Vasco (EAJ-PNV), organo: Congreso de los Diputados, fuente: *grupos}
+  alias: [Pepa Millán, María José Millán]
+- {nombre: Verónica Martínez Barbero, categoria: portavoz_grupo_congreso, alias: [Verónica Barbero]}
+- {nombre: Gabriel Rufián Romero, categoria: portavoz_grupo_congreso, alias: [Gabriel Rufián, Rufián]}
+- {nombre: Míriam Nogueras i Camero, categoria: portavoz_grupo_congreso, alias: [Míriam Nogueras, Nogueras]}
+- {nombre: Mertxe Aizpurua Arzallus, categoria: portavoz_grupo_congreso, alias: [Mertxe Aizpurua]}
+- {nombre: María Isabel Vaquero Montero, categoria: portavoz_grupo_congreso, alias: [Maribel Vaquero]}
 
 # ── Dirección nacional de los partidos ─────────────────────────────────────────
 - nombre: Alberto Núñez Feijóo
   categoria: direccion_partido
   alias: [Feijóo, Núñez Feijóo]
   cargos_actuales:
-    - {cargo: Presidente del Partido Popular, organo: Partido Popular, fuente: &pp {organismo: Partido Popular, titulo: Web oficial del Partido Popular, url: "https://www.pp.es"}}
+    - {cargo: Presidente del Partido Popular, organo: Partido Popular, fuente: &pp {organismo: Partido Popular, titulo: Estructura del Partido Popular, url: "https://www.pp.es/estructura/"}}
 - nombre: Miguel Tellado Filgueira
   categoria: direccion_partido
   alias: [Miguel Tellado]
@@ -316,7 +288,7 @@
   categoria: direccion_partido
   alias: [Antonio Maíllo]
   cargos_actuales:
-    - {cargo: Coordinador federal de Izquierda Unida, organo: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Web oficial de Izquierda Unida, url: "https://izquierdaunida.org"}}
+    - {cargo: Coordinador general de Izquierda Unida, organo: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Coordinación General, url: "https://izquierdaunida.org/coordinacion-general/"}}
 - nombre: Oriol Junqueras Vies
   categoria: direccion_partido
   alias: [Oriol Junqueras, Junqueras]
@@ -336,24 +308,24 @@
   categoria: direccion_partido
   alias: [Arnaldo Otegi, Otegi]
   cargos_actuales:
-    - {cargo: Coordinador general de EH Bildu, organo: EH Bildu, fuente: {organismo: EH Bildu, titulo: Web oficial de EH Bildu, url: "https://ehbildu.eus"}}
+    - {cargo: Secretario general de EH Bildu, organo: EH Bildu, fuente: {organismo: EH Bildu, titulo: Mahai Politikoa, url: "https://ehbildu.eus/mahaipolitikoa"}}
 - nombre: Aitor Esteban Bravo
   categoria: direccion_partido
   alias: [Aitor Esteban]
   cargos_actuales:
-    - {cargo: Presidente del Euzkadi Buru Batzar del PNV, organo: EAJ-PNV, fuente: {organismo: EAJ-PNV, titulo: Web oficial del PNV, url: "https://www.eaj-pnv.eus"}}
+    - {cargo: Presidente del Euzkadi Buru Batzar del PNV, organo: EAJ-PNV, fuente: {organismo: EAJ-PNV, titulo: Euskadi Buru Batzarra, url: "https://www.eaj-pnv.eus/eu/euskadi-buru-batzarra/"}}
 - nombre: Ana Belén Pontón Mondelo
   categoria: direccion_partido
   alias: [Ana Pontón]
   cargos_actuales:
-    - {cargo: Portavoz nacional del BNG, organo: BNG, fuente: {organismo: Bloque Nacionalista Galego, titulo: Web oficial del BNG, url: "https://www.bng.gal"}}
+    - {cargo: Portavoz nacional del BNG, organo: BNG, fuente: {organismo: Bloque Nacionalista Galego, titulo: Executiva Nacional, url: "https://www.bng.gal/estaticas/executiva-nacional.html"}}
 
 # ── Alcaldías de las cinco ciudades más pobladas ───────────────────────────────
 - nombre: José Luis Martínez-Almeida Navasqüés
   categoria: alcaldia
   alias: [José Luis Martínez-Almeida, Martínez-Almeida]
   cargos_actuales:
-    - {cargo: Alcalde de Madrid, organo: Ayuntamiento de Madrid, territorio: ES-MD, fuente: {organismo: Ayuntamiento de Madrid, titulo: Web oficial del Ayuntamiento de Madrid, url: "https://www.madrid.es"}}
+    - {cargo: Alcalde de Madrid, organo: Ayuntamiento de Madrid, territorio: ES-MD, fuente: {organismo: Ayuntamiento de Madrid, titulo: El Ayuntamiento de Madrid, url: "https://www.madrid.es/portales/munimadrid/ayuntamiento.html"}}
 - nombre: Jaume Collboni Cuadrado
   categoria: alcaldia
   alias: [Jaume Collboni, Collboni]

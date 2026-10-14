@@ -1,7 +1,8 @@
 Pedro Sánchez Pérez-Castejón: Wikidata: descartado «secretario general del Partido Socialista Obrero Español», abierto desde 2017-06-18
 Carlos Cuerpo Caballero: sin partido con fecha
+Carlos Cuerpo Caballero: Boletín Oficial del Estado: descartado «Director de la División de Análisis Económico de la Autoridad Independiente de Responsabilidad Fiscal», abierto desde 2016-11-18
+Carlos Cuerpo Caballero: Boletín Oficial del Estado: descartado «Gobernador Suplente por España en el Mecanismo Europeo de Estabilidad (MEDE)», abierto desde 2021-09-14
 Yolanda Díaz Pérez: sin partido con fecha
-Yolanda Díaz Pérez: Wikidata: descartado «diputado de España», abierto desde 2019-12-03
 Sara Aagesen Muñoz: sin partido con fecha
 Fernando Grande-Marlaska Gómez: sin partido con fecha
 Óscar Puente Santiago: Wikidata: descartado «concejal del Ayuntamiento de Valladolid», abierto desde 2007-06-16
@@ -14,8 +15,9 @@ Pablo Bustinduy Amador: sin partido con fecha
 Pablo Bustinduy Amador: Wikidata: descartado «representante de la Asamblea Parlamentaria del Consejo de Europa», abierto desde 2017-11-24
 Ana María del Carmen Redondo García: Wikidata: descartado «concejal del Ayuntamiento de Valladolid», abierto desde 2015-06-13
 Sira Abed Rego: sin partido con fecha
-María Jesús Montero Cuadrado: Wikidata: descartado «diputado de España», abierto desde 2019-12-03
+José Luis Escrivá Belmonte: Boletín Oficial del Estado: descartado «Presidente de la Autoridad Independiente de Responsabilidad Fiscal», abierto desde 2014-02-21
 José Luis Escrivá Belmonte: Wikidata: descartado «presidente», abierto desde 2015-09-24
+Felipe González Márquez: Boletín Oficial del Estado: descartado «Embajador Extraordinario y Plenipotenciario para la Conmemoración de los Bicentenerios de la Independencia de las Repúblicas Iberoamericanas», abierto desde 2007-07-31
 José María Aznar López: sin partido con fecha
 Mariano Rajoy Brey: Wikidata: descartado «portavoz del Gobierno de España», abierto desde 2002-07-10
 Juan Manuel Moreno Bonilla: Wikidata: descartado «presidente», abierto desde 2014-03-01
@@ -24,6 +26,7 @@ Adrián Barbón Rodríguez: Wikidata: descartado «diputado de la Junta General 
 Adrián Barbón Rodríguez: Wikidata: descartado «Secretario general de la FSA-PSOE», abierto desde 2017-09-17
 Margarita Prohens Rigo: sin partido con fecha
 Margarita Prohens Rigo: Wikidata: descartado «presidente del Partido Popular de las Islas Baleares», abierto desde 2021-07-24
+Fernando Clavijo Batlle: Boletín Oficial del Estado: descartado «Presidente del Gobierno de Canarias», abierto desde 2015-07-08
 Alfonso Fernández Mañueco: Wikidata: descartado «presidente de la Diputación Provincial de Salamanca», abierto desde 1996-07-12
 Alfonso Fernández Mañueco: Wikidata: descartado «procurador en las Cortes de Castilla y León», abierto desde 2022-03-10
 Emiliano García-Page Sánchez: Wikidata: descartado «diputado en las Cortes de Castilla-La Mancha», abierto desde 2015-06-18
@@ -40,21 +43,9 @@ Francina Armengol Socias: sin partido con fecha
 Francina Armengol Socias: Wikidata: descartado «secretario general», abierto desde 2012-02-26
 Pedro Rollán Ojeda: Wikidata: descartado «presidente del Canal de Isabel II», abierto desde 2018-06-26
 Pedro Rollán Ojeda: «Presidente del Senado»: https://www.senado.es/web/composicionorganizacion/presidenciasenado/index.html respondió 403: compruébalo a mano
-Francisco Javier López Álvarez: «Portavoz del Grupo Parlamentario Socialista»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-Ester Muñoz de la Iglesia: «Portavoz del Grupo Parlamentario Popular en el Congreso»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-María José Millán Ruiz: «Portavoz del Grupo Parlamentario VOX»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
 Verónica Martínez Barbero: sin partido con fecha
-Verónica Martínez Barbero: «Portavoz del Grupo Parlamentario Plurinacional SUMAR»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-Gabriel Rufián Romero: «Portavoz del Grupo Parlamentario Republicano»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-Míriam Nogueras i Camero: Wikidata: descartado «diputado de España», abierto desde 2019-12-03
-Míriam Nogueras i Camero: «Portavoz del Grupo Parlamentario Junts per Catalunya»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-Mertxe Aizpurua Arzallus: Wikidata: descartado «diputado de España», abierto desde 2019-12-03
-Mertxe Aizpurua Arzallus: «Portavoz del Grupo Parlamentario Euskal Herria Bildu»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
-María Isabel Vaquero Montero: «Portavoz del Grupo Parlamentario Vasco (EAJ-PNV)»: el nombre no aparece en https://www.congreso.es/es/grupos/composicion-en-la-legislatura: compruébalo a mano
 Alberto Núñez Feijóo: Wikidata: descartado «diputado en el Parlamento de Galicia», abierto desde 2005-07-18
-Miguel Tellado Filgueira: «Secretario general del Partido Popular»: el nombre no aparece en https://www.pp.es: compruébalo a mano
 Santiago Abascal Conde: sin partido con fecha
-Santiago Abascal Conde: Wikidata: descartado «diputado de España», abierto desde 2019-12-03
 Santiago Abascal Conde: «Presidente de Vox»: https://www.voxespana.es respondió 403: compruébalo a mano
 Ignacio Garriga Vaz de Concicao: «Secretario general de Vox»: https://www.voxespana.es respondió 403: compruébalo a mano
 Ione Belarra Urteaga: sin partido con fecha
@@ -68,10 +59,9 @@ Carles Puigdemont i Casamajó: Wikidata: descartado «president of the Council f
 Jordi Turull i Negre: sin partido con fecha
 Jordi Turull i Negre: Wikidata: descartado «diputado provincial de Barcelona», abierto desde 1995-07-06
 Arnaldo Otegi Mondragon: Wikidata: descartado «Secretario general de Euskal Herria Bildu», abierto desde 2017-06-17
-Aitor Esteban Bravo: Wikidata: descartado «Líder del Grupo Vasco en el Congreso de los Diputados», abierto desde 2012-12-18
 Ana Belén Pontón Mondelo: Wikidata: descartado «diputado en el Parlamento de Galicia», abierto desde 2004-02-07
 José Luis Martínez-Almeida Navasqüés: Wikidata: descartado «concejal del Ayuntamiento de Madrid», abierto desde 2015-06-13
-José Luis Martínez-Almeida Navasqüés: «Alcalde de Madrid»: https://www.madrid.es respondió 403: compruébalo a mano
+José Luis Martínez-Almeida Navasqüés: «Alcalde de Madrid»: https://www.madrid.es/portales/munimadrid/ayuntamiento.html respondió 403: compruébalo a mano
 Jaume Collboni Cuadrado: Wikidata: descartado «concejal del Ayuntamiento de Barcelona», abierto desde 2015-06-13
 María José Catalá Verdet: Wikidata: descartado «concejal del Ayuntamiento de Valencia», abierto desde 2019-06-15
 María José Catalá Verdet: «Alcaldesa de Valencia»: el nombre no aparece en https://www.valencia.es: compruébalo a mano
