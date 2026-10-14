@@ -5,23 +5,141 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checkea el Dato · en directo</title>
 <link rel="stylesheet" href="/static/report.css">
+<link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-<main>
-  <h1>Checkea el Dato · en directo</h1>
-  <section class="card">
+<main class="wide">
+  <nav class="topbar">
+    <span class="brand">Checkea el Dato <small>prueba local</small></span>
+    <div class="tabs"><a href="/">Texto</a><a href="/directo" class="active">Directo</a></div>
+  </nav>
+
+  <section class="card" id="configurar">
+    <h2>Seguir un debate en directo</h2>
+    <p class="meta">La emisión se corta en bloques de audio; cada bloque se transcribe y se analiza mientras
+      llega el siguiente. Los veredictos aparecen aquí según se deciden, con sus fuentes.</p>
     <form id="form">
-      <label for="fuente">Emisión (URL) o vídeo grabado (ruta)</label>
-      <input id="fuente" type="text" required>
-      <label for="fecha">Fecha del debate</label>
-      <input id="fecha" type="date" required>
-      <button type="submit">Empezar</button>
+      <label for="fuente">Emisión (URL HLS/RTMP) o vídeo grabado (ruta en este ordenador)</label>
+      <input id="fuente" type="text" required placeholder="https://…/directo.m3u8  ·  data/debate.mp4"
+             autocomplete="off">
+      <p class="hint">Un vídeo grabado se reproduce a su ritmo real, como si se estuviera emitiendo.</p>
+      <div class="row-3">
+        <div>
+          <label for="oradores">Quién es quién (opcional)</label>
+          <textarea id="oradores" style="min-height:70px"
+            placeholder="Una persona por línea: Nombre | Partido | Rol&#10;Las etiquetas (speaker_0@3) se pueden nombrar también durante el directo."></textarea>
+        </div>
+        <div>
+          <label for="fecha">Fecha del debate</label>
+          <input id="fecha" type="date" required>
+        </div>
+        <div>
+          <label for="bloque">Tamaño del bloque</label>
+          <select id="bloque">
+            <option value="30">30 s · más rápido, menos contexto</option>
+            <option value="60" selected>60 s · recomendado</option>
+            <option value="90">90 s</option>
+            <option value="120">2 min · más contexto, más espera</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="empezar" type="submit">Empezar</button>
+        <span class="hint">Una sesión a la vez. Se puede parar en cualquier momento.</span>
+      </div>
     </form>
+    <div id="anteriores-wrap" class="hidden">
+      <h2 style="margin-top:20px">Sesiones anteriores</h2>
+      <ul class="sessions" id="anteriores"></ul>
+    </div>
   </section>
+
+  <section class="card error hidden" id="error"></section>
+
+  <section class="hidden" id="panel">
+    <div class="card">
+      <div class="session-head">
+        <span class="status" id="estado"><span class="dot"></span><span id="estado-texto">Preparando</span></span>
+        <span class="clock" id="reloj" title="Audio de la emisión ya procesado">00:00</span>
+        <span class="source" id="fuente-texto"></span>
+        <span class="spacer"></span>
+        <button class="secondary" id="descargar" type="button">Descargar informe</button>
+        <button class="danger" id="parar" type="button">Parar</button>
+      </div>
+      <div class="blocks" id="bloques"></div>
+      <div class="legend">
+        <span class="l-t">transcribiendo</span><span class="l-a">analizando</span>
+        <span class="l-h">analizado</span><span class="l-f">fallido</span>
+      </div>
+      <p class="meta" id="mensaje"></p>
+    </div>
+
+    <div class="card">
+      <div class="total"><span class="big" id="total">0</span>
+        <span>afirmaciones verificadas</span>
+        <span class="meta" id="pendientes-n"></span></div>
+      <div class="tiles" id="tiles"></div>
+      <p class="meta">«Fuente oficial» incluye organismos públicos (INE, BOE, Banco de España…) y verificadores
+        profesionales (Maldita, Newtral, EFE Verifica). Pulsa una categoría para filtrar el listado.</p>
+    </div>
+
+    <div class="grid">
+      <div class="stack">
+        <div class="card">
+          <h2>Veredictos</h2>
+          <div class="chips" id="chips"></div>
+          <div class="feed" id="afirmaciones"><p class="empty">Todavía no hay veredictos. Los primeros llegan
+            cuando se analiza el primer bloque (uno o dos minutos).</p></div>
+        </div>
+        <div class="card hidden" id="promesas-wrap">
+          <h2 id="titulo-promesas">Promesas</h2>
+          <p class="meta">Una promesa no es verdadera ni falsa: se valora si se puede cumplir con el marco legal,
+            los datos y el presupuesto.</p>
+          <div class="tiles tiles-4" id="tiles-promesas"></div>
+          <div class="feed" id="promesas"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="card">
+          <h2>En análisis</h2>
+          <ul class="pending" id="pendientes"><li class="empty">Nada en cola.</li></ul>
+        </div>
+        <div class="card">
+          <h2>Oradores</h2>
+          <p class="meta">Cada bloque trae sus propias etiquetas; pulsa una para decir quién es.</p>
+          <ul class="speakers" id="oradores-lista"></ul>
+        </div>
+        <div class="card">
+          <h2>Transcripción</h2>
+          <div class="ticker" id="ticker"><p class="empty">Esperando el primer bloque…</p></div>
+        </div>
+        <div class="card">
+          <h2>Actividad</h2>
+          <div class="stats" id="stats"></div>
+          <ul class="warnings" id="avisos"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="dialogo-orador">
+    <form method="dialog" id="form-orador">
+      <h2>¿Quién es <span id="dialogo-etiqueta"></span>?</h2>
+      <label for="orador-nombre">Nombre</label>
+      <input id="orador-nombre" type="text" placeholder="Nombre y apellidos">
+      <label for="orador-partido">Partido</label>
+      <input id="orador-partido" type="text" placeholder="Siglas o nombre del partido">
+      <label for="orador-rol">Cargo (opcional)</label>
+      <input id="orador-rol" type="text" placeholder="candidata, ministro…">
+      <div class="actions">
+        <button type="button" class="secondary" id="orador-cancelar">Cancelar</button>
+        <button type="submit" id="orador-guardar">Guardar</button>
+      </div>
+    </form>
+  </dialog>
 </main>
+
 <script src="/static/report.js"></script>
-<script>
-// Placeholder; the panel listens with EventSource to /api/directo/{id}/eventos.
-</script>
+<script src="/static/live.js"></script>
 </body>
 </html>

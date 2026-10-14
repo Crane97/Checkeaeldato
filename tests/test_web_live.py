@@ -54,7 +54,8 @@ def start(client: TestClient, **overrides) -> dict:
 def test_live_page_is_served(client):
     response = client.get("/directo")
     assert response.status_code == 200
-    assert 'id="fuente"' in response.text and "EventSource" in response.text
+    assert 'id="fuente"' in response.text and "/static/live.js" in response.text
+    assert "EventSource" in client.get("/static/live.js").text
 
 
 def test_a_session_runs_and_its_snapshot_has_the_running_report(client, factory):

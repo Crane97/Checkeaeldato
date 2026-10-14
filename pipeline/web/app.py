@@ -8,6 +8,7 @@ import datetime as dt
 import hashlib
 import json
 import logging
+import os
 import threading
 import webbrowser
 from collections.abc import Callable
@@ -324,5 +325,7 @@ def main() -> None:
     )
     url = f"http://localhost:{PORT}"
     print(f"\nVerificador local en {url}  (Ctrl+C para parar)\n")
-    threading.Timer(1.5, webbrowser.open, args=[url]).start()
+    # VERIFICAR_WEB_NO_BROWSER=1: don't open a browser (dev previews, remote shells).
+    if os.environ.get("VERIFICAR_WEB_NO_BROWSER") != "1":
+        threading.Timer(1.5, webbrowser.open, args=[url]).start()
     uvicorn.run(app, host=HOST, port=PORT, log_level="warning")

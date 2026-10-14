@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "verificar-web",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "python",
+        "-c",
+        "import os; os.environ['VERIFICAR_WEB_NO_BROWSER'] = '1'; from pipeline.web.app import main; main()"
+      ],
+      "port": 8000
+    }
+  ]
+}
