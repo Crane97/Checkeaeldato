@@ -1,0 +1,403 @@
+# Catálogo de indicadores de la base de conocimiento oficial.
+#
+# Cada indicador: definición precisa (lo que mide y lo que NO), sinónimos con los que se
+# nombra en los discursos, rango plausible (fuera → cuarentena), salto máximo entre
+# periodos consecutivos (en % para niveles, en puntos para tasas; más → cuarentena),
+# antigüedad máxima tolerada antes de alertar, tema, retraso habitual de publicación
+# (para estimar la fecha cuando la fuente no la da) y de dónde se descarga.
+#
+# Los rangos y saltos son controles de calidad, no previsiones: un valor fuera de ellos no
+# se descarta, queda en cuarentena para que una persona lo revise. Se han fijado con
+# margen sobre los extremos reales conocidos (p. ej. la subida del SMI de 2019, +22 %, o
+# la caída del PIB de 2020, −10,9 %).
+#
+# codigo_fuente: null = se fijará en la fase de ingesta, tras revisar la API del organismo.
+
+indicadores:
+
+  - id: smi_mensual
+    nombre: Salario mínimo interprofesional (SMI)
+    definicion: >-
+      Cuantía mensual del salario mínimo interprofesional fijada por real decreto, en 14
+      pagas, para cualquier actividad. Anual = 14 × mensual. No es el salario medio ni el
+      salario más frecuente.
+    unidad: euros/mes (14 pagas)
+    frecuencia: anual
+    organismo: Boletín Oficial del Estado
+    notas_metodologicas: >-
+      Puede cambiar a mitad de año (2004: julio; 2021: septiembre, con prórroga del SMI de
+      2020 de enero a agosto). Si la afirmación da una cifra anual, compararla con 14 ×
+      mensual; si da una cifra en 12 pagas, con 14/12 × mensual.
+    sinonimos: [salario mínimo, SMI, salario mínimo interprofesional, sueldo mínimo]
+    rango_min: 300
+    rango_max: 3000
+    salto_max_pct: 30
+    max_antiguedad_dias: 430
+    tema: empleo
+    retraso_publicacion_dias: 0    # fecha real: la del BOE de cada real decreto
+    conector: boe
+    codigo_fuente: null
+
+  - id: paro_epa
+    nombre: Tasa de paro (EPA)
+    definicion: >-
+      Porcentaje de personas paradas sobre la población activa (16 años o más), según la
+      Encuesta de Población Activa del INE (criterio de la OIT). No es el paro registrado
+      en el SEPE.
+    unidad: '% de la población activa'
+    frecuencia: trimestral
+    organismo: INE
+    notas_metodologicas: Dato trimestral sin desestacionalizar.
+    sinonimos: [tasa de paro, paro, desempleo, tasa de desempleo, paro EPA]
+    rango_min: 0
+    rango_max: 45
+    salto_max_puntos: 4
+    max_antiguedad_dias: 150
+    tema: empleo
+    retraso_publicacion_dias: 28
+    conector: ine
+    codigo_fuente: EPA452434
+
+  - id: paro_juvenil_epa
+    nombre: Tasa de paro de los menores de 25 años (EPA)
+    definicion: >-
+      Porcentaje de parados de 16 a 24 años sobre la población activa de 16 a 24 años
+      (EPA). No es el porcentaje de jóvenes en paro sobre todos los jóvenes.
+    unidad: '% de la población activa menor de 25 años'
+    frecuencia: trimestral
+    organismo: INE
+    notas_metodologicas: Dato trimestral sin desestacionalizar.
+    sinonimos: [paro juvenil, desempleo juvenil, paro de los jóvenes, paro menores de 25]
+    rango_min: 0
+    rango_max: 80
+    salto_max_puntos: 8
+    max_antiguedad_dias: 150
+    tema: empleo
+    retraso_publicacion_dias: 28
+    conector: ine
+    codigo_fuente: EPA452436
+
+  - id: ocupados_epa
+    nombre: Población ocupada (EPA)
+    definicion: >-
+      Número de personas ocupadas de 16 años o más según la EPA. No es la afiliación a la
+      Seguridad Social (que cuenta altas, no personas).
+    unidad: miles de personas
+    frecuencia: trimestral
+    organismo: INE
+    notas_metodologicas: Dato trimestral sin desestacionalizar.
+    sinonimos: [ocupados, empleo, personas trabajando, población ocupada, puestos de trabajo]
+    rango_min: 10000
+    rango_max: 30000
+    salto_max_pct: 6
+    max_antiguedad_dias: 150
+    tema: empleo
+    retraso_publicacion_dias: 28
+    conector: ine
+    codigo_fuente: null
+
+  - id: paro_registrado
+    nombre: Paro registrado
+    definicion: >-
+      Demandantes de empleo parados inscritos en las oficinas de los servicios públicos de
+      empleo el último día del mes (SEPE). No es la tasa de paro de la EPA.
+    unidad: personas
+    frecuencia: mensual
+    organismo: Servicio Público de Empleo Estatal (SEPE)
+    notas_metodologicas: >-
+      Dato a fin de mes, sin desestacionalizar. Los fijos discontinuos en inactividad no
+      cuentan como parados registrados desde 2022.
+    sinonimos: [paro registrado, parados inscritos, demandantes de empleo parados, paro del SEPE]
+    rango_min: 1000000
+    rango_max: 6000000
+    salto_max_pct: 12
+    max_antiguedad_dias: 75
+    tema: empleo
+    retraso_publicacion_dias: 3
+    conector: sepe
+    codigo_fuente: null
+
+  - id: afiliacion_ss
+    nombre: Afiliados medios a la Seguridad Social
+    definicion: >-
+      Media mensual de afiliados en alta laboral en la Seguridad Social, todos los
+      regímenes. Una persona con dos empleos cuenta dos veces: no es el número de ocupados.
+    unidad: personas (media mensual)
+    frecuencia: mensual
+    organismo: Seguridad Social
+    notas_metodologicas: Media del mes, sin desestacionalizar.
+    sinonimos: [afiliación, afiliados, cotizantes, afiliados a la Seguridad Social, empleo afiliado]
+    rango_min: 10000000
+    rango_max: 30000000
+    salto_max_pct: 5
+    max_antiguedad_dias: 75
+    tema: empleo
+    retraso_publicacion_dias: 3
+    conector: seguridad_social
+    codigo_fuente: 3fabe408-6211-46c0-93ad-ee78351cbdc7,edad3af0-7a02-4595-b991-942b90f704c2
+
+  - id: ipc_interanual
+    nombre: IPC general, variación anual
+    definicion: >-
+      Variación del índice de precios de consumo general respecto al mismo mes del año
+      anterior (inflación general). No es la inflación subyacente ni el IPCA armonizado.
+    unidad: '% respecto al mismo mes del año anterior'
+    frecuencia: mensual
+    organismo: INE
+    notas_metodologicas: Dato definitivo; el indicador adelantado de fin de mes puede diferir.
+    sinonimos: [inflación, IPC, subida de precios, precios, carestía]
+    rango_min: -5
+    rango_max: 20
+    salto_max_puntos: 3
+    max_antiguedad_dias: 75
+    tema: economia
+    retraso_publicacion_dias: 15
+    conector: ine
+    codigo_fuente: IPC290750
+
+  - id: deuda_publica_pib
+    nombre: Deuda pública (% del PIB, Protocolo de Déficit Excesivo)
+    definicion: >-
+      Deuda bruta consolidada de las Administraciones Públicas según el Protocolo de
+      Déficit Excesivo, en porcentaje del PIB, a final de año.
+    unidad: '% del PIB'
+    frecuencia: anual
+    organismo: Eurostat / Banco de España
+    notas_metodologicas: Dato a 31 de diciembre. Los últimos años pueden revisarse.
+    sinonimos: [deuda pública, deuda, deuda del Estado, endeudamiento público, ratio de deuda]
+    rango_min: 20
+    rango_max: 200
+    salto_max_puntos: 25
+    max_antiguedad_dias: 500
+    tema: economia
+    retraso_publicacion_dias: 112    # primera notificación PDE, ~22 de abril
+    conector: eurostat
+    codigo_fuente: gov_10dd_edpt1?unit=PC_GDP&sector=S13&na_item=GD
+
+  - id: deuda_publica_absoluta
+    nombre: Deuda pública (millones de euros, Protocolo de Déficit Excesivo)
+    definicion: >-
+      Saldo de la deuda bruta consolidada de las Administraciones Públicas según el
+      Protocolo de Déficit Excesivo a final de año.
+    unidad: millones de euros
+    frecuencia: anual
+    organismo: Eurostat / Banco de España
+    notas_metodologicas: Dato a 31 de diciembre. El Banco de España también la publica mensualmente.
+    sinonimos: [deuda pública, billones de deuda, deuda en euros]
+    rango_min: 100000
+    rango_max: 5000000
+    salto_max_pct: 20
+    max_antiguedad_dias: 500
+    tema: economia
+    retraso_publicacion_dias: 112
+    conector: eurostat
+    codigo_fuente: gov_10dd_edpt1?unit=MIO_EUR&sector=S13&na_item=GD
+
+  - id: deficit_publico_pib
+    nombre: Déficit o superávit público (% del PIB)
+    definicion: >-
+      Capacidad (+) o necesidad (−) de financiación de las Administraciones Públicas, en %
+      del PIB. Un valor negativo es déficit: −3,5 = déficit del 3,5 % del PIB.
+    unidad: '% del PIB'
+    frecuencia: anual
+    organismo: Eurostat / IGAE
+    notas_metodologicas: Incluye ayudas financieras salvo que se diga lo contrario.
+    sinonimos: [déficit, déficit público, superávit, saldo público, agujero fiscal]
+    rango_min: -20
+    rango_max: 10
+    salto_max_puntos: 9
+    max_antiguedad_dias: 500
+    tema: economia
+    retraso_publicacion_dias: 112
+    conector: eurostat
+    codigo_fuente: gov_10dd_edpt1?unit=PC_GDP&sector=S13&na_item=B9
+
+  - id: num_pensiones
+    nombre: Número de pensiones contributivas en vigor
+    definicion: >-
+      Pensiones contributivas del sistema de la Seguridad Social (INSS e ISM) en vigor. No
+      es el número de pensionistas: una persona puede cobrar varias.
+    unidad: pensiones
+    frecuencia: mensual
+    organismo: Instituto Nacional de la Seguridad Social
+    notas_metodologicas: >-
+      Número en alta a día 1 del mes (el dato de "diciembre" es a 1 de diciembre). No
+      incluye pensiones no contributivas ni clases pasivas.
+    sinonimos: [pensiones, número de pensiones, pensiones contributivas]
+    rango_min: 5000000
+    rango_max: 15000000
+    salto_max_pct: 5
+    max_antiguedad_dias: 75
+    tema: pensiones
+    retraso_publicacion_dias: 30
+    conector: manual
+    codigo_fuente: null
+
+  - id: num_pensionistas
+    nombre: Número de pensionistas de la Seguridad Social
+    definicion: >-
+      Personas que cobran al menos una pensión contributiva del sistema (cada persona una
+      vez). No es el número de pensiones.
+    unidad: personas
+    frecuencia: mensual
+    organismo: Instituto Nacional de la Seguridad Social
+    notas_metodologicas: Número en alta a día 1 del mes.
+    sinonimos: [pensionistas, jubilados, número de pensionistas, perceptores de pensiones]
+    rango_min: 5000000
+    rango_max: 15000000
+    salto_max_pct: 5
+    max_antiguedad_dias: 75
+    tema: pensiones
+    retraso_publicacion_dias: 30
+    conector: manual
+    codigo_fuente: null
+
+  - id: pension_media
+    nombre: Pensión media del sistema
+    definicion: >-
+      Importe medio mensual de las pensiones contributivas en vigor del sistema (todas las
+      clases), en 14 pagas. No es la pensión media de jubilación (más alta).
+    unidad: euros/mes
+    frecuencia: mensual
+    organismo: Instituto Nacional de la Seguridad Social
+    notas_metodologicas: Media por pensión, no por pensionista.
+    sinonimos: [pensión media, pensiones medias, cuantía media de las pensiones]
+    rango_min: 300
+    rango_max: 3000
+    salto_max_pct: 15
+    max_antiguedad_dias: 75
+    tema: pensiones
+    retraso_publicacion_dias: 30
+    conector: seguridad_social
+    codigo_fuente: null
+
+  - id: poblacion
+    nombre: Población residente en España
+    definicion: Población residente en España en la fecha indicada (no media anual).
+    unidad: personas
+    frecuencia: puntual
+    organismo: INE
+    notas_metodologicas: Estadística Continua de Población; dato provisional en los últimos trimestres.
+    sinonimos: [población, habitantes, residentes, millones de habitantes]
+    rango_min: 30000000
+    rango_max: 60000000
+    salto_max_pct: 3
+    max_antiguedad_dias: 200
+    tema: otros
+    retraso_publicacion_dias: 60
+    conector: ine
+    codigo_fuente: ECP320
+
+  - id: pib
+    nombre: Producto interior bruto (PIB) a precios corrientes
+    definicion: PIB nominal anual de España a precios corrientes.
+    unidad: millones de euros
+    frecuencia: anual
+    organismo: Eurostat / INE
+    notas_metodologicas: Los últimos años pueden revisarse.
+    sinonimos: [PIB, producto interior bruto, tamaño de la economía, riqueza nacional]
+    rango_min: 100000
+    rango_max: 5000000
+    salto_max_pct: 15
+    max_antiguedad_dias: 500
+    tema: economia
+    retraso_publicacion_dias: 60
+    conector: eurostat
+    codigo_fuente: nama_10_gdp?unit=CP_MEUR&na_item=B1GQ
+
+  - id: pib_crecimiento
+    nombre: Crecimiento del PIB en volumen
+    definicion: >-
+      Variación anual del PIB en volumen (descontada la inflación). No es el crecimiento
+      nominal.
+    unidad: '% de variación anual'
+    frecuencia: anual
+    organismo: Eurostat / INE
+    notas_metodologicas: Los últimos años pueden revisarse.
+    sinonimos: [crecimiento económico, crecimiento del PIB, la economía creció, crecimiento]
+    rango_min: -20
+    rango_max: 20
+    salto_max_puntos: 25
+    max_antiguedad_dias: 500
+    tema: economia
+    retraso_publicacion_dias: 60
+    conector: eurostat
+    codigo_fuente: nama_10_gdp?unit=CLV_PCH_PRE&na_item=B1GQ
+
+  - id: precio_vivienda
+    nombre: Precio de la vivienda, variación anual (IPV)
+    definicion: >-
+      Variación anual del Índice de Precios de Vivienda del INE (vivienda libre, nueva y de
+      segunda mano). No es el precio por metro cuadrado ni el alquiler.
+    unidad: '% de variación anual'
+    frecuencia: trimestral
+    organismo: INE
+    notas_metodologicas: Basado en transacciones notariales; no incluye vivienda protegida.
+    sinonimos: [precio de la vivienda, precio de los pisos, vivienda más cara, IPV]
+    rango_min: -30
+    rango_max: 30
+    salto_max_puntos: 8
+    max_antiguedad_dias: 160
+    tema: vivienda
+    retraso_publicacion_dias: 70
+    conector: ine
+    codigo_fuente: null
+
+  - id: iva_general
+    nombre: Tipo general del IVA
+    definicion: >-
+      Tipo general (normal) del impuesto sobre el valor añadido vigente, en España y en los
+      demás Estados de la UE. No son los tipos reducidos ni superreducidos.
+    unidad: '%'
+    frecuencia: irregular
+    organismo: BOE / Comisión Europea
+    notas_metodologicas: >-
+      Periodo = vigencia del tipo. Para otros países de la UE, territorio = código ISO
+      del país.
+    sinonimos: [IVA, tipo de IVA, IVA general, impuesto sobre el valor añadido]
+    rango_min: 0
+    rango_max: 30
+    salto_max_puntos: 6
+    max_antiguedad_dias: 3650
+    tema: fiscalidad
+    retraso_publicacion_dias: 0
+    conector: manual
+    codigo_fuente: null
+
+  - id: turistas_internacionales
+    nombre: Llegadas de turistas internacionales (FRONTUR)
+    definicion: >-
+      Turistas internacionales no residentes que llegan a España en el mes, según FRONTUR
+      (INE). No incluye excursionistas (sin pernoctación).
+    unidad: personas
+    frecuencia: mensual
+    organismo: INE
+    notas_metodologicas: Fuerte estacionalidad; el salto se compara con el mes anterior.
+    sinonimos: [turistas, turismo internacional, llegadas de turistas, visitantes extranjeros]
+    rango_min: 0
+    rango_max: 20000000
+    salto_max_pct: 150
+    max_antiguedad_dias: 75
+    tema: economia
+    retraso_publicacion_dias: 33
+    conector: ine
+    codigo_fuente: null
+
+  - id: edad_emancipacion
+    nombre: Edad media de emancipación
+    definicion: >-
+      Edad media estimada a la que los jóvenes dejan el hogar de sus padres, según
+      Eurostat.
+    unidad: años
+    frecuencia: anual
+    organismo: Eurostat
+    notas_metodologicas: Estimación basada en la EU-SILC.
+    sinonimos: [edad de emancipación, emancipación, edad a la que los jóvenes se independizan]
+    rango_min: 15
+    rango_max: 40
+    salto_max_puntos: 3
+    max_antiguedad_dias: 600
+    tema: vivienda
+    retraso_publicacion_dias: 150
+    conector: eurostat
+    codigo_fuente: yth_demo_030

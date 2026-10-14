@@ -6,6 +6,7 @@ import psycopg
 import typer
 
 from pipeline.config import ConfigError, get_settings
+from pipeline.knowledge.catalog import load_catalog, sync_catalog
 from pipeline.knowledge.governments_load import load_governments
 from pipeline.knowledge.migrate import MigrationError, apply, load_migrations, pending
 
@@ -80,3 +81,19 @@ def cargar_gobiernos(
     )
     for item in report.changed:
         typer.secho(f"  Cambiado, revisar a mano: {item}", fg=typer.colors.YELLOW)
+
+
+@app.command()
+def catalogo() -> None:
+    """Sincroniza catalog.yaml con ref.indicators (unidad, definición y frecuencia no cambian)."""
+    try:
+        with _connect() as conn:
+            report = sync_catalog(conn, load_catalog())
+            conn.commit()
+    except (ValueError, psycopg.Error) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"Nuevos: {len(report.new)} · actualizados: {len(report.updated)} · "
+        f"sin cambios: {len(report.unchanged)}"
+    )

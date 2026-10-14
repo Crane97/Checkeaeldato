@@ -59,8 +59,9 @@ def db(supabase_url: str):
 
 def _observation(conn, **overrides) -> int:
     conn.execute(
-        "insert into ref.indicators (id, nombre, definicion, unidad, frecuencia, organismo, tema)"
-        " values ('smi', 'SMI', 'Salario mínimo', 'euros/mes', 'anual', 'BOE', 'empleo')"
+        "insert into ref.indicators (id, nombre, definicion, unidad, frecuencia, organismo, tema,"
+        " salto_max_pct) values ('smi', 'SMI', 'Salario mínimo', 'euros/mes', 'anual', 'BOE',"
+        " 'empleo', 30)"
         " on conflict do nothing"
     )
     source = conn.execute(
@@ -348,4 +349,28 @@ def test_pending_rows_cannot_carry_a_reviewer_and_partners_must_be_parties(db):
         "insert into ref.government_partners (government_id, partido, inicio)"
         " values ('es-y', 'Inexistente', '2019-01-01')",
         match="foreign key",
+    )
+
+
+@pytest.mark.supabase
+def test_catalog_syncs_and_its_identity_fields_are_locked(db):
+    from pipeline.knowledge.catalog import load_catalog, sync_catalog
+
+    catalog = load_catalog()
+    first = sync_catalog(db, catalog)
+    assert len(first.new) == len(catalog)
+    again = sync_catalog(db, catalog)
+    assert again.new == [] and again.updated == [] and len(again.unchanged) == len(catalog)
+
+    renamed = {k: v.model_copy(update={"nombre": v.nombre + " (2)"}) for k, v in catalog.items()}
+    assert len(sync_catalog(db, renamed).updated) == len(catalog)  # names may change
+    db.execute("savepoint s")
+    changed_unit = {"paro_epa": catalog["paro_epa"].model_copy(update={"unidad": "tanto por uno"})}
+    with pytest.raises(ValueError, match="paro_epa.*unidad"):
+        sync_catalog(db, changed_unit)  # the database refuses it: needs a new indicator
+    db.execute("rollback to savepoint s")
+    _fails(
+        db,
+        "update ref.indicators set salto_max_pct = 5 where id = 'paro_epa'",
+        match="check",  # one threshold only: paro_epa already has salto_max_puntos
     )
