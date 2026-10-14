@@ -269,6 +269,8 @@ class EvidenceItem(BaseModel):
     # ClaimReview-specific fields; empty for other source kinds.
     claim_reviewed: str | None = None
     rating: str | None = None
+    # Rows of ref.observations behind a local series excerpt (traceability, `impacto`).
+    observation_ids: list[int] = Field(default_factory=list)
 
 
 class ClaimEvidence(BaseModel):
@@ -284,6 +286,8 @@ class EvidenceRun(BaseModel):
     sources_used: list[str]
     # Sources skipped because their API key is missing, reported as a warning.
     sources_disabled: list[str] = Field(default_factory=list)
+    # Problems with the local base (e.g. knowledge base unreachable: JSON base used).
+    warnings: list[str] = Field(default_factory=list)
     claims: list[ClaimEvidence] = Field(default_factory=list)
 
 
@@ -557,6 +561,13 @@ STEPS: tuple[StepName, ...] = (
     "promises",
     "report",
 )
+
+
+class VerdictRecord(BaseModel):
+    """Whether the verdicts were stored in the knowledge base (verif.claims)."""
+
+    stored: int = 0
+    error: str | None = None
 
 
 class StepRecord(BaseModel):

@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from pipeline.audio import extract_audio, purge_audio
 from pipeline.claims import PROMPT as CLAIMS_PROMPT
@@ -22,7 +22,11 @@ from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
 from pipeline.indicators import IndicatorBase, load_indicators
-from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
+
+if TYPE_CHECKING:
+    from pipeline.knowledge.local_base import KnowledgeIndicatorBase
+from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, prompt_hash, run_steps
+from pipeline.knowledge.verdict_store import verdict_rows
 from pipeline.llm import ThinkingConfig
 from pipeline.models import (
     AudioInfo,
@@ -40,6 +44,7 @@ from pipeline.models import (
     StepName,
     Transcript,
     Verdict,
+    VerdictRecord,
 )
 from pipeline.politicians import CombinedDirectory, LocalPoliticianCache, PoliticianDirectory
 from pipeline.promises import PROMPT as PROMISES_PROMPT
@@ -61,6 +66,8 @@ PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 SPEAKER_INFO_FILE = "speakers_input.json"
 # Speakers after both stages (identification and research); what later steps read.
 SPEAKERS_FILE = "speaker_research.json"
+# Whether the verdicts reached verif.claims (knowledge base); read by the report step.
+VERDICT_RECORD_FILE = "verdict_record.json"
 
 
 class Deps(Protocol):
@@ -76,7 +83,7 @@ class Deps(Protocol):
     # Claude's thinking in the verdict step (VERDICT_THINKING…); None: model default.
     verdict_thinking: ThinkingConfig | None
     # Local base of official series (data/knowledge/indicators).
-    indicators: IndicatorBase
+    indicators: "IndicatorBase | KnowledgeIndicatorBase"
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
     # Politicians base (local cache + Supabase when configured); None: not used.
@@ -100,9 +107,42 @@ class LiveDeps:
         # Searches of this run (all steps), for the summary at the end.
         self.searches = SearchStats()
         self.search_entries: list[CostEntry] = []
+        # Set when the knowledge base could not be read and the JSON base was used.
+        self.knowledge_warning: str | None = None
 
     def model_for(self, step: LlmStep) -> str:
         return self.settings.model_for(step)
+
+    @property
+    def record_verdicts(self) -> "Callable[[list[dict]], VerdictRecord] | None":
+        """Store verdicts in verif.claims when the knowledge base is configured."""
+        if self.settings.supabase_db_url is None:
+            return None
+        url = self.settings.supabase_db_url.get_secret_value()
+        model = self.model_for("verdict")
+        versions = {
+            name: prompt_hash(self.prompts_dir, name)
+            for name in (CLAIMS_PROMPT, CONTEXT_PROMPT, VERDICT_PROMPT)
+        }
+
+        def record(rows: list[dict]) -> VerdictRecord:
+            import psycopg
+
+            from pipeline.knowledge.verdict_store import record_verdicts
+
+            try:
+                with psycopg.connect(url, connect_timeout=10) as conn:
+                    n = record_verdicts(
+                        conn, rows[0]["job_id"] if rows else "", rows,
+                        model=model, prompt_versions=versions,
+                    )  # fmt: skip
+                    conn.commit()
+                return VerdictRecord(stored=n)
+            except psycopg.Error as exc:
+                logger.warning("No se guardaron los veredictos en la base: %s", exc)
+                return VerdictRecord(error=str(exc))
+
+        return record
 
     @cached_property
     def llm(self) -> Any:
@@ -138,8 +178,26 @@ class LiveDeps:
         )
 
     @cached_property
-    def indicators(self) -> IndicatorBase:
-        return load_indicators()
+    def indicators(self) -> "IndicatorBase | KnowledgeIndicatorBase":
+        """The Supabase knowledge base when configured (approved data, resolved at the
+        speech date); the JSON base otherwise or if the database cannot be read (the run
+        says so in its warnings)."""
+        if self.settings.supabase_db_url is None:
+            return load_indicators()
+        import psycopg
+
+        from pipeline.knowledge.local_base import KnowledgeIndicatorBase
+
+        try:
+            url = self.settings.supabase_db_url.get_secret_value()
+            with psycopg.connect(url, connect_timeout=10) as conn:
+                return KnowledgeIndicatorBase.from_db(conn)
+        except psycopg.Error as exc:
+            logger.warning("Base de conocimiento no disponible, se usa la base JSON: %s", exc)
+            self.knowledge_warning = (
+                f"Base de conocimiento no disponible ({exc}); se usó la base JSON"
+            )
+            return load_indicators()
 
     @property
     def verdict_thinking(self) -> ThinkingConfig | None:
@@ -221,6 +279,15 @@ class JobResult:
     report_path: Path
     summary: str
     steps_run: list[StepName]
+
+
+def _record_warning(store: JobStore) -> list[str]:
+    if not store.path(VERDICT_RECORD_FILE).exists():
+        return []
+    record = store.read(VERDICT_RECORD_FILE, VerdictRecord)
+    if record.error is None:
+        return []
+    return [f"Los veredictos no se guardaron en la base de conocimiento: {record.error}"]
 
 
 def input_kind_for(path: Path) -> InputKind:
@@ -391,14 +458,13 @@ def build_steps(
         date = store.manifest.speech_date
         # Claims answered by the local base of indicators skip the web searches; the
         # (free) fact-check API is still asked, to recognise published debunks.
-        local = {
-            c.id: item for c in searchable if (item := local_evidence(c, deps.indicators, date))
-        }
+        base = deps.indicators.at(date)  # what was published on the speech date
+        local = {c.id: item for c in searchable if (item := local_evidence(c, base, date))}
         web = [c for c in searchable if c.id not in local]
         found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
         # Partly covered: the web search ran, and the covered part of the series goes first.
         for c in web:
-            part = partial_local_evidence(c, deps.indicators)
+            part = partial_local_evidence(c, base)
             if part is not None and c.id in found:
                 items = [part, *found[c.id].items]
                 found[c.id] = found[c.id].model_copy(
@@ -419,9 +485,12 @@ def build_steps(
             )
         indicator_hits.append(len(local))
         sources = deps.evidence_sources
+        base_warnings = [w for w in [getattr(deps, "knowledge_warning", None)] if w]
+        base_warnings += list(getattr(deps.indicators, "problems", []))
         run = EvidenceRun(
             sources_used=[s.name for s in sources],
             sources_disabled=deps.disabled_sources,
+            warnings=base_warnings,
             claims=[found.get(c.id, ClaimEvidence(claim_id=c.id)) for c in claims],
         )
         store.write("evidence.json", run, EvidenceRun)
@@ -448,6 +517,12 @@ def build_steps(
             )
             verdicts = with_repetitions(claims, verdicts)
             store.write("verdicts.json", verdicts, list[Verdict])
+            recorder = getattr(deps, "record_verdicts", None)
+            if recorder is not None:
+                rows = verdict_rows(
+                    store.job_id, claims, verdicts, store.read("evidence.json", EvidenceRun).claims
+                )
+                store.write(VERDICT_RECORD_FILE, recorder(rows), VerdictRecord)
             return not any(v.analysis_error for v in verdicts)
 
         return _with_costs(deps, "verdicts", work)
@@ -493,7 +568,9 @@ def build_steps(
             extra_warnings=[
                 f"Fuente «{name}» desactivada: falta su clave en .env"
                 for name in evidence.sources_disabled
-            ],
+            ]
+            + evidence.warnings
+            + _record_warning(store),
         )
         store.write("report.json", report, Report)
         return StepOutcome()

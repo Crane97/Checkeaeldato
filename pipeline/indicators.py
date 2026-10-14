@@ -48,6 +48,9 @@ class Observation(BaseModel):
     valor: float
     fuente: IndicatorSource
     provisional: bool = False
+    # From the knowledge base: the row id and a note ("revisado posteriormente a …").
+    observation_id: int | None = None
+    nota: str | None = None
 
     @model_validator(mode="after")
     def _ordered(self) -> Self:
@@ -64,7 +67,7 @@ class Indicator(BaseModel):
     unidad: str
     ambito: str = "España"
     periodicidad: str
-    origen: Literal["ine", "eurostat", "seguridad_social", "boe"]
+    origen: Literal["ine", "eurostat", "seguridad_social", "boe", "sepe", "bde", "manual"]
     # "pendiente_revision": copied by hand, not used until reviewed.
     estado: Literal["revisado", "automatico", "pendiente_revision"]
     actualizado: dt.date
@@ -138,6 +141,7 @@ def _excerpt(ind: "Indicator", rows: list[Observation]) -> str:
         f"{_period(o)} {_number(o.valor)}"
         + ("" if shared else f" ({o.fuente.documento})")
         + (" (provisional)" if o.provisional else "")
+        + (f" ({o.nota})" if o.nota else "")
         for o in rows
     )
     source = f" Fuente: {rows[0].fuente.documento}." if shared else ""
@@ -199,6 +203,7 @@ class IndicatorBase:
         rows = ind.window(start, end)
         excerpt = _excerpt(ind, rows)
         last = rows[-1].fuente
+        ids = [o.observation_id for o in rows if o.observation_id is not None]
         return EvidenceItem(
             id="",
             source=Source(
@@ -209,7 +214,12 @@ class IndicatorBase:
                 kind="indicador_local",
             ),
             excerpt=excerpt,
+            observation_ids=ids,
         )
+
+    def at(self, as_of: dt.date) -> "IndicatorBase":
+        """The base as known on a date. The JSON base has no publication dates: itself."""
+        return self
 
 
 def load_indicators(directory: Path = DEFAULT_INDICATORS_DIR) -> IndicatorBase:
