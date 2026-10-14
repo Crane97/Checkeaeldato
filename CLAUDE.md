@@ -91,6 +91,9 @@ pipeline/
   claims.py           # detección y normalización de afirmaciones y promesas
   promises.py         # viabilidad de las promesas y consecuencias (fuentes + razonamiento)
   governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
+  indicators.py       # base local de indicadores oficiales (data/knowledge/indicators/)
+  indicator_update.py # descarga INE / Eurostat / Seguridad Social (scripts/actualizar_indicadores.py)
+  duplicates.py       # repeticiones del mismo orador: se verifican una vez
   context.py          # resolución de "ustedes", "este Gobierno"… → actor y periodos
   evidence/           # base.py (interfaz y recolector), factcheck_api.py, tavily.py,
                       # oficiales.py (+ fuentes_oficiales.toml), web.py
@@ -311,6 +314,24 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
   actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 30-11-2026). El
   esquema admite niveles autonómico y municipal; solo se usa el nacional.
 
+## Base de indicadores oficiales (decidido 2026-10-13)
+
+`data/knowledge/indicators/<id>.json` (versionada): series con valor, unidad, periodo y
+**fuente primaria por dato** (organismo, documento, URL, fecha) y notas metodológicas.
+- **Automáticos** (`estado: automatico`), con `uv run python scripts/actualizar_indicadores.py`
+  (revisar el diff antes del commit): paro EPA y paro de menores de 25 (INE, trimestral),
+  IPC interanual (INE, mensual), población (INE, ECP), PIB y su crecimiento, deuda (% PIB y
+  millones) y déficit (Eurostat, anual, Protocolo de Déficit Excesivo), afiliación media
+  (CSV de la Seguridad Social, mensual).
+- **Manuales** (`estado: pendiente_revision` hasta que el responsable los revisa; no se usan
+  antes): SMI (24 reales decretos leídos del BOE, 2004-2026, con los cambios de 2004 y 2021),
+  pensiones y pensionistas por separado (serie histórica del informe del INSS).
+- **Uso:** la detección marca a qué indicador (`indicator`) y años (`years`) se refiere cada
+  afirmación; si el indicador cubre **todo** el periodo (el del contexto resuelto o esos años),
+  la evidencia es el extracto de la serie (`indicador_local`, fuente primaria) más la Fact
+  Check API (gratuita), sin Tavily. Si no, se busca en la web como siempre; la ronda
+  adicional sigue disponible. Un cambio en la base recalcula detección y evidencia.
+
 ## Fuentes de evidencia (cascada, por orden de prioridad)
 
 1. Google Fact Check Tools API (ClaimReview): Maldita, Newtral, EFE Verifica, Verificat…
@@ -336,11 +357,16 @@ API devuelve una verificación de la misma afirmación** (similitud ≥ 80 % y m
 (decisiones del responsable del proyecto, 2026-10-13).
 
 **Caché de búsquedas** (`pipeline/evidence/search_cache.py`): toda búsqueda de Tavily pasa
-por `data/cache/search/` (clave: hash de la consulta normalizada y los parámetros; solo
-respuestas correctas; caduca a los `TAVILY_CACHE_DAYS`, 30 por defecto). `--no-cache` (CLI
+por `data/cache/search/` (clave: hash de la consulta en minúsculas, sin tildes ni palabras
+vacías, con los tokens ordenados, más los parámetros; las entradas de la clave anterior se
+migran; solo respuestas correctas). Caduca a los `TAVILY_CACHE_DAYS` (30), salvo las
+búsquedas de **periodos cerrados** (su año más reciente ≤ año actual − 2), que no caducan.
+Las afirmaciones casi idénticas del mismo orador (≥ 90 %, mismas cifras, actor y periodo)
+se verifican una sola vez y comparten veredicto. `--no-cache` (CLI
 y evaluación) no la lee pero la actualiza. Cada paso registra en el manifest las búsquedas
 reales, las servidas desde caché y los créditos (`provider="tavily"`, precio por crédito en
-`pricing.toml`), y se muestran al terminar cada ejecución, en el informe y en la web.
+`pricing.toml`) y los aciertos de la base de indicadores (`provider="indicadores"`), y se
+muestran al terminar cada ejecución (total y por paso), en el informe y en la web.
 De cada página se pide el texto completo y se envían a Claude los pasajes más relevantes
 para la afirmación (≈3.500 caracteres por fuente), no solo el principio de la página. Si
 con la evidencia no puede decidir pero sabe qué dato lo resolvería, Claude pide **una
@@ -412,6 +438,8 @@ uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
+uv run python eval/run_eval.py --rapida          # 5 casos propensos a error (~mitad de búsquedas)
+uv run python scripts/actualizar_indicadores.py  # refresca INE / Eurostat / Seguridad Social
 uv run ruff check . && uv run ruff format .
 ```
 
