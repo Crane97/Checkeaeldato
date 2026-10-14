@@ -2,6 +2,7 @@
   "id": "real-005-contexto-debate",
   "descripcion": "Resolución de contexto político en un debate de 2023 (casos definidos por el responsable del proyecto). Oradores ficticios presentados por la moderadora con partidos reales; periodos según data/knowledge/governments.json.",
   "sintetico": false,
+  "rapida": true,
   "fecha": "2023-07-10",
   "entrada": {
     "tipo": "texto",

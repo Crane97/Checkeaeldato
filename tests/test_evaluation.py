@@ -241,3 +241,14 @@ def test_promises_are_scored_separately_and_vague_ones_are_false_positives():
     assert result.wrong_promises == ["Subiremos el salario mínimo un 3 %: viable -> dudosa"]
     assert result.false_positives == 1
     assert summarize([result]).promise_accuracy == pytest.approx(0.5)
+
+
+def test_quick_evaluation_cases_are_marked_in_the_gold_set():
+    quick = {c.id for c in load_gold_cases(GOLD_DIR) if c.rapida}
+    assert quick == {
+        "real-002-datos-basicos",
+        "real-004-confusion",
+        "real-005-contexto-debate",
+        "real-006-contexto-desconocido",
+        "real-008-smi-344",
+    }

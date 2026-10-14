@@ -191,6 +191,10 @@ def _print_case(result: CaseResult) -> None:
 def main(
     modo: Annotated[str, typer.Option(help="completo | veredicto")] = "completo",
     caso: Annotated[list[str] | None, typer.Option(help="Solo estos ids de caso")] = None,
+    rapida: Annotated[
+        bool,
+        typer.Option("--rapida", help="Solo los casos marcados como rápidos (~mitad de búsquedas)"),
+    ] = False,
     no_cache: Annotated[
         bool, typer.Option("--no-cache", help="No reutiliza búsquedas guardadas")
     ] = False,
@@ -201,7 +205,11 @@ def main(
     for noisy in ("httpx", "httpcore", "anthropic"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
 
-    cases = [c for c in load_gold_cases(GOLD_DIR) if not caso or c.id in caso]
+    cases = [
+        c
+        for c in load_gold_cases(GOLD_DIR)
+        if (not caso or c.id in caso) and (c.rapida or not rapida)
+    ]
     if not cases:
         raise typer.BadParameter("no hay casos que evaluar")
     deps = LiveDeps(get_settings(), use_cache=not no_cache)
@@ -255,6 +263,7 @@ def main(
         json.dumps(
             {
                 "modo": modo,
+                "rapida": rapida,
                 "prompts": {
                     p.name: prompt_hash(PROMPTS_DIR, p.name) for p in PROMPTS_DIR.glob("*.md")
                 },

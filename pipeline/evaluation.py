@@ -66,6 +66,9 @@ class GoldCase(BaseModel):
     fecha: dt.date
     # Synthetic cases only check that the evaluation runs; they do not measure quality.
     sintetico: bool = False
+    # In the quick evaluation (--rapida): the cases most prone to errors, about half the
+    # web searches of the full one.
+    rapida: bool = False
     entrada: GoldInput
     afirmaciones: list[GoldClaim]
     # Concrete promises that must be detected as promises (and assessed).

@@ -2,6 +2,7 @@
   "id": "real-004-confusion",
   "descripcion": "Referencias a artículos de la Constitución: una con el artículo equivocado (confusión, ejemplo del responsable del proyecto), una correcta y una falsa.",
   "sintetico": false,
+  "rapida": true,
   "fecha": "2026-10-10",
   "entrada": {
     "tipo": "texto",

@@ -2,6 +2,7 @@
   "id": "real-008-smi-344",
   "descripcion": "Afirmación c020 del debate del Senado de 2023-02-21 (sesión de control): el bug en el que la explicación coincidía con la cifra pero el veredicto era falso. Texto literal del debate, recortado.",
   "sintetico": false,
+  "rapida": true,
   "fecha": "2023-02-21",
   "entrada": {
     "tipo": "texto",
