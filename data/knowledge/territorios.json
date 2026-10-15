@@ -1,0 +1,638 @@
+{
+  "fuente": "INE, API Tempus3 (variables 70 y 115 y su jerarquía); https://www.ine.es/dyngs/INEbase/listaoperaciones.htm",
+  "territorios": [
+    {
+      "code": "ES",
+      "nivel": "pais",
+      "nombre": "España",
+      "parent_code": null,
+      "codigo_ine": "00",
+      "alias": []
+    },
+    {
+      "code": "ES-AN",
+      "nivel": "ccaa",
+      "nombre": "Andalucía",
+      "parent_code": "ES",
+      "codigo_ine": "01",
+      "alias": []
+    },
+    {
+      "code": "ES-P04",
+      "nivel": "provincia",
+      "nombre": "Almería",
+      "parent_code": "ES-AN",
+      "codigo_ine": "04",
+      "alias": []
+    },
+    {
+      "code": "ES-P11",
+      "nivel": "provincia",
+      "nombre": "Cádiz",
+      "parent_code": "ES-AN",
+      "codigo_ine": "11",
+      "alias": []
+    },
+    {
+      "code": "ES-P14",
+      "nivel": "provincia",
+      "nombre": "Córdoba",
+      "parent_code": "ES-AN",
+      "codigo_ine": "14",
+      "alias": []
+    },
+    {
+      "code": "ES-P18",
+      "nivel": "provincia",
+      "nombre": "Granada",
+      "parent_code": "ES-AN",
+      "codigo_ine": "18",
+      "alias": []
+    },
+    {
+      "code": "ES-P21",
+      "nivel": "provincia",
+      "nombre": "Huelva",
+      "parent_code": "ES-AN",
+      "codigo_ine": "21",
+      "alias": []
+    },
+    {
+      "code": "ES-P23",
+      "nivel": "provincia",
+      "nombre": "Jaén",
+      "parent_code": "ES-AN",
+      "codigo_ine": "23",
+      "alias": []
+    },
+    {
+      "code": "ES-P29",
+      "nivel": "provincia",
+      "nombre": "Málaga",
+      "parent_code": "ES-AN",
+      "codigo_ine": "29",
+      "alias": []
+    },
+    {
+      "code": "ES-P41",
+      "nivel": "provincia",
+      "nombre": "Sevilla",
+      "parent_code": "ES-AN",
+      "codigo_ine": "41",
+      "alias": []
+    },
+    {
+      "code": "ES-AR",
+      "nivel": "ccaa",
+      "nombre": "Aragón",
+      "parent_code": "ES",
+      "codigo_ine": "02",
+      "alias": []
+    },
+    {
+      "code": "ES-P22",
+      "nivel": "provincia",
+      "nombre": "Huesca",
+      "parent_code": "ES-AR",
+      "codigo_ine": "22",
+      "alias": []
+    },
+    {
+      "code": "ES-P44",
+      "nivel": "provincia",
+      "nombre": "Teruel",
+      "parent_code": "ES-AR",
+      "codigo_ine": "44",
+      "alias": []
+    },
+    {
+      "code": "ES-P50",
+      "nivel": "provincia",
+      "nombre": "Zaragoza",
+      "parent_code": "ES-AR",
+      "codigo_ine": "50",
+      "alias": []
+    },
+    {
+      "code": "ES-AS",
+      "nivel": "ccaa",
+      "nombre": "Principado de Asturias",
+      "parent_code": "ES",
+      "codigo_ine": "03",
+      "alias": [
+        "Asturias"
+      ]
+    },
+    {
+      "code": "ES-P33",
+      "nivel": "provincia",
+      "nombre": "Asturias",
+      "parent_code": "ES-AS",
+      "codigo_ine": "33",
+      "alias": []
+    },
+    {
+      "code": "ES-IB",
+      "nivel": "ccaa",
+      "nombre": "Illes Balears",
+      "parent_code": "ES",
+      "codigo_ine": "04",
+      "alias": [
+        "Balears",
+        "Baleares",
+        "Islas Baleares"
+      ]
+    },
+    {
+      "code": "ES-P07",
+      "nivel": "provincia",
+      "nombre": "Illes Balears",
+      "parent_code": "ES-IB",
+      "codigo_ine": "07",
+      "alias": [
+        "Balears",
+        "Baleares",
+        "Islas Baleares"
+      ]
+    },
+    {
+      "code": "ES-CN",
+      "nivel": "ccaa",
+      "nombre": "Canarias",
+      "parent_code": "ES",
+      "codigo_ine": "05",
+      "alias": [
+        "Islas Canarias"
+      ]
+    },
+    {
+      "code": "ES-P35",
+      "nivel": "provincia",
+      "nombre": "Las Palmas",
+      "parent_code": "ES-CN",
+      "codigo_ine": "35",
+      "alias": [
+        "Palmas"
+      ]
+    },
+    {
+      "code": "ES-P38",
+      "nivel": "provincia",
+      "nombre": "Santa Cruz de Tenerife",
+      "parent_code": "ES-CN",
+      "codigo_ine": "38",
+      "alias": []
+    },
+    {
+      "code": "ES-CB",
+      "nivel": "ccaa",
+      "nombre": "Cantabria",
+      "parent_code": "ES",
+      "codigo_ine": "06",
+      "alias": []
+    },
+    {
+      "code": "ES-P39",
+      "nivel": "provincia",
+      "nombre": "Cantabria",
+      "parent_code": "ES-CB",
+      "codigo_ine": "39",
+      "alias": []
+    },
+    {
+      "code": "ES-CL",
+      "nivel": "ccaa",
+      "nombre": "Castilla y León",
+      "parent_code": "ES",
+      "codigo_ine": "07",
+      "alias": []
+    },
+    {
+      "code": "ES-P05",
+      "nivel": "provincia",
+      "nombre": "Ávila",
+      "parent_code": "ES-CL",
+      "codigo_ine": "05",
+      "alias": []
+    },
+    {
+      "code": "ES-P09",
+      "nivel": "provincia",
+      "nombre": "Burgos",
+      "parent_code": "ES-CL",
+      "codigo_ine": "09",
+      "alias": []
+    },
+    {
+      "code": "ES-P24",
+      "nivel": "provincia",
+      "nombre": "León",
+      "parent_code": "ES-CL",
+      "codigo_ine": "24",
+      "alias": []
+    },
+    {
+      "code": "ES-P34",
+      "nivel": "provincia",
+      "nombre": "Palencia",
+      "parent_code": "ES-CL",
+      "codigo_ine": "34",
+      "alias": []
+    },
+    {
+      "code": "ES-P37",
+      "nivel": "provincia",
+      "nombre": "Salamanca",
+      "parent_code": "ES-CL",
+      "codigo_ine": "37",
+      "alias": []
+    },
+    {
+      "code": "ES-P40",
+      "nivel": "provincia",
+      "nombre": "Segovia",
+      "parent_code": "ES-CL",
+      "codigo_ine": "40",
+      "alias": []
+    },
+    {
+      "code": "ES-P42",
+      "nivel": "provincia",
+      "nombre": "Soria",
+      "parent_code": "ES-CL",
+      "codigo_ine": "42",
+      "alias": []
+    },
+    {
+      "code": "ES-P47",
+      "nivel": "provincia",
+      "nombre": "Valladolid",
+      "parent_code": "ES-CL",
+      "codigo_ine": "47",
+      "alias": []
+    },
+    {
+      "code": "ES-P49",
+      "nivel": "provincia",
+      "nombre": "Zamora",
+      "parent_code": "ES-CL",
+      "codigo_ine": "49",
+      "alias": []
+    },
+    {
+      "code": "ES-CM",
+      "nivel": "ccaa",
+      "nombre": "Castilla - La Mancha",
+      "parent_code": "ES",
+      "codigo_ine": "08",
+      "alias": [
+        "Castilla-La Mancha",
+        "Castilla La Mancha"
+      ]
+    },
+    {
+      "code": "ES-P02",
+      "nivel": "provincia",
+      "nombre": "Albacete",
+      "parent_code": "ES-CM",
+      "codigo_ine": "02",
+      "alias": []
+    },
+    {
+      "code": "ES-P13",
+      "nivel": "provincia",
+      "nombre": "Ciudad Real",
+      "parent_code": "ES-CM",
+      "codigo_ine": "13",
+      "alias": []
+    },
+    {
+      "code": "ES-P16",
+      "nivel": "provincia",
+      "nombre": "Cuenca",
+      "parent_code": "ES-CM",
+      "codigo_ine": "16",
+      "alias": []
+    },
+    {
+      "code": "ES-P19",
+      "nivel": "provincia",
+      "nombre": "Guadalajara",
+      "parent_code": "ES-CM",
+      "codigo_ine": "19",
+      "alias": []
+    },
+    {
+      "code": "ES-P45",
+      "nivel": "provincia",
+      "nombre": "Toledo",
+      "parent_code": "ES-CM",
+      "codigo_ine": "45",
+      "alias": []
+    },
+    {
+      "code": "ES-CT",
+      "nivel": "ccaa",
+      "nombre": "Cataluña",
+      "parent_code": "ES",
+      "codigo_ine": "09",
+      "alias": [
+        "Catalunya"
+      ]
+    },
+    {
+      "code": "ES-P08",
+      "nivel": "provincia",
+      "nombre": "Barcelona",
+      "parent_code": "ES-CT",
+      "codigo_ine": "08",
+      "alias": []
+    },
+    {
+      "code": "ES-P17",
+      "nivel": "provincia",
+      "nombre": "Girona",
+      "parent_code": "ES-CT",
+      "codigo_ine": "17",
+      "alias": [
+        "Gerona"
+      ]
+    },
+    {
+      "code": "ES-P25",
+      "nivel": "provincia",
+      "nombre": "Lleida",
+      "parent_code": "ES-CT",
+      "codigo_ine": "25",
+      "alias": [
+        "Lérida"
+      ]
+    },
+    {
+      "code": "ES-P43",
+      "nivel": "provincia",
+      "nombre": "Tarragona",
+      "parent_code": "ES-CT",
+      "codigo_ine": "43",
+      "alias": []
+    },
+    {
+      "code": "ES-VC",
+      "nivel": "ccaa",
+      "nombre": "Comunitat Valenciana",
+      "parent_code": "ES",
+      "codigo_ine": "10",
+      "alias": [
+        "Comunidad Valenciana",
+        "Valencia"
+      ]
+    },
+    {
+      "code": "ES-P03",
+      "nivel": "provincia",
+      "nombre": "Alicante",
+      "parent_code": "ES-VC",
+      "codigo_ine": "03",
+      "alias": [
+        "Alacant"
+      ]
+    },
+    {
+      "code": "ES-P12",
+      "nivel": "provincia",
+      "nombre": "Castellón",
+      "parent_code": "ES-VC",
+      "codigo_ine": "12",
+      "alias": [
+        "Castelló"
+      ]
+    },
+    {
+      "code": "ES-P46",
+      "nivel": "provincia",
+      "nombre": "Valencia",
+      "parent_code": "ES-VC",
+      "codigo_ine": "46",
+      "alias": [
+        "València"
+      ]
+    },
+    {
+      "code": "ES-EX",
+      "nivel": "ccaa",
+      "nombre": "Extremadura",
+      "parent_code": "ES",
+      "codigo_ine": "11",
+      "alias": []
+    },
+    {
+      "code": "ES-P06",
+      "nivel": "provincia",
+      "nombre": "Badajoz",
+      "parent_code": "ES-EX",
+      "codigo_ine": "06",
+      "alias": []
+    },
+    {
+      "code": "ES-P10",
+      "nivel": "provincia",
+      "nombre": "Cáceres",
+      "parent_code": "ES-EX",
+      "codigo_ine": "10",
+      "alias": []
+    },
+    {
+      "code": "ES-GA",
+      "nivel": "ccaa",
+      "nombre": "Galicia",
+      "parent_code": "ES",
+      "codigo_ine": "12",
+      "alias": []
+    },
+    {
+      "code": "ES-P15",
+      "nivel": "provincia",
+      "nombre": "A Coruña",
+      "parent_code": "ES-GA",
+      "codigo_ine": "15",
+      "alias": [
+        "Coruña",
+        "La Coruña"
+      ]
+    },
+    {
+      "code": "ES-P27",
+      "nivel": "provincia",
+      "nombre": "Lugo",
+      "parent_code": "ES-GA",
+      "codigo_ine": "27",
+      "alias": []
+    },
+    {
+      "code": "ES-P36",
+      "nivel": "provincia",
+      "nombre": "Pontevedra",
+      "parent_code": "ES-GA",
+      "codigo_ine": "36",
+      "alias": []
+    },
+    {
+      "code": "ES-P32",
+      "nivel": "provincia",
+      "nombre": "Ourense",
+      "parent_code": "ES-GA",
+      "codigo_ine": "32",
+      "alias": [
+        "Orense"
+      ]
+    },
+    {
+      "code": "ES-MD",
+      "nivel": "ccaa",
+      "nombre": "Comunidad de Madrid",
+      "parent_code": "ES",
+      "codigo_ine": "13",
+      "alias": [
+        "Madrid"
+      ]
+    },
+    {
+      "code": "ES-P28",
+      "nivel": "provincia",
+      "nombre": "Madrid",
+      "parent_code": "ES-MD",
+      "codigo_ine": "28",
+      "alias": []
+    },
+    {
+      "code": "ES-MC",
+      "nivel": "ccaa",
+      "nombre": "Región de Murcia",
+      "parent_code": "ES",
+      "codigo_ine": "14",
+      "alias": [
+        "Murcia"
+      ]
+    },
+    {
+      "code": "ES-P30",
+      "nivel": "provincia",
+      "nombre": "Murcia",
+      "parent_code": "ES-MC",
+      "codigo_ine": "30",
+      "alias": []
+    },
+    {
+      "code": "ES-NC",
+      "nivel": "ccaa",
+      "nombre": "Comunidad Foral de Navarra",
+      "parent_code": "ES",
+      "codigo_ine": "15",
+      "alias": [
+        "Navarra",
+        "Nafarroa"
+      ]
+    },
+    {
+      "code": "ES-P31",
+      "nivel": "provincia",
+      "nombre": "Navarra",
+      "parent_code": "ES-NC",
+      "codigo_ine": "31",
+      "alias": []
+    },
+    {
+      "code": "ES-PV",
+      "nivel": "ccaa",
+      "nombre": "País Vasco",
+      "parent_code": "ES",
+      "codigo_ine": "16",
+      "alias": [
+        "Euskadi",
+        "Comunidad Autónoma del País Vasco"
+      ]
+    },
+    {
+      "code": "ES-P01",
+      "nivel": "provincia",
+      "nombre": "Araba",
+      "parent_code": "ES-PV",
+      "codigo_ine": "01",
+      "alias": [
+        "Álava"
+      ]
+    },
+    {
+      "code": "ES-P20",
+      "nivel": "provincia",
+      "nombre": "Gipuzkoa",
+      "parent_code": "ES-PV",
+      "codigo_ine": "20",
+      "alias": [
+        "Guipúzcoa"
+      ]
+    },
+    {
+      "code": "ES-P48",
+      "nivel": "provincia",
+      "nombre": "Bizkaia",
+      "parent_code": "ES-PV",
+      "codigo_ine": "48",
+      "alias": [
+        "Vizcaya"
+      ]
+    },
+    {
+      "code": "ES-RI",
+      "nivel": "ccaa",
+      "nombre": "La Rioja",
+      "parent_code": "ES",
+      "codigo_ine": "17",
+      "alias": [
+        "Rioja"
+      ]
+    },
+    {
+      "code": "ES-P26",
+      "nivel": "provincia",
+      "nombre": "La Rioja",
+      "parent_code": "ES-RI",
+      "codigo_ine": "26",
+      "alias": [
+        "Rioja"
+      ]
+    },
+    {
+      "code": "ES-CE",
+      "nivel": "ccaa",
+      "nombre": "Ceuta",
+      "parent_code": "ES",
+      "codigo_ine": "18",
+      "alias": []
+    },
+    {
+      "code": "ES-P51",
+      "nivel": "provincia",
+      "nombre": "Ceuta",
+      "parent_code": "ES-CE",
+      "codigo_ine": "51",
+      "alias": []
+    },
+    {
+      "code": "ES-ML",
+      "nivel": "ccaa",
+      "nombre": "Melilla",
+      "parent_code": "ES",
+      "codigo_ine": "19",
+      "alias": []
+    },
+    {
+      "code": "ES-P52",
+      "nivel": "provincia",
+      "nombre": "Melilla",
+      "parent_code": "ES-ML",
+      "codigo_ine": "52",
+      "alias": []
+    }
+  ]
+}

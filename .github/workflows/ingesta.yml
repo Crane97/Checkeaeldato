@@ -1,0 +1,47 @@
+# Ingesta diaria de series oficiales (INE, Eurostat, Seguridad Social) en Supabase.
+#
+# Empieza en SIMULACIÓN (--simular): descarga y valida, avisa por correo si hay errores,
+# cuarentena o datos desactualizados, y no guarda nada. Cuando el responsable lo decida,
+# se quita --simular para que cargue.
+#
+# Secretos del repositorio (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL  cadena del pooler de sesión con el rol `ingesta` (no el propietario)
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM, ALERT_EMAIL_TO
+name: Ingesta diaria
+
+on:
+  schedule:
+    - cron: "30 7 * * *"  # 07:30 UTC: después de las publicaciones de las 9:00 (hora de Madrid, invierno)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ingesta
+  cancel-in-progress: false
+
+jobs:
+  ingerir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Dependencias
+        run: uv sync --frozen
+
+      - name: Ingesta (simulación)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+        run: uv run conocimiento ingerir --simular --avisar

@@ -12,6 +12,7 @@ from pipeline.config import Settings
 from pipeline.evidence.base import SourceResult
 from pipeline.evidence.tavily import API_URL as TAVILY_URL
 from pipeline.evidence.tavily import SearchStats
+from pipeline.indicators import IndicatorBase
 from pipeline.models import AudioInfo, CostEntry, EvidenceItem, Segment, Source, Transcript
 from pipeline.promises import PromiseAnswer
 from pipeline.run import PROMPTS_DIR, LiveDeps, input_kind_for, run_job
@@ -102,8 +103,11 @@ class FakeDeps:
         self.evidence_sources = [self.source]
         self.disabled_sources = ["factcheck"]
         self.speaker_search = None
+        self.politicians = None
         self.searches = SearchStats()
+        self.search_entries: list[CostEntry] = []
         self.verdict_thinking = None
+        self.indicators = IndicatorBase({})
 
     def model_for(self, step: str) -> str:
         return "claude-haiku-5-5"
@@ -463,3 +467,47 @@ def test_changing_the_verdict_thinking_recomputes_only_from_the_verdicts(article
     result = run(article, tmp_path / "data", deps)
     assert deps.llm.calls == ["verdicts"]
     assert result.steps_run == ["verdicts", "promises", "report"]
+
+
+def test_claim_covered_by_the_local_indicators_skips_the_web_search(article, tmp_path):
+    from pipeline.indicators import Indicator
+
+    source = {"organismo": "INE", "documento": "EPA", "url": "https://www.ine.es/epa"}
+    paro = Indicator.model_validate(
+        {
+            "id": "paro_epa",
+            "nombre": "Tasa de paro (EPA)",
+            "unidad": "%",
+            "periodicidad": "anual",
+            "origen": "ine",
+            "estado": "automatico",
+            "actualizado": "2026-10-13",
+            "serie": [
+                {"desde": "2025-01-01", "hasta": "2025-12-31", "valor": 12.0, "fuente": source},
+                {"desde": "2026-01-01", "hasta": "2026-12-31", "valor": 10.5, "fuente": source},
+            ],
+        }
+    )
+
+    class IndicatorLLM(FakeLLM):
+        def structured(self, *, step: str, output_type: type, **kwargs: Any) -> Any:
+            result = super().structured(step=step, output_type=output_type, **kwargs)
+            if output_type is DetectionResult:
+                assert "paro_epa" in kwargs["user_content"]  # the catalog reaches the model
+                [c] = result.claims
+                return DetectionResult(
+                    claims=[c.model_copy(update={"indicator": "paro_epa", "years": [2026]})]
+                )
+            return result
+
+    deps = FakeDeps()
+    deps.llm = IndicatorLLM()
+    deps.indicators = IndicatorBase({"paro_epa": paro})
+    result = run(article, tmp_path / "data", deps)
+
+    assert deps.source.calls == 0  # no web search for this claim
+    evidence = json.loads((result.report_path.parent / "evidence.json").read_text())
+    [item] = evidence["claims"][0]["items"]
+    assert item["source"]["kind"] == "indicador_local" and item["id"] == "E1"
+    entries = json.loads(result.report_path.read_text())["cost"]["entries"]
+    assert any(e["provider"] == "indicadores" and e["indicator_hits"] == 1 for e in entries)

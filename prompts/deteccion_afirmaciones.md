@@ -18,6 +18,8 @@ Recibirás estos datos entre etiquetas:
   de reconocimiento) o `texto` (artículo escrito).
 - `<contexto_anterior>` y `<contexto_posterior>` (pueden faltar): solo sirven para entender
   referencias. **No extraigas afirmaciones de ahí.**
+- `<indicadores>` (puede faltar): lista de indicadores oficiales que el sistema tiene en una
+  base propia, uno por línea como `- id: nombre (unidad; ámbito; años cubiertos)`.
 - `<fragmento>`: el texto que debes analizar. Cada línea empieza por `[S<n>]` (identificador
   del segmento), seguido del orador y, en vídeo, del minuto.
 
@@ -108,6 +110,25 @@ resultado normal.
   (incluido el derecho de la UE si afecta a competencias europeas), el dato actual y su
   mínimo o máximo histórico, y su coste o las estimaciones oficiales de impacto.
 - `kind`: `afirmacion` o `promesa` (ver arriba).
+- `indicator`: el `id` de `<indicadores>` cuyo dato decide la afirmación, **solo si es
+  exactamente ese indicador** (mismo concepto y unidad) **y existe para su ámbito**: España,
+  o una comunidad autónoma, provincia o municipio si la línea del indicador dice "por
+  comunidad autónoma", "por provincia" o "por municipio". Ejemplos: "el paro está en el 10 %" → el de tasa de paro de
+  la EPA; "el salario mínimo es de 1.184 euros" → el del SMI; "en Castilla y León viven
+  2,4 millones de personas" → el de población, con `territory` "Castilla y León". Si la afirmación
+  usa otro concepto (paro registrado en vez de EPA, una comparación con otros países, un
+  desglose que el indicador no tiene), un ámbito que el indicador no tiene (p. ej. un
+  municipio cuando la línea no dice "por municipio", o una comunidad cuando solo hay datos
+  de España), o si no estás seguro, déjalo vacío (`""`): el sistema buscará en la web.
+- `territory`: la comunidad autónoma, provincia o municipio de la que trata el dato, **tal
+  como se nombra en el texto** ("Andalucía", "la provincia de Sevilla", "Euskadi", "el
+  municipio de Getafe"). Si el texto da también la provincia de un municipio, escríbela
+  entre paréntesis ("Mérida (Badajoz)"). Vacío (`""`) si el dato es de España en su
+  conjunto. Si el nombre puede ser una comunidad y una
+  provincia a la vez ("Madrid", "Valencia") y el texto no aclara cuál, escríbelo como
+  aparece: el sistema no lo usará si es ambiguo.
+- `years`: los años a los que se refiere el dato, ya resueltos con `<fecha>` ("este año",
+  "en 2013", "desde 2018" → todos los años hasta `<fecha>`). Lista vacía si no se deducen.
 
 - `needs_context`: true si la afirmación depende de saber a qué partido, Gobierno,
   presidente o momento se refiere una expresión implícita (las de la lista anterior); false

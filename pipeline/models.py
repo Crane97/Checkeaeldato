@@ -9,7 +9,8 @@ from pipeline.neutrality import FORBIDDEN_WORDS_RE
 
 ClaimType = Literal["estadistica", "hecho_historico", "legal", "comparacion", "otro"]
 VerdictLabel = Literal["verdadero", "verdad_a_medias", "confusion", "falso", "no_verificable"]
-SourceKind = Literal["factcheck", "oficial", "web"]
+# "indicador_local": official series kept in data/knowledge/indicators (no web search).
+SourceKind = Literal["factcheck", "oficial", "indicador_local", "web"]
 # "promesa": a concrete commitment about the future; assessed for feasibility, not truth.
 ClaimKind = Literal["afirmacion", "promesa"]
 PromiseLabel = Literal["viable", "dudosa", "inviable", "no_evaluable"]
@@ -45,7 +46,7 @@ CATEGORIES: tuple[Category, ...] = (
     "falso_con_fuente_oficial",
 )
 # Public bodies and professional fact-checkers count as "fuente oficial".
-RELIABLE_KINDS: frozenset[str] = frozenset({"oficial", "factcheck"})
+RELIABLE_KINDS: frozenset[str] = frozenset({"oficial", "factcheck", "indicador_local"})
 
 
 def _check_time_range(start: float | None, end: float | None) -> None:
@@ -127,7 +128,7 @@ class Transcript(BaseModel):
 # --- Speakers ---------------------------------------------------------------
 
 # "oficial"/"web": found by the speaker research step (see `references`).
-SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos", "oficial", "web"]
+SpeakerSource = Literal["archivo", "texto", "tabla_gobiernos", "base_politicos", "oficial", "web"]
 
 
 class SpeakerInfo(BaseModel):
@@ -192,6 +193,8 @@ class ClaimBase(BaseModel):
     time_scope: list[DateRange] = Field(default_factory=list)
     resolution_confidence: float | None = None
     resolution_notes: str | None = None
+    # Repetition of an earlier claim of the same speaker: shares its verdict (see duplicates.py).
+    duplicate_of: str | None = None
 
     @model_validator(mode="after")
     def _valid_range(self) -> Self:
@@ -206,6 +209,13 @@ class DetectedClaim(ClaimBase):
     search_queries: list[str] = Field(default_factory=list)
     # Has implicit actors or periods that the context step must resolve.
     needs_context: bool = False
+    # Official indicator of the local base the claim is about (data/knowledge/indicators) and
+    # the years it refers to: when covered, the evidence comes from there, not the web.
+    indicator: str | None = None
+    years: list[int] = Field(default_factory=list)
+    # Region or province the datum is about (as named, and its code); None: Spain.
+    territory: str | None = None
+    territory_code: str | None = None
 
 
 class RejectedClaim(BaseModel):
@@ -262,6 +272,10 @@ class EvidenceItem(BaseModel):
     # ClaimReview-specific fields; empty for other source kinds.
     claim_reviewed: str | None = None
     rating: str | None = None
+    # Rows of ref.observations behind a local series excerpt (traceability, `impacto`).
+    observation_ids: list[int] = Field(default_factory=list)
+    # Row of evid.web_facts this item comes from (a fact extracted in an earlier run).
+    web_fact_id: int | None = None
 
 
 class ClaimEvidence(BaseModel):
@@ -277,6 +291,8 @@ class EvidenceRun(BaseModel):
     sources_used: list[str]
     # Sources skipped because their API key is missing, reported as a warning.
     sources_disabled: list[str] = Field(default_factory=list)
+    # Problems with the local base (e.g. knowledge base unreachable: JSON base used).
+    warnings: list[str] = Field(default_factory=list)
     claims: list[ClaimEvidence] = Field(default_factory=list)
 
 
@@ -327,7 +343,9 @@ class VerdictFields(BaseModel):
     def basis(self) -> SourceKind | None:
         """Strongest kind of source the verdict rests on: factcheck > oficial > web."""
         kinds = {s.kind for s in self.sources}
-        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+        return next(
+            (k for k in ("factcheck", "oficial", "indicador_local", "web") if k in kinds), None
+        )
 
     @computed_field
     @property
@@ -398,7 +416,9 @@ class PromiseFields(BaseModel):
     @property
     def basis(self) -> SourceKind | None:
         kinds = {s.kind for s in self.sources}
-        return next((k for k in ("factcheck", "oficial", "web") if k in kinds), None)
+        return next(
+            (k for k in ("factcheck", "oficial", "indicador_local", "web") if k in kinds), None
+        )
 
     @field_validator("explanation", "consequences_sourced", "consequences_reasoning")
     @classmethod
@@ -441,6 +461,8 @@ class CostEntry(BaseModel):
     searches: int = 0
     cached_searches: int = 0
     credits: int = 0
+    # Claims answered by the local base of indicators instead of a web search.
+    indicator_hits: int = 0
     usd: float = Field(ge=0)
     # False when the model/provider is missing from pricing.toml (usd is then 0).
     priced: bool = True
@@ -469,6 +491,8 @@ class Report(BaseModel):
     # Shown in their own section; not counted in the claim totals.
     promises: list[Promise] = Field(default_factory=list)
     cost: RunCost
+    # Seconds per step of the run that produced each step's output (manifest).
+    step_seconds: dict[str, float] = Field(default_factory=dict)
     # Problems that make the report less complete (failed blocks, rejected quotes…).
     warnings: list[str] = Field(default_factory=list)
 
@@ -486,7 +510,7 @@ class Report(BaseModel):
     @computed_field
     @property
     def by_basis(self) -> dict[str, int]:
-        counts = {"factcheck": 0, "oficial": 0, "web": 0, "sin_fuente": 0}
+        counts = {"factcheck": 0, "oficial": 0, "indicador_local": 0, "web": 0, "sin_fuente": 0}
         for c in self.claims:
             counts[c.basis or "sin_fuente"] += 1
         return counts
@@ -546,6 +570,13 @@ STEPS: tuple[StepName, ...] = (
 )
 
 
+class VerdictRecord(BaseModel):
+    """Whether the verdicts were stored in the knowledge base (verif.claims)."""
+
+    stored: int = 0
+    error: str | None = None
+
+
 class StepRecord(BaseModel):
     # "partial": finished, but some items failed (e.g. usage limit); retried next run.
     status: Literal["done", "partial", "failed"]
@@ -554,6 +585,8 @@ class StepRecord(BaseModel):
     prompt_hashes: dict[str, str] = Field(default_factory=dict)
     cost: list[CostEntry] = Field(default_factory=list)
     error: str | None = None
+    # How long the step took (fase I metrics); None in manifests written before.
+    seconds: float | None = None
 
 
 class JobManifest(BaseModel):

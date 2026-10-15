@@ -38,3 +38,10 @@ def test_keys_are_not_read_from_dotenv_or_environment():
 def test_launching_claude_code_fails():
     with pytest.raises(RealNetworkInTest, match="claude"):
         subprocess.run(["claude", "-p", "hola"], check=False)
+
+
+def test_postgres_without_the_supabase_marker_fails():
+    import psycopg
+
+    with pytest.raises(RealNetworkInTest, match="supabase"):
+        psycopg.connect("postgresql://user:pw@db.example.supabase.co/postgres")

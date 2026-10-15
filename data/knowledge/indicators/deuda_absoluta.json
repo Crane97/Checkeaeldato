@@ -1,0 +1,353 @@
+{
+  "id": "deuda_absoluta",
+  "nombre": "Deuda pública (Protocolo de Déficit Excesivo)",
+  "unidad": "millones de euros",
+  "ambito": "España",
+  "periodicidad": "anual",
+  "origen": "eurostat",
+  "estado": "automatico",
+  "actualizado": "2026-10-13",
+  "notas": [
+    "Saldo a final de año de la deuda de las Administraciones Públicas según el PDE."
+  ],
+  "serie": [
+    {
+      "desde": "2000-01-01",
+      "hasta": "2000-12-31",
+      "valor": 374557.2,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2001-01-01",
+      "hasta": "2001-12-31",
+      "valor": 378883.4,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2002-01-01",
+      "hasta": "2002-12-31",
+      "valor": 384145.3,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2003-01-01",
+      "hasta": "2003-12-31",
+      "valor": 382775.0,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2004-01-01",
+      "hasta": "2004-12-31",
+      "valor": 389887.9,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2005-01-01",
+      "hasta": "2005-12-31",
+      "valor": 393479.1,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2006-01-01",
+      "hasta": "2006-12-31",
+      "valor": 392132.2,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2007-01-01",
+      "hasta": "2007-12-31",
+      "valor": 384662.0,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2008-01-01",
+      "hasta": "2008-12-31",
+      "valor": 440621.0,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2009-01-01",
+      "hasta": "2009-12-31",
+      "valor": 569535.4,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2010-01-01",
+      "hasta": "2010-12-31",
+      "valor": 649152.5,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2011-01-01",
+      "hasta": "2011-12-31",
+      "valor": 743043.2,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2012-01-01",
+      "hasta": "2012-12-31",
+      "valor": 927813.3,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2013-01-01",
+      "hasta": "2013-12-31",
+      "valor": 1025805.2,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2014-01-01",
+      "hasta": "2014-12-31",
+      "valor": 1085165.4,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2015-01-01",
+      "hasta": "2015-12-31",
+      "valor": 1114129.0,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2016-01-01",
+      "hasta": "2016-12-31",
+      "valor": 1145655.0,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2017-01-01",
+      "hasta": "2017-12-31",
+      "valor": 1184148.3,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2018-01-01",
+      "hasta": "2018-12-31",
+      "valor": 1209741.8,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2019-01-01",
+      "hasta": "2019-12-31",
+      "valor": 1224363.8,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2020-01-01",
+      "hasta": "2020-12-31",
+      "valor": 1346916.4,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2021-01-01",
+      "hasta": "2021-12-31",
+      "valor": 1429403.6,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2022-01-01",
+      "hasta": "2022-12-31",
+      "valor": 1504105.1,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2023-01-01",
+      "hasta": "2023-12-31",
+      "valor": 1575376.7,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2024-01-01",
+      "hasta": "2024-12-31",
+      "valor": 1620573.4,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2025-01-01",
+      "hasta": "2025-12-31",
+      "valor": 1698224.6,
+      "fuente": {
+        "organismo": "Eurostat",
+        "documento": "Eurostat gov_10dd_edpt1 (unit=MIO_EUR, sector=S13, na_item=GD, España)",
+        "url": "https://ec.europa.eu/eurostat/databrowser/view/gov_10dd_edpt1/default/table",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from pipeline.llm import LLMConfigError, LLMError
 from pipeline.models import (
@@ -67,6 +67,35 @@ class ExtractedClaim(BaseModel):
     needs_context: bool
     # "promesa" for a concrete commitment about the future (assessed for feasibility).
     kind: ClaimKind = "afirmacion"
+    # Id from <indicadores> the claim is about ("" if none) and the years it refers to.
+    indicator: str = ""
+    years: list[int] = Field(default_factory=list)
+    # Region or province the datum is about, as named ("" for Spain as a whole).
+    territory: str = ""
+
+
+def _territory_code(item: "ExtractedClaim") -> str | None:
+    """The territory's code, or None if the claim is national or the name is ambiguous."""
+    if not item.territory.strip():
+        return None
+    from pipeline.knowledge.municipal import default_municipal
+    from pipeline.knowledge.territories import candidates, load_territories
+
+    regions = candidates(item.territory, load_territories())
+    if regions:  # a region or province ("Madrid" may be both, and a city: ambiguous)
+        return regions.pop() if len(regions) == 1 else None
+    municipal = default_municipal()
+    return municipal.resolve(item.territory) if municipal else None
+
+
+def _indicator_for(item: "ExtractedClaim", known: set[str]) -> str | None:
+    """The indicator only if its scope is known: national, or a territory resolved without
+    doubt. A national series must never answer a claim about a region."""
+    if item.indicator not in known:
+        return None
+    if item.territory.strip() and _territory_code(item) is None:
+        return None
+    return item.indicator
 
 
 class DetectionResult(BaseModel):
@@ -137,13 +166,19 @@ def _segment_line(index: int, segment: Segment) -> str:
 
 
 def format_block(
-    transcript: Transcript, block: Block, speech_date: dt.date, input_kind: InputKind
+    transcript: Transcript,
+    block: Block,
+    speech_date: dt.date,
+    input_kind: InputKind,
+    indicator_catalog: str = "",
 ) -> str:
     """User message for one block: data in tags, instructions live in the prompt file."""
     parts = [
         f"<fecha>{speech_date.isoformat()}</fecha>",
         f"<tipo_entrada>{input_kind}</tipo_entrada>",
     ]
+    if indicator_catalog:
+        parts.append(f"<indicadores>\n{indicator_catalog}\n</indicadores>")
     for tag, indices in (
         ("contexto_anterior", block.before),
         ("fragmento", block.core),
@@ -225,9 +260,12 @@ def detect_claims(
     model: str,
     core_chars: int = CORE_CHARS,
     context_chars: int = CONTEXT_CHARS,
+    indicator_catalog: str = "",
 ) -> ClaimDetection:
     segments = transcript.segments
     blocks = build_blocks(segments, core_chars, context_chars)
+    # Ids listed in the catalog ("- id: name"); anything else the model writes is dropped.
+    known_indicators = set(re.findall(r"^- ([a-z0-9_]+):", indicator_catalog, re.MULTILINE))
     found: dict[tuple[int, str], tuple[int, DetectedClaim]] = {}
     rejected: list[RejectedClaim] = []
     failures: list[BlockFailure] = []
@@ -239,7 +277,9 @@ def detect_claims(
                 step="claims",
                 model=model,
                 prompt=PROMPT,
-                user_content=format_block(transcript, block, speech_date, input_kind),
+                user_content=format_block(
+                    transcript, block, speech_date, input_kind, indicator_catalog
+                ),
                 output_type=DetectionResult,
             )
         except LLMConfigError:
@@ -269,6 +309,10 @@ def detect_claims(
                     id="pending",
                     speaker=_attributed_speaker(segments[first], item, input_kind),
                     kind=item.kind,
+                    indicator=_indicator_for(item, known_indicators),
+                    territory=item.territory.strip() or None,
+                    territory_code=_territory_code(item),
+                    years=sorted({y for y in item.years if 1900 <= y <= 2100}),
                     text_original=item.quote.strip(),
                     text_normalized=item.text_normalized.strip(),
                     claim_type=item.claim_type,

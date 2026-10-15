@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from pipeline.concurrency import parallel_map
 from pipeline.evidence.base import settled_by_factcheck
 from pipeline.evidence.oficiales import is_primary, load_primary_sources
 from pipeline.governments import Governments
@@ -38,7 +39,8 @@ MAX_FOLLOW_UP_QUERIES = 3
 # reliable sources first; the full evidence stays in evidence.json.
 MAX_EVIDENCE_ITEMS = 8
 VERDICT_EXCERPT_CHARS = 2500
-_KIND_PRIORITY = {"factcheck": 0, "oficial": 1, "web": 2}
+LOCAL_EXCERPT_CHARS = 8000
+_KIND_PRIORITY = {"factcheck": 0, "indicador_local": 1, "oficial": 1, "web": 2}
 
 # (claim, queries, first evidence number) -> (new items numbered from it, errors)
 FollowUpSearch = Callable[[DetectedClaim, list[str], int], tuple[list[EvidenceItem], list[str]]]
@@ -153,7 +155,9 @@ def _evidence_block(item: EvidenceItem, own: bool = False) -> str:
         lines.append(f"afirmación revisada por el verificador: {item.claim_reviewed}")
     if item.rating:
         lines.append(f"valoración del verificador: {item.rating}")
-    lines.append(f"extracto: {item.excerpt[:VERDICT_EXCERPT_CHARS]}")
+    # A local series is sent whole: cutting it could drop the value that decides the claim.
+    limit = LOCAL_EXCERPT_CHARS if source.kind == "indicador_local" else VERDICT_EXCERPT_CHARS
+    lines.append(f"extracto: {item.excerpt[:limit]}")
     body = html.escape("\n".join(lines), quote=False)
     return f"<evidencia {attr_text}>\n{body}\n</evidencia>"
 
@@ -247,6 +251,8 @@ def _primary_sources() -> tuple[str, ...]:
 
 def _source_rank(item: EvidenceItem) -> int:
     """Primary sources (legal texts, statistics) first, then other official, fact-checks, web."""
+    if item.source.kind == "indicador_local":  # compiled from primary sources (BOE, INE…)
+        return 0
     if item.source.kind == "oficial":
         return 0 if is_primary(item.source.url, list(_primary_sources())) else 1
     return {"factcheck": 2, "web": 3}.get(item.source.kind, 4)
@@ -491,8 +497,10 @@ def decide_verdicts(
     follow_up: FollowUpSearch | None = None,
     own_source: OwnSource | None = None,
     thinking: bool | None = None,
+    max_workers: int = 1,
 ) -> list[Verdict]:
-    """One verdict per claim, based only on that claim's retrieved evidence.
+    """One verdict per claim, based only on that claim's retrieved evidence (claims in
+    parallel with `max_workers` > 1; the results keep the claims' order).
 
     With `follow_up`, a claim Claude cannot settle gets one extra targeted search for
     the data it says is missing, and a final decision with the extended evidence.
@@ -502,32 +510,33 @@ def decide_verdicts(
     failing, stops the step.
     """
     by_claim = {e.claim_id: e for e in evidences}
-    verdicts: list[Verdict] = []
-    attempted = failed = 0
-
     for claim in claims:
-        evidence = by_claim.get(claim.id)
-        if evidence is None:
+        if claim.id not in by_claim:
             raise VerdictError(f"Falta la evidencia de la afirmación {claim.id}")
-        if claim.context_status == "no_resuelto":
-            verdicts.append(_unresolved_context(claim, evidence))
-            continue
-        if not evidence.items:
-            verdicts.append(_no_evidence(claim, evidence))
-            continue
 
-        attempted += 1
-        logger.info("Veredicto de %s (%d/%d)", claim.id, len(verdicts) + 1, len(claims))
+    def one(claim: DetectedClaim) -> tuple[Verdict, bool, bool]:
+        """(verdict, attempted, failed)"""
+        evidence = by_claim[claim.id]
+        if claim.context_status == "no_resuelto":
+            return _unresolved_context(claim, evidence), False, False
+        if not evidence.items:
+            return _no_evidence(claim, evidence), False, False
+        logger.info("Veredicto de %s", claim.id)
         try:
-            verdicts.append(
-                _decide(claim, evidence, speech_date, llm, model, follow_up, own_source, thinking)
+            verdict = _decide(
+                claim, evidence, speech_date, llm, model, follow_up, own_source, thinking
             )
+            return verdict, True, False
         except LLMConfigError:
             raise
         except (LLMError, ValidationError) as exc:
             logger.warning("Veredicto de %s falló: %s", claim.id, exc)
-            failed += 1
-            verdicts.append(_failed(claim, evidence, str(exc)))
+            return _failed(claim, evidence, str(exc)), True, True
+
+    done = parallel_map(one, claims, max_workers)
+    verdicts = [v for v, _, _ in done]
+    attempted = sum(a for _, a, _ in done)
+    failed = sum(f for _, _, f in done)
 
     if attempted and failed == attempted:
         first = next(v.analysis_error for v in verdicts if v.analysis_error)

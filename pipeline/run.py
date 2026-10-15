@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from pipeline.audio import extract_audio, purge_audio
 from pipeline.claims import PROMPT as CLAIMS_PROMPT
@@ -15,11 +15,23 @@ from pipeline.config import ConfigError, LlmStep, Settings
 from pipeline.context import PROMPT as CONTEXT_PROMPT
 from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
+from pipeline.duplicates import mark_duplicates, with_repetitions
 from pipeline.evidence.base import EvidenceSource, collect_evidence
+from pipeline.evidence.local import local_evidence, on_demand_evidence, partial_local_evidence
 from pipeline.evidence.search_cache import SearchCache
 from pipeline.evidence.tavily import SearchStats, TavilyClient
 from pipeline.governments import default_governments
-from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, run_steps
+from pipeline.indicators import IndicatorBase, load_indicators
+
+if TYPE_CHECKING:
+    from pipeline.knowledge.local_base import KnowledgeIndicatorBase
+    from pipeline.knowledge.on_demand import OnDemandSeries
+    from pipeline.knowledge.web_facts import WebFactStore
+from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, prompt_hash, run_steps
+from pipeline.knowledge.municipal import INDICATOR as MUNICIPAL_INDICATOR
+from pipeline.knowledge.municipal import default_municipal
+from pipeline.knowledge.verdict_store import verdict_rows
+from pipeline.knowledge.web_facts import facts_evidence
 from pipeline.llm import ThinkingConfig
 from pipeline.models import (
     AudioInfo,
@@ -37,7 +49,9 @@ from pipeline.models import (
     StepName,
     Transcript,
     Verdict,
+    VerdictRecord,
 )
+from pipeline.politicians import CombinedDirectory, LocalPoliticianCache, PoliticianDirectory
 from pipeline.promises import PROMPT as PROMISES_PROMPT
 from pipeline.promises import assess_promises
 from pipeline.report import build_report, format_summary
@@ -57,6 +71,8 @@ PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 SPEAKER_INFO_FILE = "speakers_input.json"
 # Speakers after both stages (identification and research); what later steps read.
 SPEAKERS_FILE = "speaker_research.json"
+# Whether the verdicts reached verif.claims (knowledge base); read by the report step.
+VERDICT_RECORD_FILE = "verdict_record.json"
 
 
 class Deps(Protocol):
@@ -66,12 +82,17 @@ class Deps(Protocol):
     transcriber: Transcriber
     evidence_sources: list[EvidenceSource]
     disabled_sources: list[str]
-    # Web searches of this run, all steps (for the summary at the end).
+    # Web searches of this run, all steps (for the summary at the end), and per step.
     searches: SearchStats
+    search_entries: list[CostEntry]
     # Claude's thinking in the verdict step (VERDICT_THINKING…); None: model default.
     verdict_thinking: ThinkingConfig | None
+    # Local base of official series (data/knowledge/indicators).
+    indicators: "IndicatorBase | KnowledgeIndicatorBase"
     # None when there is no search key: speakers are then not researched.
     speaker_search: SpeakerSearch | None
+    # Politicians base (local cache + Supabase when configured); None: not used.
+    politicians: PoliticianDirectory | None
 
     def model_for(self, step: LlmStep) -> str: ...
 
@@ -90,9 +111,47 @@ class LiveDeps:
         self.use_cache = use_cache
         # Searches of this run (all steps), for the summary at the end.
         self.searches = SearchStats()
+        self.search_entries: list[CostEntry] = []
+        # Set when the knowledge base could not be read and the JSON base was used.
+        self.knowledge_warning: str | None = None
 
     def model_for(self, step: LlmStep) -> str:
         return self.settings.model_for(step)
+
+    @property
+    def concurrency(self) -> int:
+        return self.settings.pipeline_concurrency
+
+    @property
+    def record_verdicts(self) -> "Callable[[list[dict]], VerdictRecord] | None":
+        """Store verdicts in verif.claims when the knowledge base is configured."""
+        if self.settings.supabase_db_url is None:
+            return None
+        url = self.settings.supabase_db_url.get_secret_value()
+        model = self.model_for("verdict")
+        versions = {
+            name: prompt_hash(self.prompts_dir, name)
+            for name in (CLAIMS_PROMPT, CONTEXT_PROMPT, VERDICT_PROMPT)
+        }
+
+        def record(rows: list[dict]) -> VerdictRecord:
+            import psycopg
+
+            from pipeline.knowledge.verdict_store import record_verdicts
+
+            try:
+                with psycopg.connect(url, connect_timeout=10) as conn:
+                    n = record_verdicts(
+                        conn, rows[0]["job_id"] if rows else "", rows,
+                        model=model, prompt_versions=versions,
+                    )  # fmt: skip
+                    conn.commit()
+                return VerdictRecord(stored=n)
+            except psycopg.Error as exc:
+                logger.warning("No se guardaron los veredictos en la base: %s", exc)
+                return VerdictRecord(error=str(exc))
+
+        return record
 
     @cached_property
     def llm(self) -> Any:
@@ -127,6 +186,28 @@ class LiveDeps:
             cache=cache,
         )
 
+    @cached_property
+    def indicators(self) -> "IndicatorBase | KnowledgeIndicatorBase":
+        """The Supabase knowledge base when configured (approved data, resolved at the
+        speech date); the JSON base otherwise or if the database cannot be read (the run
+        says so in its warnings)."""
+        if self.settings.supabase_db_url is None:
+            return load_indicators()
+        import psycopg
+
+        from pipeline.knowledge.local_base import KnowledgeIndicatorBase
+
+        try:
+            url = self.settings.supabase_db_url.get_secret_value()
+            with psycopg.connect(url, connect_timeout=10) as conn:
+                return KnowledgeIndicatorBase.from_db(conn)
+        except psycopg.Error as exc:
+            logger.warning("Base de conocimiento no disponible, se usa la base JSON: %s", exc)
+            self.knowledge_warning = (
+                f"Base de conocimiento no disponible ({exc}); se usó la base JSON"
+            )
+            return load_indicators()
+
     @property
     def verdict_thinking(self) -> ThinkingConfig | None:
         s = self.settings
@@ -144,7 +225,9 @@ class LiveDeps:
         self.searches.real += stats.real
         self.searches.cached += stats.cached
         self.searches.credits += stats.credits
-        return [search_cost(step, real=stats.real, cached=stats.cached, credits=stats.credits)]
+        entry = search_cost(step, real=stats.real, cached=stats.cached, credits=stats.credits)
+        self.search_entries.append(entry)
+        return [entry]
 
     @cached_property
     def _sources(self) -> tuple[list[EvidenceSource], list[str]]:
@@ -178,6 +261,45 @@ class LiveDeps:
         return self._sources[1]
 
     @cached_property
+    def politicians(self) -> PoliticianDirectory | None:
+        cache = LocalPoliticianCache(self.settings.data_dir / "cache" / "politicians.json")
+        database = None
+        if self.settings.supabase_db_url is not None:
+            import psycopg
+
+            from pipeline.knowledge.politicians_repo import PostgresPoliticianDirectory
+
+            url = self.settings.supabase_db_url.get_secret_value()
+            database = PostgresPoliticianDirectory(lambda: psycopg.connect(url, connect_timeout=10))
+        return CombinedDirectory(cache, database)
+
+    @cached_property
+    def web_facts(self) -> "WebFactStore | None":
+        """Facts extracted from the web in earlier runs (Supabase); None without it."""
+        if self.settings.supabase_db_url is None:
+            return None
+        import psycopg
+
+        from pipeline.knowledge.web_facts import WebFactStore
+
+        url = self.settings.supabase_db_url.get_secret_value()
+        return WebFactStore(lambda: psycopg.connect(url, connect_timeout=10), dt.date.today())
+
+    @cached_property
+    def on_demand(self) -> "OnDemandSeries":
+        """Official APIs (INE, Eurostat) for periods the local base does not cover."""
+        import httpx
+
+        from pipeline.knowledge.catalog import load_catalog
+        from pipeline.knowledge.on_demand import OnDemandSeries
+
+        return OnDemandSeries(
+            load_catalog(),
+            lambda: httpx.Client(timeout=60, follow_redirects=True),
+            today=dt.date.today(),
+        )
+
+    @cached_property
     def speaker_search(self) -> SpeakerSearch | None:
         if self.tavily is None:
             return None
@@ -192,6 +314,15 @@ class JobResult:
     report_path: Path
     summary: str
     steps_run: list[StepName]
+
+
+def _record_warning(store: JobStore) -> list[str]:
+    if not store.path(VERDICT_RECORD_FILE).exists():
+        return []
+    record = store.read(VERDICT_RECORD_FILE, VerdictRecord)
+    if record.error is None:
+        return []
+    return [f"Los veredictos no se guardaron en la base de conocimiento: {record.error}"]
 
 
 def input_kind_for(path: Path) -> InputKind:
@@ -285,7 +416,7 @@ def build_steps(
     def speaker_research_step(store: JobStore) -> StepOutcome:
         speakers = store.read("speakers.json", SpeakerMap)
         search = deps.speaker_search
-        if search is None:
+        if search is None and deps.politicians is None:
             store.write(SPEAKERS_FILE, speakers, SpeakerMap)
             return StepOutcome()
 
@@ -297,6 +428,7 @@ def build_steps(
                 llm=deps.llm,
                 model=deps.model_for("detection"),
                 governments=default_governments(),
+                directory=deps.politicians,
             )
             store.write(SPEAKERS_FILE, researched, SpeakerMap)
             return len(researched.errors) == len(speakers.errors)
@@ -311,6 +443,7 @@ def build_steps(
                 input_kind=kind,
                 llm=deps.llm,
                 model=deps.model_for("detection"),
+                indicator_catalog=deps.indicators.catalog(),
             )
             store.write("claims.json", detection, ClaimDetection)
             return not detection.failed_blocks
@@ -329,33 +462,110 @@ def build_steps(
                 model=deps.model_for("verdict"),
                 governments=default_governments(),
             )
+            # Repetitions of the same claim by the same speaker are verified once.
+            resolved = resolved.model_copy(update={"claims": mark_duplicates(resolved.claims)})
             store.write("context.json", resolved, ClaimDetection)
             return not resolved.context_errors
 
         return _with_costs(deps, "context", work)
 
+    indicator_hits: list[int] = []
+
     def evidence_step(store: JobStore) -> StepOutcome:
-        return _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
+        outcome = _with_costs(deps, "evidence", lambda: _evidence(store), uses_llm=False)
+        hits = indicator_hits.pop() if indicator_hits else 0
+        if hits:
+            entry = CostEntry(step="evidence", provider="indicadores", indicator_hits=hits, usd=0)
+            outcome.cost.append(entry)
+            deps.searches.indicator_hits += hits
+            deps.search_entries.append(entry)
+        return outcome
 
     def _evidence(store: JobStore) -> bool:
         claims = store.read("context.json", ClaimDetection).claims
         # Unresolved claims are no_verificable anyway: don't spend searches on them.
         # Promises are assessed for feasibility, which does not depend on who made them.
-        searchable = [c for c in claims if c.kind == "promesa" or c.context_status != "no_resuelto"]
-        found = (
-            {
-                e.claim_id: e
-                for e in collect_evidence(
-                    searchable, deps.evidence_sources, store.manifest.speech_date
+        searchable = [
+            c
+            for c in claims
+            if not c.duplicate_of and (c.kind == "promesa" or c.context_status != "no_resuelto")
+        ]
+        date = store.manifest.speech_date
+        # Claims answered by the local base of indicators skip the web searches; the
+        # (free) fact-check API is still asked, to recognise published debunks.
+        base = deps.indicators.at(date)  # what was published on the speech date
+        local = {c.id: item for c in searchable if (item := local_evidence(c, base, date))}
+        # Municipalities: the padrón's population from the local Parquet.
+        for c in searchable:
+            code = c.territory_code or ""
+            if c.id in local or not code.startswith("ES-M") or c.indicator != MUNICIPAL_INDICATOR:
+                continue
+            municipal = default_municipal()
+            if municipal is not None and (item := municipal.evidence(code, c.years, date)):
+                local[c.id] = item
+        # Not in the local base: the official API, fetched now, before any web search.
+        on_demand = getattr(deps, "on_demand", None)
+        if on_demand is not None:
+            for c in searchable:
+                if c.id not in local and (item := on_demand_evidence(c, on_demand, date)):
+                    local[c.id] = item
+        # Facts extracted in earlier runs (same indicator, territory and period): an
+        # official or fact-checker one settles the claim without a web search.
+        stored_facts: dict[str, list[EvidenceItem]] = {}
+        fact_store = getattr(deps, "web_facts", None)
+        if fact_store is not None:
+            for c in searchable:
+                if c.id in local or not c.indicator or c.kind == "promesa":
+                    continue
+                try:
+                    items, settled = facts_evidence(fact_store, c.indicator, c.years)
+                except Exception as exc:  # noqa: BLE001 - reported; the web search goes on
+                    deps.knowledge_warning = f"Datos web guardados no disponibles ({exc})"
+                    break
+                if settled:
+                    local[c.id] = items[0]
+                elif items:
+                    stored_facts[c.id] = items
+        web = [c for c in searchable if c.id not in local]
+        workers = getattr(deps, "concurrency", 1)
+        found = {
+            e.claim_id: e
+            for e in collect_evidence(web, deps.evidence_sources, date, max_workers=workers)
+        }
+        # Partly covered: the web search ran, and the covered part of the series goes first;
+        # stored web facts too.
+        for c in web:
+            part = partial_local_evidence(c, base)
+            first = ([part] if part is not None else []) + stored_facts.get(c.id, [])
+            if first and c.id in found:
+                items = [*first, *found[c.id].items]
+                found[c.id] = found[c.id].model_copy(
+                    update={
+                        "items": [
+                            i.model_copy(update={"id": f"E{n}"}) for n, i in enumerate(items, 1)
+                        ]
+                    }
                 )
-            }
-            if searchable
-            else {}
+        factcheck_only = [s for s in deps.evidence_sources if s.name == "factcheck"]
+        checked = collect_evidence(
+            [c for c in searchable if c.id in local], factcheck_only, date, max_workers=workers
         )
+        for e in checked:
+            items = [local[e.claim_id], *e.items]
+            found[e.claim_id] = e.model_copy(
+                update={
+                    "items": [i.model_copy(update={"id": f"E{n}"}) for n, i in enumerate(items, 1)]
+                }
+            )
+        indicator_hits.append(len(local))
         sources = deps.evidence_sources
+        base_warnings = [w for w in [getattr(deps, "knowledge_warning", None)] if w]
+        base_warnings += list(getattr(deps.indicators, "problems", []))
+        base_warnings += list(getattr(on_demand, "errors", []))
         run = EvidenceRun(
             sources_used=[s.name for s in sources],
             sources_disabled=deps.disabled_sources,
+            warnings=base_warnings,
             claims=[found.get(c.id, ClaimEvidence(claim_id=c.id)) for c in claims],
         )
         store.write("evidence.json", run, EvidenceRun)
@@ -363,42 +573,91 @@ def build_steps(
 
     def verdicts_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
+            claims = [
+                c for c in store.read("context.json", ClaimDetection).claims if c.kind != "promesa"
+            ]
             verdicts = decide_verdicts(
-                [
-                    c
-                    for c in store.read("context.json", ClaimDetection).claims
-                    if c.kind != "promesa"
-                ],
+                [c for c in claims if not c.duplicate_of],
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
                 follow_up=follow_up_search(deps, store.manifest.speech_date),
                 thinking=deps.verdict_thinking,
+                max_workers=getattr(deps, "concurrency", 1),
                 own_source=own_source_checker(
                     store.read(SPEAKERS_FILE, SpeakerMap),
                     default_governments(),
                     store.manifest.speech_date,
                 ),
             )
+            verdicts = with_repetitions(claims, verdicts)
             store.write("verdicts.json", verdicts, list[Verdict])
+            recorder = getattr(deps, "record_verdicts", None)
+            if recorder is not None:
+                from pipeline.knowledge.catalog import load_catalog
+                from pipeline.knowledge.coverage import load_topics
+
+                rows = verdict_rows(
+                    store.job_id,
+                    claims,
+                    verdicts,
+                    store.read("evidence.json", EvidenceRun).claims,
+                    speakers=store.read(SPEAKERS_FILE, SpeakerMap),
+                    indicator_topics={k: v.tema for k, v in load_catalog().items()},
+                    topics=load_topics(),
+                )
+                store.write(VERDICT_RECORD_FILE, recorder(rows), VerdictRecord)
+            _extract_facts(store, claims, verdicts)
             return not any(v.analysis_error for v in verdicts)
 
         return _with_costs(deps, "verdicts", work)
 
+    def _extract_facts(store: JobStore, claims, verdicts) -> None:
+        """F2: keep the datum behind a web-based verdict on a catalog indicator."""
+        fact_store = getattr(deps, "web_facts", None)
+        if fact_store is None:
+            return
+        from pipeline.knowledge.catalog import load_catalog
+        from pipeline.knowledge.web_facts import extract, period_label
+
+        catalog = load_catalog()
+        by_claim = {c.id: c for c in claims}
+        evidence = {e.claim_id: e for e in store.read("evidence.json", EvidenceRun).claims}
+        for v in verdicts:
+            c = by_claim.get(v.claim_id)
+            if c is None or v.verdict == "no_verificable" or c.indicator not in catalog:
+                continue
+            periodo = period_label(c.years)
+            items = [i for i in evidence[c.id].items if i.id in v.evidence_used]
+            if periodo is None or any(
+                i.source.kind == "indicador_local" or i.observation_ids or i.web_fact_id
+                for i in items
+            ):
+                continue
+            fact = extract(
+                catalog[c.indicator], periodo, items, llm=deps.llm,
+                model=deps.model_for("detection"),
+            )  # fmt: skip
+            if fact is not None:
+                try:
+                    fact_store.save(fact, model=deps.model_for("detection"))
+                except Exception as exc:  # noqa: BLE001 - losing a cache entry is not fatal
+                    logger.warning("No se guardó el dato extraído de %s: %s", c.id, exc)
+
     def promises_step(store: JobStore) -> StepOutcome:
         def work() -> bool:
+            promises = [
+                c for c in store.read("context.json", ClaimDetection).claims if c.kind == "promesa"
+            ]
             results = assess_promises(
-                [
-                    c
-                    for c in store.read("context.json", ClaimDetection).claims
-                    if c.kind == "promesa"
-                ],
+                [c for c in promises if not c.duplicate_of],
                 store.read("evidence.json", EvidenceRun).claims,
                 speech_date=store.manifest.speech_date,
                 llm=deps.llm,
                 model=deps.model_for("verdict"),
             )
+            results = with_repetitions(promises, results)
             store.write("promises.json", results, list[PromiseVerdict])
             return not any(r.analysis_error for r in results)
 
@@ -423,22 +682,38 @@ def build_steps(
             verdicts=store.read("verdicts.json", list[Verdict]),
             promises=store.read("promises.json", list[PromiseVerdict]),
             cost=store.manifest.run_cost(),
+            step_seconds={
+                name: rec.seconds
+                for name, rec in store.manifest.steps.items()
+                if rec.seconds is not None
+            },
             generated_at=dt.datetime.now(dt.UTC),
             extra_warnings=[
                 f"Fuente «{name}» desactivada: falta su clave en .env"
                 for name in evidence.sources_disabled
-            ],
+            ]
+            + evidence.warnings
+            + _record_warning(store),
         )
         store.write("report.json", report, Report)
         return StepOutcome()
 
     steps = [
         Step("transcript", transcript_step, version=TRANSCRIPT_VERSION if kind == "texto" else ""),
-        Step("speakers", speakers_step, (SPEAKERS_PROMPT,)),
+        Step("speakers", speakers_step, (SPEAKERS_PROMPT,), version="nombre_presidente=1"),
         Step("speaker_research", speaker_research_step, (RESEARCH_PROMPT,)),
-        Step("claims", claims_step, (CLAIMS_PROMPT,)),
-        Step("context", context_step, (CONTEXT_PROMPT,)),
-        Step("evidence", evidence_step),
+        Step(
+            "claims",
+            claims_step,
+            (CLAIMS_PROMPT,),
+            version=f"indicadores={deps.indicators.version(coverage=False)}",
+        ),
+        Step("context", context_step, (CONTEXT_PROMPT,), version="repeticiones=1"),
+        Step(
+            "evidence",
+            evidence_step,
+            version=f"indicadores={deps.indicators.version(coverage=True)};regla=4;calculo=1;api=1",
+        ),
         # A different thinking setting is a different verdict: recompute, do not reuse.
         Step(
             "verdicts",

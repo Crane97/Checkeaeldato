@@ -1,0 +1,47 @@
+# Temas de las afirmaciones, para medir la cobertura de la base de conocimiento por partido
+# y tema (`uv run conocimiento cobertura`). Una afirmación con indicador toma el tema de
+# su indicador en el catálogo; si no tiene, el tema con MÁS palabras clave en el texto
+# normalizado (sin tildes, palabras o expresiones completas; empate: el primero de la
+# lista). Si ninguna aparece: "otros".
+#
+# Palabras descriptivas, con términos jurídicos o técnicos y no de encuadre (revisado por
+# neutrality-auditor, 2026-10-14). Incluye los temas que usa cada partido, para que ninguno
+# quede en "otros" por falta de lista. Editable: afecta a los veredictos que se guarden
+# después. Los temas del catálogo de indicadores (catalog.yaml) deben estar aquí.
+
+fiscalidad: [impuesto, impuestos, iva, irpf, impuesto de sociedades, recaudacion, tributos,
+             politica fiscal, presion fiscal, deducciones, amnistia fiscal, regularizacion fiscal]
+pensiones: [pension, pensiones, pensionistas, jubilacion, jubilados, revalorizacion]
+empleo: [paro, desempleo, parados, empleo, empleos, ocupados, afiliados, afiliacion, contratos,
+         salario minimo, smi, salarios, reforma laboral, erte, ertes, tasa de ocupacion]
+vivienda: [vivienda, viviendas, alquiler, alquileres, hipoteca, hipotecas, pisos, desahucios,
+           emancipacion, ocupacion ilegal, usurpacion, allanamiento]
+sanidad: [sanidad, sanitario, sanitaria, hospital, hospitales, medicos, enfermeras,
+          listas de espera, atencion primaria, salud]
+educacion: [educacion, colegios, escuelas, universidad, universidades, profesores, docentes,
+            becas, alumnos, formacion profesional]
+inmigracion: [inmigracion, inmigrante, inmigrantes, migrantes, migratorio, extranjeros,
+              pateras, cayucos, asilo, inmigracion irregular, menores no acompanados,
+              regularizacion de inmigrantes, regularizacion extraordinaria]
+igualdad: [igualdad, violencia de genero, violencia machista, brecha salarial, aborto,
+           conciliacion]
+servicios_sociales: [dependencia, ingreso minimo vital, pobreza, servicios sociales,
+                     exclusion social]
+territorial: [financiacion autonomica, concierto economico, cupo, independencia, referendum,
+              comunidades autonomas, autogobierno]
+campo: [agricultores, ganaderos, agricultura, ganaderia, pac, regadio, trasvase, pesca]
+medio_ambiente: [emisiones, clima, climatico, cambio climatico, contaminacion, incendios,
+                 sequia, residuos]
+energia: [energia, energias, electricidad, luz, gas, petroleo, combustibles, gasolina, nuclear,
+          renovables, energias renovables, factura electrica]
+infraestructuras: [trenes, ave, cercanias, rodalies, carreteras, autovias, aeropuertos,
+                   infraestructuras]
+seguridad: [delitos, criminalidad, delincuencia, policia, guardia civil, terrorismo, eta,
+            homicidios, robos]
+defensa_exterior: [defensa, otan, gasto militar, ejercito, fuerzas armadas, politica exterior,
+                   union europea]
+economia: [pib, crecimiento, economia, deuda, deficit, inflacion, ipc, precios, exportaciones,
+           inversion, turistas, turismo, presupuestos, gasto publico]
+instituciones: [constitucion, congreso, senado, tribunal constitucional, tribunal supremo,
+                jueces, cgpj, fiscal general, fiscalia, elecciones, corrupcion, indulto,
+                amnistia, monarquia, memoria democratica]

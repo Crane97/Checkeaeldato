@@ -2,6 +2,7 @@
   "id": "real-002-datos-basicos",
   "descripcion": "Artículo de prueba con cuatro datos públicos comprobados contra fuentes oficiales (INE, BOE, La Moncloa, Hacienda, Banco de España) y tres frases que no deben detectarse.",
   "sintetico": false,
+  "rapida": true,
   "fecha": "2026-10-10",
   "entrada": {
     "tipo": "texto",

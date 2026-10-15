@@ -1,0 +1,352 @@
+# Semilla de la base de políticos: QUIÉN entra, elegido por el cargo que ocupa (nunca por el
+# partido). Criterio decidido el 2026-10-14:
+#   - Gobierno de España (La Moncloa, BOE)
+#   - miembros del Gobierno que han salido durante la legislatura
+#   - expresidentes del Gobierno vivos
+#   - presidencias autonómicas y de Ceuta y Melilla (BOE)
+#   - presidencias del Congreso y del Senado
+#   - portavoces de los grupos parlamentarios del Congreso en la XV Legislatura (disuelta el
+#     06-10-2026: ya no es un cargo actual)
+#   - dirección nacional de los partidos con representación
+#   - alcaldías de las cinco ciudades más pobladas
+# Sin confirmar en una fuente fiable (no incluidos todavía): liderazgo de Sumar, UPN, portavoz
+# del Grupo Mixto.
+#
+# nombre: el oficial completo, como en el BOE (el recopilador busca así los nombramientos).
+# cargos_actuales:
+#   boe: true  → se comprueba que el último nombramiento para ese cargo es de esta persona.
+#   fuente     → página oficial donde se constata hoy (el recopilador avisa si el nombre no
+#                aparece en ella; es un indicio, la revisión humana decide).
+# Regenerar: uv run python scripts/recopilar_politicos.py
+
+# ── Gobierno de España ─────────────────────────────────────────────────────────
+- nombre: Pedro Sánchez Pérez-Castejón
+  categoria: gobierno
+  alias: [Pedro Sánchez]
+  cargos_actuales:
+    - {cargo: Presidente del Gobierno, boe: true}
+- nombre: Carlos Cuerpo Caballero
+  categoria: gobierno
+  alias: [Carlos Cuerpo]
+  cargos_actuales:
+    - {cargo: Vicepresidente Primero del Gobierno, boe: true}
+    - {cargo: "Ministro de Economía, Comercio y Empresa", boe: true}
+- nombre: Yolanda Díaz Pérez
+  categoria: gobierno
+  alias: [Yolanda Díaz]
+  cargos_actuales:
+    - {cargo: Vicepresidenta Segunda del Gobierno, boe: true}
+    - {cargo: Ministra de Trabajo y Economía Social, boe: true}
+- nombre: Sara Aagesen Muñoz
+  categoria: gobierno
+  alias: [Sara Aagesen]
+  cargos_actuales:
+    - {cargo: Vicepresidenta Tercera del Gobierno, boe: true}
+    - {cargo: Ministra para la Transición Ecológica y el Reto Demográfico, boe: true}
+- nombre: José Manuel Albares Bueno
+  categoria: gobierno
+  alias: [José Manuel Albares]
+  cargos_actuales:
+    - {cargo: "Ministro de Asuntos Exteriores, Unión Europea y Cooperación", boe: true}
+- nombre: Félix Bolaños García
+  categoria: gobierno
+  alias: [Félix Bolaños]
+  cargos_actuales:
+    - {cargo: "Ministro de la Presidencia, Justicia y Relaciones con las Cortes", boe: true}
+- nombre: María Margarita Robles Fernández
+  categoria: gobierno
+  alias: [Margarita Robles]
+  cargos_actuales:
+    - {cargo: Ministra de Defensa, boe: true}
+- nombre: Arcadi España García
+  categoria: gobierno
+  alias: [Arcadi España]
+  cargos_actuales:
+    - {cargo: Ministro de Hacienda, boe: true}
+- nombre: Fernando Grande-Marlaska Gómez
+  categoria: gobierno
+  alias: [Fernando Grande-Marlaska, Grande-Marlaska]
+  cargos_actuales:
+    - {cargo: Ministro del Interior, boe: true}
+- nombre: Óscar Puente Santiago
+  categoria: gobierno
+  alias: [Óscar Puente]
+  cargos_actuales:
+    - {cargo: Ministro de Transportes y Movilidad Sostenible, boe: true}
+- nombre: Milagros Tolón Jaime
+  categoria: gobierno
+  alias: [Milagros Tolón]
+  cargos_actuales:
+    - {cargo: "Ministra de Educación, Formación Profesional y Deportes", boe: true}
+- nombre: Jordi Hereu Boher
+  categoria: gobierno
+  alias: [Jordi Hereu]
+  cargos_actuales:
+    - {cargo: Ministro de Industria y Turismo, boe: true}
+- nombre: Luis Planas Puchades
+  categoria: gobierno
+  alias: [Luis Planas]
+  cargos_actuales:
+    - {cargo: "Ministro de Agricultura, Pesca y Alimentación", boe: true}
+- nombre: Ángel Víctor Torres Pérez
+  categoria: gobierno
+  alias: [Ángel Víctor Torres]
+  cargos_actuales:
+    - {cargo: Ministro de Política Territorial y Memoria Democrática, boe: true}
+- nombre: Isabel Rodríguez García
+  categoria: gobierno
+  cargos_actuales:
+    - {cargo: Ministra de Vivienda y Agenda Urbana, boe: true}
+- nombre: Ernest Urtasun Domènech
+  categoria: gobierno
+  alias: [Ernest Urtasun]
+  cargos_actuales:
+    - {cargo: Ministro de Cultura, boe: true}
+- nombre: Mónica García Gómez
+  categoria: gobierno
+  cargos_actuales:
+    - {cargo: Ministra de Sanidad, boe: true}
+- nombre: Pablo Bustinduy Amador
+  categoria: gobierno
+  alias: [Pablo Bustinduy]
+  cargos_actuales:
+    - {cargo: "Ministro de Derechos Sociales, Consumo y Agenda 2030", boe: true}
+- nombre: Diana Morant Ripoll
+  categoria: gobierno
+  alias: [Diana Morant]
+  cargos_actuales:
+    - {cargo: "Ministra de Ciencia, Innovación y Universidades", boe: true}
+- nombre: Ana María del Carmen Redondo García
+  categoria: gobierno
+  alias: [Ana Redondo]
+  cargos_actuales:
+    - {cargo: Ministra de Igualdad, boe: true}
+- nombre: Elma Saiz Delgado
+  categoria: gobierno
+  alias: [Elma Saiz]
+  cargos_actuales:
+    - {cargo: "Ministra de Inclusión, Seguridad Social y Migraciones", boe: true}
+- nombre: Óscar López Águeda
+  categoria: gobierno
+  cargos_actuales:
+    - {cargo: Ministro para la Transformación Digital y de la Función Pública, boe: true}
+- nombre: Sira Abed Rego
+  categoria: gobierno
+  alias: [Sira Rego]
+  cargos_actuales:
+    - {cargo: Ministra de Juventud e Infancia, boe: true}
+
+# ── Miembros del Gobierno que han salido durante la legislatura ────────────────
+- {nombre: María Jesús Montero Cuadrado, categoria: exmiembro_gobierno, alias: [María Jesús Montero]}
+- {nombre: María del Pilar Alegría Continente, categoria: exmiembro_gobierno, alias: [Pilar Alegría]}
+- {nombre: Teresa Ribera Rodríguez, categoria: exmiembro_gobierno, alias: [Teresa Ribera]}
+- {nombre: Nadia María Calviño Santamaría, categoria: exmiembro_gobierno, alias: [Nadia Calviño]}
+- {nombre: José Luis Escrivá Belmonte, categoria: exmiembro_gobierno, alias: [José Luis Escrivá]}
+
+# ── Expresidentes del Gobierno ─────────────────────────────────────────────────
+- {nombre: Felipe González Márquez, categoria: expresidente_gobierno, alias: [Felipe González]}
+- {nombre: José María Aznar López, categoria: expresidente_gobierno, alias: [José María Aznar, Aznar]}
+- {nombre: José Luis Rodríguez Zapatero, categoria: expresidente_gobierno, alias: [Zapatero]}
+- {nombre: Mariano Rajoy Brey, categoria: expresidente_gobierno, alias: [Mariano Rajoy, Rajoy]}
+
+# ── Presidencias autonómicas y de Ceuta y Melilla (cargo con la redacción del BOE) ──
+- nombre: Juan Manuel Moreno Bonilla
+  categoria: presidencia_autonomica
+  alias: [Juanma Moreno]
+  cargos_actuales: [{cargo: Presidente de la Junta de Andalucía, boe: true}]
+- nombre: Jorge Antonio Azcón Navarro
+  categoria: presidencia_autonomica
+  alias: [Jorge Azcón]
+  cargos_actuales: [{cargo: Presidente de Aragón, boe: true}]
+- nombre: Adrián Barbón Rodríguez
+  categoria: presidencia_autonomica
+  alias: [Adrián Barbón]
+  cargos_actuales: [{cargo: Presidente del Principado de Asturias, boe: true}]
+- nombre: Margarita Prohens Rigo
+  categoria: presidencia_autonomica
+  alias: [Marga Prohens]
+  cargos_actuales: [{cargo: Presidenta de las Illes Balears, boe: true}]
+- nombre: Fernando Clavijo Batlle
+  categoria: presidencia_autonomica
+  alias: [Fernando Clavijo]
+  cargos_actuales: [{cargo: Presidente de Canarias, boe: true}]
+- nombre: María José Sáenz de Buruaga Gómez
+  categoria: presidencia_autonomica
+  alias: [Sáenz de Buruaga]
+  cargos_actuales: [{cargo: Presidenta de la Comunidad Autónoma de Cantabria, boe: true}]
+- nombre: Alfonso Fernández Mañueco
+  categoria: presidencia_autonomica
+  alias: [Fernández Mañueco, Alfonso Mañueco]
+  cargos_actuales: [{cargo: Presidente de la Junta de Castilla y León, boe: true}]
+- nombre: Emiliano García-Page Sánchez
+  categoria: presidencia_autonomica
+  alias: [Emiliano García-Page, García-Page]
+  cargos_actuales: [{cargo: Presidente de la Junta de Comunidades de Castilla-La Mancha, boe: true}]
+- nombre: Salvador Illa Roca
+  categoria: presidencia_autonomica
+  alias: [Salvador Illa]
+  cargos_actuales: [{cargo: Presidente de la Generalitat de Cataluña, boe: true}]
+- nombre: Juan Francisco Pérez Llorca
+  categoria: presidencia_autonomica
+  alias: [Pérez Llorca]
+  cargos_actuales: [{cargo: President de la Generalitat Valenciana, boe: true}]
+- nombre: María Guardiola Martín
+  categoria: presidencia_autonomica
+  alias: [María Guardiola]
+  cargos_actuales: [{cargo: Presidenta de la Comunidad Autónoma de Extremadura, boe: true}]
+- nombre: Alfonso Rueda Valenzuela
+  categoria: presidencia_autonomica
+  alias: [Alfonso Rueda]
+  cargos_actuales: [{cargo: Presidente de la Junta de Galicia, boe: true}]
+- nombre: Isabel Natividad Díaz Ayuso
+  categoria: presidencia_autonomica
+  alias: [Isabel Díaz Ayuso, Ayuso]
+  cargos_actuales: [{cargo: Presidenta de la Comunidad de Madrid, boe: true}]
+- nombre: Fernando López Miras
+  categoria: presidencia_autonomica
+  alias: [López Miras]
+  cargos_actuales: [{cargo: Presidente de la Región de Murcia, boe: true}]
+- nombre: María Victoria Chivite Navascués
+  categoria: presidencia_autonomica
+  alias: [María Chivite]
+  cargos_actuales: [{cargo: Presidenta de la Comunidad Foral de Navarra, boe: true}]
+- nombre: Imanol Pradales Gil
+  categoria: presidencia_autonomica
+  alias: [Imanol Pradales]
+  cargos_actuales: [{cargo: Presidente del Gobierno Vasco, boe: true}]
+- nombre: Gonzalo Capellán de Miguel
+  categoria: presidencia_autonomica
+  alias: [Gonzalo Capellán]
+  cargos_actuales: [{cargo: Presidente de la Comunidad Autónoma de La Rioja, boe: true}]
+- nombre: Juan Jesús Vivas Lara
+  categoria: presidencia_autonomica
+  alias: [Juan Vivas]
+  cargos_actuales: [{cargo: Presidente de la Ciudad de Ceuta, boe: true}]
+- nombre: Juan José Imbroda Ortiz
+  categoria: presidencia_autonomica
+  alias: [Juan José Imbroda]
+  cargos_actuales: [{cargo: Presidente de la Ciudad de Melilla, boe: true}]
+
+# ── Presidencias de las Cámaras ────────────────────────────────────────────────
+- nombre: Francina Armengol Socias
+  categoria: presidencia_camara
+  alias: [Francina Armengol]
+  cargos_actuales:
+    - cargo: Presidenta del Congreso de los Diputados
+      organo: Congreso de los Diputados
+      fuente: {organismo: Congreso de los Diputados, titulo: Presidencia del Congreso, url: "https://www.congreso.es/es/presidencia"}
+- nombre: Pedro Rollán Ojeda
+  categoria: presidencia_camara
+  alias: [Pedro Rollán]
+  cargos_actuales:
+    - cargo: Presidente del Senado
+      organo: Senado
+      fuente: {organismo: Senado de España, titulo: Presidencia del Senado, url: "https://www.senado.es/web/composicionorganizacion/presidenciasenado/index.html"}
+
+# ── Portavoces de los grupos parlamentarios del Congreso (XV Legislatura) ───────
+# Sus periodos (inicio y fin, el 06-10-2026 por la disolución de las Cortes) salen de la
+# composición histórica de la Junta de Portavoces del Congreso (fuente primaria), que el
+# recopilador consulta para todas las personas de la semilla.
+- {nombre: Francisco Javier López Álvarez, categoria: portavoz_grupo_congreso, alias: [Patxi López]}
+- {nombre: Ester Muñoz de la Iglesia, categoria: portavoz_grupo_congreso, alias: [Ester Muñoz]}
+- nombre: María José Rodríguez de Millán Parro
+  categoria: portavoz_grupo_congreso
+  alias: [Pepa Millán, María José Millán]
+- {nombre: Verónica Martínez Barbero, categoria: portavoz_grupo_congreso, alias: [Verónica Barbero]}
+- {nombre: Gabriel Rufián Romero, categoria: portavoz_grupo_congreso, alias: [Gabriel Rufián, Rufián]}
+- {nombre: Míriam Nogueras i Camero, categoria: portavoz_grupo_congreso, alias: [Míriam Nogueras, Nogueras]}
+- {nombre: Mertxe Aizpurua Arzallus, categoria: portavoz_grupo_congreso, alias: [Mertxe Aizpurua]}
+- {nombre: María Isabel Vaquero Montero, categoria: portavoz_grupo_congreso, alias: [Maribel Vaquero]}
+
+# ── Dirección nacional de los partidos ─────────────────────────────────────────
+- nombre: Alberto Núñez Feijóo
+  categoria: direccion_partido
+  alias: [Feijóo, Núñez Feijóo]
+  cargos_actuales:
+    - {cargo: Presidente del Partido Popular, organo: Partido Popular, fuente: &pp {organismo: Partido Popular, titulo: Estructura del Partido Popular, url: "https://www.pp.es/estructura/"}}
+- nombre: Miguel Tellado Filgueira
+  categoria: direccion_partido
+  alias: [Miguel Tellado]
+  cargos_actuales:
+    - {cargo: Secretario general del Partido Popular, organo: Partido Popular, fuente: *pp}
+- nombre: Santiago Abascal Conde
+  categoria: direccion_partido
+  alias: [Santiago Abascal, Abascal]
+  cargos_actuales:
+    - {cargo: Presidente de Vox, organo: Vox, fuente: &vox {organismo: Vox, titulo: Web oficial de Vox, url: "https://www.voxespana.es"}}
+- nombre: Ignacio Garriga Vaz de Concicao
+  categoria: direccion_partido
+  alias: [Ignacio Garriga]
+  cargos_actuales:
+    - {cargo: Secretario general de Vox, organo: Vox, fuente: *vox}
+- nombre: Ione Belarra Urteaga
+  categoria: direccion_partido
+  alias: [Ione Belarra]
+  cargos_actuales:
+    - {cargo: Secretaria general de Podemos, organo: Podemos, fuente: {organismo: Podemos, titulo: Web oficial de Podemos, url: "https://podemos.info"}}
+- nombre: Antonio Maíllo Cañadas
+  categoria: direccion_partido
+  alias: [Antonio Maíllo]
+  cargos_actuales:
+    - {cargo: Coordinador general de Izquierda Unida, organo: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Coordinación General, url: "https://izquierdaunida.org/coordinacion-general/"}}
+  partido_actual: {partido: Izquierda Unida, fuente: {organismo: Izquierda Unida, titulo: Coordinación General, url: "https://izquierdaunida.org/coordinacion-general/"}}
+- nombre: Oriol Junqueras Vies
+  categoria: direccion_partido
+  alias: [Oriol Junqueras, Junqueras]
+  cargos_actuales:
+    - {cargo: Presidente de Esquerra Republicana de Catalunya, organo: ERC, fuente: {organismo: Esquerra Republicana de Catalunya, titulo: Web oficial de ERC, url: "https://www.esquerra.cat"}}
+- nombre: Carles Puigdemont i Casamajó
+  categoria: direccion_partido
+  alias: [Carles Puigdemont, Puigdemont]
+  cargos_actuales:
+    - {cargo: Presidente de Junts per Catalunya, organo: Junts, fuente: &junts {organismo: Junts per Catalunya, titulo: Web oficial de Junts, url: "https://junts.cat"}}
+- nombre: Jordi Turull i Negre
+  categoria: direccion_partido
+  alias: [Jordi Turull]
+  cargos_actuales:
+    - {cargo: Secretario general de Junts per Catalunya, organo: Junts, fuente: *junts}
+  partido_actual: {partido: Junts per Catalunya, fuente: *junts}
+- nombre: Arnaldo Otegi Mondragon
+  categoria: direccion_partido
+  alias: [Arnaldo Otegi, Otegi]
+  cargos_actuales:
+    - {cargo: Secretario general de EH Bildu, organo: EH Bildu, fuente: {organismo: EH Bildu, titulo: Mahai Politikoa, url: "https://ehbildu.eus/mahaipolitikoa"}}
+  partido_actual: {partido: EH Bildu, fuente: {organismo: EH Bildu, titulo: Mahai Politikoa, url: "https://ehbildu.eus/mahaipolitikoa"}}
+- nombre: Aitor Esteban Bravo
+  categoria: direccion_partido
+  alias: [Aitor Esteban]
+  cargos_actuales:
+    - {cargo: Presidente del Euzkadi Buru Batzar del PNV, organo: EAJ-PNV, fuente: {organismo: EAJ-PNV, titulo: Euskadi Buru Batzarra, url: "https://www.eaj-pnv.eus/eu/euskadi-buru-batzarra/"}}
+- nombre: Ana Belén Pontón Mondelo
+  categoria: direccion_partido
+  alias: [Ana Pontón]
+  cargos_actuales:
+    - {cargo: Portavoz nacional del BNG, organo: BNG, fuente: {organismo: Bloque Nacionalista Galego, titulo: Executiva Nacional, url: "https://www.bng.gal/estaticas/executiva-nacional.html"}}
+
+# ── Alcaldías de las cinco ciudades más pobladas ───────────────────────────────
+  partido_actual: {partido: Bloque Nacionalista Galego, fuente: {organismo: Bloque Nacionalista Galego, titulo: Executiva Nacional, url: "https://www.bng.gal/estaticas/executiva-nacional.html"}}
+- nombre: José Luis Martínez-Almeida Navasqüés
+  categoria: alcaldia
+  alias: [José Luis Martínez-Almeida, Martínez-Almeida]
+  cargos_actuales:
+    - {cargo: Alcalde de Madrid, organo: Ayuntamiento de Madrid, territorio: ES-MD, fuente: {organismo: Ayuntamiento de Madrid, titulo: El Ayuntamiento de Madrid, url: "https://www.madrid.es/portales/munimadrid/ayuntamiento.html"}}
+- nombre: Jaume Collboni Cuadrado
+  categoria: alcaldia
+  alias: [Jaume Collboni, Collboni]
+  cargos_actuales:
+    - {cargo: Alcalde de Barcelona, organo: Ajuntament de Barcelona, territorio: ES-CT, fuente: {organismo: Ajuntament de Barcelona, titulo: Web oficial del Ajuntament de Barcelona, url: "https://ajuntament.barcelona.cat/es/"}}
+- nombre: María José Catalá Verdet
+  categoria: alcaldia
+  alias: [María José Catalá]
+  cargos_actuales:
+    - {cargo: Alcaldesa de Valencia, organo: Ajuntament de València, territorio: ES-VC, fuente: {organismo: Ajuntament de València, titulo: "Procesión cívica del 9 d'Octubre (noticia oficial, 09-10-2026)", url: "https://www.valencia.es/cas/actualidad/-/content/procesi%C3%B3n-c%C3%ADvica-9-octubre-val%C3%A8ncia"}}
+- nombre: José Luis Sanz Ruiz
+  categoria: alcaldia
+  alias: [José Luis Sanz]
+  cargos_actuales:
+    - {cargo: Alcalde de Sevilla, organo: Ayuntamiento de Sevilla, territorio: ES-AN, fuente: {organismo: Ayuntamiento de Sevilla, titulo: Web oficial del Ayuntamiento de Sevilla, url: "https://www.sevilla.org"}}
+- nombre: Natalia Chueca Muñoz
+  categoria: alcaldia
+  alias: [Natalia Chueca]
+  cargos_actuales:
+    - {cargo: Alcaldesa de Zaragoza, organo: Ayuntamiento de Zaragoza, territorio: ES-AR, fuente: {organismo: Ayuntamiento de Zaragoza, titulo: Web oficial del Ayuntamiento de Zaragoza, url: "https://www.zaragoza.es"}}

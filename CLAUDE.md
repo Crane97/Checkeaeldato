@@ -6,8 +6,10 @@ Plataforma web que analiza vídeos de discursos y debates políticos en español
 de todas las afirmaciones factuales que se hacen, cuántas son verdaderas, engañosas, falsas
 o no verificables, con fuentes para cada una.
 
-Contexto: elecciones generales en España el **30 de noviembre de 2026**. La campaña empieza
-~15 días antes. Objetivo: **beta pública antes del 13 de noviembre**.
+Contexto: elecciones generales en España el **domingo 29 de noviembre de 2026** (Real Decreto
+806/2026, de 5 de octubre, BOE-A-2026-20742: disuelve las Cortes el 6 de octubre). La campaña
+va del **13 al 27 de noviembre**. Objetivo: **beta pública antes del 13 de noviembre** (el
+primer día de campaña).
 
 Fase futura: análisis en tiempo real (streaming) de debates en directo.
 
@@ -88,9 +90,13 @@ pipeline/
   transcribe/         # interfaz Transcriber + proveedores
   speakers.py         # etapa 1: interlocutores y lo que el texto dice de ellos, con citas
   speaker_research.py # etapa 2: partido y cargo de cada orador (oficial → web), con citas
+  politicians.py      # base de políticos: emparejar nombres, partido y cargos en una fecha
   claims.py           # detección y normalización de afirmaciones y promesas
   promises.py         # viabilidad de las promesas y consecuencias (fuentes + razonamiento)
   governments.py      # tabla de gobiernos y lógica de fechas (sin LLM)
+  indicators.py       # base local de indicadores oficiales (data/knowledge/indicators/)
+  indicator_update.py # descarga INE / Eurostat / Seguridad Social (scripts/actualizar_indicadores.py)
+  duplicates.py       # repeticiones del mismo orador: se verifican una vez
   context.py          # resolución de "ustedes", "este Gobierno"… → actor y periodos
   evidence/           # base.py (interfaz y recolector), factcheck_api.py, tavily.py,
                       # oficiales.py (+ fuentes_oficiales.toml), web.py
@@ -308,8 +314,171 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 - **Tabla de gobiernos** `data/knowledge/governments.json` (versionada; única excepción
   al `.gitignore` de `data/`): mandatos con partidos, socios de coalición, periodos en
   funciones y decretos de nombramiento, contrastados con La Moncloa y el BOE. **Se
-  actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 30-11-2026). El
+  actualiza a mano cuando cambia el Gobierno** (y tras las elecciones del 29-11-2026). El
   esquema admite niveles autonómico y municipal; solo se usa el nacional.
+
+## Base de indicadores oficiales (decidido 2026-10-13)
+
+`data/knowledge/indicators/<id>.json` (versionada): series con valor, unidad, periodo y
+**fuente primaria por dato** (organismo, documento, URL, fecha) y notas metodológicas.
+- **Automáticos** (`estado: automatico`), con `uv run python scripts/actualizar_indicadores.py`
+  (revisar el diff antes del commit): paro EPA y paro de menores de 25 (INE, trimestral),
+  IPC interanual (INE, mensual), población (INE, ECP), PIB y su crecimiento, deuda (% PIB y
+  millones) y déficit (Eurostat, anual, Protocolo de Déficit Excesivo), afiliación media
+  (CSV de la Seguridad Social, mensual).
+- **Manuales** (`estado: pendiente_revision` hasta que el responsable los revisa; no se usan
+  antes): SMI (24 reales decretos leídos del BOE, 2004-2026, con los cambios de 2004 y 2021),
+  pensiones y pensionistas por separado (serie histórica del informe del INSS).
+- **Uso:** la detección marca a qué indicador (`indicator`) y años (`years`) se refiere cada
+  afirmación; si el indicador cubre **todo** el periodo (el del contexto resuelto o esos años),
+  la evidencia es el extracto de la serie (`indicador_local`, fuente primaria) más la Fact
+  Check API (gratuita), sin Tavily. Si no, se busca en la web como siempre; la ronda
+  adicional sigue disponible. Un cambio en la base recalcula detección y evidencia.
+
+## Base de conocimiento oficial en Supabase (en construcción, 2026-10-14)
+
+**Hoja de ruta, estado de cada fase y pendientes: `docs/base_de_conocimiento.md`.**
+
+Sustituirá a la base JSON. Esquemas `ref` (catálogo, observaciones, gobiernos, partidos,
+hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`) y `ops`
+(ingesta, migraciones), en `db/migrations/NNNN_*.sql` (cada migración pasa por
+`database-reviewer`). Conexión: `SUPABASE_DB_URL` en `.env` (proyecto de desarrollo).
+- **Observaciones inmutables:** ni UPDATE ni DELETE; una revisión del dato oficial es una
+  versión nueva. Solo se usan las `aprobado`; nunca las `pendiente` ni `cuarentena`.
+- **Catálogo** `pipeline/knowledge/catalog.yaml`: definición precisa, sinónimos, rango,
+  un umbral de salto (% en niveles, puntos en tasas), antigüedad máxima, tema, retraso de
+  publicación y fuente. Unidad, definición y frecuencia no cambian: otro id.
+- **Validación** (`validate.py`) antes de entrar: unidad, rango y salto → cuarentena;
+  igual al vigente → nada; distinto → versión nueva. **Los datos de fuentes oficiales
+  primarias (BOE, INE, Eurostat, INSS…) entran aprobados si pasan la validación**, también
+  los copiados a mano (decisión del responsable, 2026-10-14); solo lo que no venga de una
+  fuente oficial primaria entraría `pendiente`. La cuarentena (anomalías) sigue igual.
+  `conocimiento aprobar-oficiales` aprueba lo pendiente con fuente primaria.
+- **Fecha de publicación:** la real si la fuente la da (BOE); si no, **fin del periodo +
+  retraso habitual del calendario** del organismo, marcada como estimada (decisión del
+  responsable, 2026-10-14). El resolvedor usa la versión publicada a la fecha del discurso.
+- **Revisión humana:** `uv run conocimiento revisar` muestra cada elemento pendiente
+  (observaciones, gobiernos, partidos, hechos) con fuente, motivos y valores con los que
+  compararlo, y registra quién aprueba o rechaza. Antes de aprobar datos curados, agente
+  `data-verifier`.
+- **Trazabilidad:** cada veredicto guardado en `verif.claims` lleva los `observation_ids`
+  que usó; `conocimiento impacto` los lista con el comando para recalcular cada trabajo.
+- **Golden tests** (`tests/test_knowledge_golden.py`): valores contrastados con su fuente;
+  si fallan, se investiga el cambio, no se corrige el test.
+
+### Ingesta automática (fase D, 2026-10-14)
+
+- `uv run conocimiento ingerir [--simular] [--indicador X] [--forzar] [--avisar]`
+  (`pipeline/knowledge/ingest.py`): descarga los indicadores del catálogo con conector
+  `ine`, `eurostat` o `seguridad_social` (APIs públicas, **sin clave**), compara una huella
+  de los valores con `ops.source_state` y, si cambió, carga con la validación (nuevo →
+  aprobado; dudoso → cuarentena; revisión → versión nueva) en una ejecución de
+  `ops.ingest_runs` por conector. Un fallo de un indicador se registra y el resto sigue
+  (salida con código 2). `--avisar` envía a `ALERT_EMAIL_TO` los errores, cuarentenas y
+  datos más viejos que `max_antiguedad_dias`.
+- Manuales (sin conector): SMI (BOE), pensiones, pensionistas y pensión media (INSS), IVA.
+- **Rol `ingesta`** (migración 0006): lee el catálogo, inserta observaciones y fuentes,
+  retira vigencias y registra ejecuciones; no borra, no aprueba, no ve políticos ni
+  veredictos. Se crea sin login: el responsable le pone contraseña en el SQL Editor
+  (`alter role ingesta with login password '…'`), nunca en archivos.
+- **GitHub Actions** (`.github/workflows/ingesta.yml`): diario a las 07:30 UTC, **en
+  simulación** hasta que el responsable decida quitar `--simular`. Secretos:
+  `SUPABASE_DB_URL` (pooler, usuario `ingesta.<ref>`), `SMTP_*`, `EMAIL_FROM`,
+  `ALERT_EMAIL_TO`.
+
+### El análisis con la base de conocimiento (fases E y F, 2026-10-14)
+
+- **Fuente local** (`pipeline/knowledge/local_base.py`): con `SUPABASE_DB_URL`, la base
+  local de indicadores son las observaciones **aprobadas** de Supabase, resueltas **a la
+  fecha del discurso** (la versión publicada entonces; el extracto dice si se revisó
+  después y si la fecha de publicación es estimada). Sin la variable, o si la base no
+  responde, se usa la base JSON y el informe lo avisa. Lo pendiente (p. ej. el SMI hasta
+  que se apruebe) no aparece en el catálogo de la detección.
+- **Cálculo del sistema**: cada extracto de serie termina con la aritmética del periodo
+  hecha en Python (primer y último valor, diferencia en puntos o en %, máximo y mínimo).
+- **API bajo demanda** (`pipeline/knowledge/on_demand.py`): si la base no cubre el
+  periodo y el indicador tiene conector, se descarga la serie entera en el momento, se
+  valida como en la ingesta (lo anómalo se descarta) y se usa como evidencia `oficial`
+  marcada «valores actuales de la API»; no se guarda en la base ni se busca en la web.
+- **Trazabilidad**: cada veredicto se guarda en `verif.claims` con la evidencia citada y
+  los `observation_ids` de las series locales (`conocimiento impacto` los encuentra). Un
+  fallo al guardar no para el análisis; el informe avisa.
+- **Datos web reutilizables** (F2, `pipeline/knowledge/web_facts.py`, prompt
+  `extraccion_dato.md`): tras un veredicto apoyado en la web sobre un indicador del
+  catálogo y un único año, el modelo de detección extrae el dato con su cita literal (el
+  código exige que la cita esté en la fuente y contenga el número; el enunciado no admite
+  palabras valorativas) y se guarda en `evid.web_facts` por claves exactas. Después se usa
+  como evidencia; si viene de un organismo oficial o un verificador, sin buscar en la web.
+  Los comunicados del Gobierno o de ministerios (`oficial_gobierno`) se reutilizan pero
+  **nunca evitan la búsqueda** (para un orador del partido del Gobierno son neutrales).
+  Caducan a 30 días salvo periodos cerrados. Los veredictos guardan los `web_fact_ids`.
+- Concurrencia: `PIPELINE_CONCURRENCY` afirmaciones a la vez en evidencia y veredicto.
+
+### Datos territoriales (fase H, 2026-10-14)
+
+- **Territorios** (`data/knowledge/territorios.json`, de la API del INE con
+  `scripts/recopilar_territorios.py`; `conocimiento cargar-territorios`): 19 comunidades y
+  ciudades autónomas (código ISO `ES-AN`) y 52 provincias (`ES-P28`). Alias: nombre oficial
+  en cada lengua cooficial y forma castellana habitual, igual para todos (revisado por
+  `neutrality-auditor`); nada de denominaciones políticas. Un nombre ambiguo ("Madrid",
+  "Valencia": comunidad, provincia y municipio) no se resuelve.
+- **Series por comunidad y provincia** (catálogo, campo `territorial`, con rango y salto
+  propios del nivel): paro EPA y población (ECP) por comunidad; población del Padrón por
+  provincia. Solo se cargan con `conocimiento ingerir --territorial` (interruptor); antes,
+  `conocimiento espacio` estima el tamaño (hoy ~25 MB de 500). La ingesta avisa si falta
+  algún territorio.
+- **Municipios** en Parquet local (`data/knowledge/municipios/padron_municipal.parquet`,
+  `scripts/recopilar_padron_municipal.py`, CSV oficiales del INE): población del Padrón de
+  ~8.100 municipios; un municipio solo se reconoce si su nombre es único o se da la
+  provincia, y nunca si coincide con una comunidad o provincia.
+- **En el análisis**: la detección marca `territory`; la evidencia sale de la serie de ese
+  territorio (nunca de la nacional) o del Parquet municipal.
+
+### Cobertura por partido y tema (fase G, 2026-10-14)
+
+- Cada veredicto guardado lleva orador, partido, tema y `con_datos` (si se apoyó en una
+  serie local o en la API). El tema sale del indicador o, si no hay, del tema con más
+  palabras clave de `pipeline/knowledge/temas.yaml` (términos jurídicos o técnicos, no de
+  encuadre; revisado por `neutrality-auditor`; cambiarlo exige nueva auditoría).
+- `uv run conocimiento cobertura [--desde]` compara partidos (con al menos 10 veredictos)
+  en los dos sentidos y señala temas frecuentes sin indicadores. Las alertas describen,
+  no valoran, y recuerdan que la diferencia puede deberse al tipo de afirmaciones.
+
+### Políticos (decidido 2026-10-14)
+
+Base de quién es quién para identificar oradores sin gastar búsquedas
+(`pipeline/politicians.py`; en Supabase, `ref.politicians`, `ref.politician_roles`,
+`ref.politician_parties`, migración 0005).
+- **Selección por cargo, nunca por partido** (`data/knowledge/politicians_seed.yaml`):
+  Gobierno; miembros del Gobierno salidos en la legislatura; expresidentes del Gobierno;
+  presidencias autonómicas y de Ceuta y Melilla; presidencias del Congreso y del Senado;
+  portavoces de los grupos del Congreso; dirección nacional de los partidos con
+  representación; alcaldías de las cinco mayores ciudades. Si no se puede confirmar quién
+  ocupa un cargo, no se incluye (se anota en la semilla).
+- **Por persona:** nombre oficial completo, alias, fecha de nacimiento, partidos y cargos
+  con fechas (inicio, fin y tramos **en funciones**), cada dato con su fuente:
+  - cargos del **BOE** (primaria): nombramientos y ceses, también los decretos colectivos
+    del Gobierno; el fin es el cese o el siguiente nombramiento para el mismo cargo. El
+    "cese de los miembros del Gobierno" tras unas elecciones **no** termina el cargo: abre
+    el tramo en funciones (de la tabla de gobiernos);
+  - nacimiento, partidos y cargos que el BOE no publica, de **Wikidata** marcados como
+    fuente **secundaria** (Wikipedia/Wikidata solo como secundaria: decisión del
+    responsable, 2026-10-14). Solo fechas con precisión de día. Wikidata puede estar
+    desactualizada: los cargos actuales se comprueban en el BOE o en una página oficial;
+  - un dato visto en una investigación lleva `constatado_en` (no periodo) y vale ±365 días.
+- **Regenerar:** `uv run python scripts/recopilar_politicos.py` (BOE y Wikidata sin clave,
+  con pausa y caché en `data/cache/collect/`), revisar el diff de
+  `data/knowledge/politicians.json` y `politicians_avisos.txt`, `uv run conocimiento
+  cargar-politicos` y aprobar con `uv run conocimiento revisar --tipo politico` (antes,
+  `data-verifier`). Lo curado entra `pendiente` y **no se usa hasta aprobarlo**.
+  Actualizar tras las elecciones del 29-11-2026.
+- **Uso en el análisis:** `speaker_research` busca primero en la base (todas las palabras
+  del nombre en el nombre o un alias; ante ambigüedad, nada) el partido y los cargos en la
+  fecha del discurso; solo si no los sabe, investiga en la web.
+- **Oradores nuevos:** lo que `speaker_research` averigua se guarda en
+  `data/cache/politicians.json` y en Supabase como `automatico`: **se reutiliza enseguida**
+  (decisión del responsable, 2026-10-14), aparece en `revisar` y, si se rechaza, deja de
+  usarse y no se vuelve a guardar. Solo se usan `aprobado` y `automatico`.
 
 ## Fuentes de evidencia (cascada, por orden de prioridad)
 
@@ -336,11 +505,16 @@ API devuelve una verificación de la misma afirmación** (similitud ≥ 80 % y m
 (decisiones del responsable del proyecto, 2026-10-13).
 
 **Caché de búsquedas** (`pipeline/evidence/search_cache.py`): toda búsqueda de Tavily pasa
-por `data/cache/search/` (clave: hash de la consulta normalizada y los parámetros; solo
-respuestas correctas; caduca a los `TAVILY_CACHE_DAYS`, 30 por defecto). `--no-cache` (CLI
+por `data/cache/search/` (clave: hash de la consulta en minúsculas, sin tildes ni palabras
+vacías, con los tokens ordenados, más los parámetros; las entradas de la clave anterior se
+migran; solo respuestas correctas). Caduca a los `TAVILY_CACHE_DAYS` (30), salvo las
+búsquedas de **periodos cerrados** (su año más reciente ≤ año actual − 2), que no caducan.
+Las afirmaciones casi idénticas del mismo orador (≥ 90 %, mismas cifras, actor y periodo)
+se verifican una sola vez y comparten veredicto. `--no-cache` (CLI
 y evaluación) no la lee pero la actualiza. Cada paso registra en el manifest las búsquedas
 reales, las servidas desde caché y los créditos (`provider="tavily"`, precio por crédito en
-`pricing.toml`), y se muestran al terminar cada ejecución, en el informe y en la web.
+`pricing.toml`) y los aciertos de la base de indicadores (`provider="indicadores"`), y se
+muestran al terminar cada ejecución (total y por paso), en el informe y en la web.
 De cada página se pide el texto completo y se envían a Claude los pasajes más relevantes
 para la afirmación (≈3.500 caracteres por fuente), no solo el principio de la página. Si
 con la evidencia no puede decidir pero sabe qué dato lo resolvería, Claude pide **una
@@ -394,10 +568,13 @@ TAVILY_API_KEY=
 TAVILY_SEARCH_DEPTH=basic       # basic (1 crédito) | advanced (2)
 TAVILY_MAX_RESULTS=5            # 1–20
 TAVILY_CACHE_DAYS=30            # días que se reutiliza una búsqueda guardada
+PIPELINE_CONCURRENCY=4          # afirmaciones a la vez en evidencia y veredicto (1 = en serie)
 VERDICT_THINKING=               # opcional: true/false; sin definir = defecto del modelo
 VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
+ALERT_EMAIL_TO=                 # avisos de la ingesta diaria
+SUPABASE_DB_URL=                # base de conocimiento (pooler de sesión, IPv4)
 ```
 
 ## Comandos
@@ -412,6 +589,21 @@ uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
+uv run python eval/run_eval.py --rapida          # 5 casos propensos a error (~mitad de búsquedas)
+uv run python scripts/actualizar_indicadores.py  # refresca INE / Eurostat / Seguridad Social
+uv run conocimiento migrar [--simular]          # aplica db/migrations/ en Supabase
+uv run conocimiento catalogo                     # sincroniza catalog.yaml
+uv run conocimiento cargar-json                  # carga validada de la base JSON
+uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprobar/rechazar
+uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
+uv run conocimiento retirar politico <id>        # rechaza algo ya aprobado (deja de usarse)
+uv run conocimiento ingerir [--simular] [--avisar] # ingesta INE/Eurostat/Seg. Social
+uv run conocimiento cobertura [--desde AAAA-MM-DD] # cobertura por partido y tema
+uv run conocimiento espacio                      # tamaño de la base y estimación territorial
+uv run conocimiento ingerir --territorial        # también series por comunidad y provincia
+uv run conocimiento aprobar-oficiales            # aprueba lo pendiente de fuente oficial primaria
+uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
+uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .
 ```
 
@@ -434,3 +626,29 @@ uv run ruff check . && uv run ruff format .
 - **Agentes** (bajo demanda): `refactor-cleaner` (código muerto),
   `silent-failure-hunter` (errores silenciados; tras los pasos de evidencia y veredicto),
   `type-design-analyzer` (modelos pydantic). Adaptados de Everything Claude Code (MIT).
+
+## Agentes y herramientas
+
+Cuándo usar cada agente (los del proyecto están en `.claude/agents/`; los de ECC, en
+`~/.claude/agents/`):
+
+| Agente | Cuándo |
+|---|---|
+| `data-verifier` | **Antes de aprobar datos curados a mano** (SMI, hechos institucionales, gobiernos): contrasta cada dato pendiente con su fuente primaria. No aprueba nada. |
+| `neutrality-auditor` | **Tras cambiar cualquier prompt de `prompts/`** y antes de cada publicación. |
+| `verdict-reviewer` | **Tras cada análisis completo**: revisa cada veredicto `falso` antes de publicarlo. |
+| `database-reviewer` (ECC) | **En cada migración** de base de datos (`db/migrations/`). |
+| `planner`, `architect` (ECC) | Planes de cambios grandes (usan Opus: más caros). |
+| `python-reviewer`, `security-reviewer` (ECC) | Revisión de código Python y de seguridad. |
+| `refactor-cleaner`, `silent-failure-hunter`, `type-design-analyzer` | Ver "Harness de Claude Code". |
+
+Skills de ECC instaladas en `~/.claude/skills/` (solo estas): `postgres-patterns`,
+`database-migrations`, `tdd-workflow`, `python-testing`, `verification-loop`. La skill
+`tdd` del proyecto sigue siendo la de referencia para los tests.
+
+- **MCP de Supabase** (`.mcp.json`): proyecto de **desarrollo**, en modo **solo lectura**
+  (`read_only=true`) salvo que el responsable del proyecto diga lo contrario. El token se
+  lee de la variable `CHECKEA_SUPABASE_TOKEN` del entorno; nunca se escribe en archivos ni
+  se pide por el chat.
+- **gitleaks** (`.pre-commit-config.yaml`): bloquea commits con claves. En un clon nuevo:
+  `pre-commit install`. Para revisar todo el historial: `gitleaks git --redact .`

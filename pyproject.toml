@@ -7,8 +7,11 @@ dependencies = [
     "anthropic",
     "fastapi>=0.143.0",
     "httpx",
+    "psycopg[binary]>=3.2",
+    "pyarrow>=17",
     "pydantic>=2",
     "pydantic-settings>=2",
+    "pyyaml>=6",
     "tenacity",
     "typer",
     "uvicorn>=0.54.0",
@@ -17,6 +20,7 @@ dependencies = [
 [project.scripts]
 verificar = "pipeline.cli:app"
 verificar-web = "pipeline.web.app:main"
+conocimiento = "pipeline.knowledge.cli:app"
 
 [dependency-groups]
 dev = [
@@ -47,6 +51,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "supabase: integration test against the DEVELOPMENT Supabase Postgres (inside a rolled-back transaction)",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pipeline"]

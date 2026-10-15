@@ -68,3 +68,8 @@ uv run ruff check . && uv run ruff format .
 
 El gold set (`eval/gold/*.json`) contiene por ahora un caso sintético de ejemplo; la fase 2
 consiste en llenarlo con verificaciones reales de Maldita, Newtral y EFE Verifica.
+
+## Base de conocimiento oficial (Supabase)
+
+Series oficiales revisadas, base de políticos e ingesta diaria. Estado de cada fase, lo
+pendiente y cómo seguir: [`docs/base_de_conocimiento.md`](docs/base_de_conocimiento.md).

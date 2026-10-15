@@ -1,0 +1,860 @@
+{
+  "id": "poblacion",
+  "nombre": "Población residente en España",
+  "unidad": "personas",
+  "ambito": "España",
+  "periodicidad": "puntual",
+  "origen": "ine",
+  "estado": "automatico",
+  "actualizado": "2026-10-13",
+  "notas": [
+    "Población residente en la fecha indicada (no media anual)."
+  ],
+  "serie": [
+    {
+      "desde": "2000-01-01",
+      "hasta": "2000-01-01",
+      "valor": 40470181.729502,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2000-07-01",
+      "hasta": "2000-07-01",
+      "valor": 40554387.348736,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2001-01-01",
+      "hasta": "2001-01-01",
+      "valor": 40665544.967937,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2001-07-01",
+      "hasta": "2001-07-01",
+      "valor": 40766049.387177,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2002-01-01",
+      "hasta": "2002-01-01",
+      "valor": 41035270.859351,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2002-07-01",
+      "hasta": "2002-07-01",
+      "valor": 41423519.715133,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2003-01-01",
+      "hasta": "2003-01-01",
+      "valor": 41827835.630978,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2003-07-01",
+      "hasta": "2003-07-01",
+      "valor": 42196231.145399,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2004-01-01",
+      "hasta": "2004-01-01",
+      "valor": 42547454.177776,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2004-07-01",
+      "hasta": "2004-07-01",
+      "valor": 42859172.24966,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2005-01-01",
+      "hasta": "2005-01-01",
+      "valor": 43296335.061774,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2005-07-01",
+      "hasta": "2005-07-01",
+      "valor": 43662613.030351,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2006-01-01",
+      "hasta": "2006-01-01",
+      "valor": 44009968.595974,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2006-07-01",
+      "hasta": "2006-07-01",
+      "valor": 44360521.235999,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2007-01-01",
+      "hasta": "2007-01-01",
+      "valor": 44784658.800205,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2007-07-01",
+      "hasta": "2007-07-01",
+      "valor": 45236004.357528,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2008-01-01",
+      "hasta": "2008-01-01",
+      "valor": 45668938.282191,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2008-07-01",
+      "hasta": "2008-07-01",
+      "valor": 45983168.509952,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2009-01-01",
+      "hasta": "2009-01-01",
+      "valor": 46239270.703734,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2009-07-01",
+      "hasta": "2009-07-01",
+      "valor": 46367550.006319,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2010-01-01",
+      "hasta": "2010-01-01",
+      "valor": 46486621.011706,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2010-07-01",
+      "hasta": "2010-07-01",
+      "valor": 46562482.603609,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2011-01-01",
+      "hasta": "2011-01-01",
+      "valor": 46667174.570246,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2011-07-01",
+      "hasta": "2011-07-01",
+      "valor": 46736257.03216,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2012-01-01",
+      "hasta": "2012-01-01",
+      "valor": 46818215.790189,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2012-07-01",
+      "hasta": "2012-07-01",
+      "valor": 46749303.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2013-01-01",
+      "hasta": "2013-01-01",
+      "valor": 46712650.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2013-07-01",
+      "hasta": "2013-07-01",
+      "valor": 46581124.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2014-01-01",
+      "hasta": "2014-01-01",
+      "valor": 46495744.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2014-07-01",
+      "hasta": "2014-07-01",
+      "valor": 46433050.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2015-01-01",
+      "hasta": "2015-01-01",
+      "valor": 46425722.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2015-07-01",
+      "hasta": "2015-07-01",
+      "valor": 46384379.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2016-01-01",
+      "hasta": "2016-01-01",
+      "valor": 46418884.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2016-07-01",
+      "hasta": "2016-07-01",
+      "valor": 46427100.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2017-01-01",
+      "hasta": "2017-01-01",
+      "valor": 46497393.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2017-07-01",
+      "hasta": "2017-07-01",
+      "valor": 46510461.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2018-01-01",
+      "hasta": "2018-01-01",
+      "valor": 46645070.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2018-07-01",
+      "hasta": "2018-07-01",
+      "valor": 46715383.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2019-01-01",
+      "hasta": "2019-01-01",
+      "valor": 46918951.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2019-07-01",
+      "hasta": "2019-07-01",
+      "valor": 47087778.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2020-01-01",
+      "hasta": "2020-01-01",
+      "valor": 47318050.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2020-07-01",
+      "hasta": "2020-07-01",
+      "valor": 47344852.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2021-01-01",
+      "hasta": "2021-01-01",
+      "valor": 47400798.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2021-04-01",
+      "hasta": "2021-04-01",
+      "valor": 47356065.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2021-07-01",
+      "hasta": "2021-07-01",
+      "valor": 47346836.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2021-10-01",
+      "hasta": "2021-10-01",
+      "valor": 47424595.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2022-01-01",
+      "hasta": "2022-01-01",
+      "valor": 47486727.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2022-04-01",
+      "hasta": "2022-04-01",
+      "valor": 47609145.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2022-07-01",
+      "hasta": "2022-07-01",
+      "valor": 47781354.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2022-10-01",
+      "hasta": "2022-10-01",
+      "valor": 47940295.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2023-01-01",
+      "hasta": "2023-01-01",
+      "valor": 48085361.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2023-04-01",
+      "hasta": "2023-04-01",
+      "valor": 48205962.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2023-07-01",
+      "hasta": "2023-07-01",
+      "valor": 48320520.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2023-10-01",
+      "hasta": "2023-10-01",
+      "valor": 48486865.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2024-01-01",
+      "hasta": "2024-01-01",
+      "valor": 48619695.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2024-04-01",
+      "hasta": "2024-04-01",
+      "valor": 48701130.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2024-07-01",
+      "hasta": "2024-07-01",
+      "valor": 48821936.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2024-10-01",
+      "hasta": "2024-10-01",
+      "valor": 48999880.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2025-01-01",
+      "hasta": "2025-01-01",
+      "valor": 49128297.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2025-04-01",
+      "hasta": "2025-04-01",
+      "valor": 49228887.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2025-07-01",
+      "hasta": "2025-07-01",
+      "valor": 49357354.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2025-10-01",
+      "hasta": "2025-10-01",
+      "valor": 49500617.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2026-01-01",
+      "hasta": "2026-01-01",
+      "valor": 49596376.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2026-04-01",
+      "hasta": "2026-04-01",
+      "valor": 49697381.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    },
+    {
+      "desde": "2026-07-01",
+      "hasta": "2026-07-01",
+      "valor": 49801559.0,
+      "fuente": {
+        "organismo": "INE",
+        "documento": "Estadística Continua de Población (ECP), serie ECP320",
+        "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=56934",
+        "fecha": null,
+        "id": null
+      },
+      "provisional": false
+    }
+  ]
+}

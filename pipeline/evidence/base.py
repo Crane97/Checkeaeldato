@@ -9,6 +9,7 @@ from typing import Protocol
 
 from rapidfuzz import fuzz
 
+from pipeline.concurrency import parallel_map
 from pipeline.models import ClaimEvidence, DetectedClaim, EvidenceItem
 
 logger = logging.getLogger(__name__)
@@ -78,60 +79,72 @@ def settled_by_factcheck(claim: DetectedClaim, items: list[EvidenceItem]) -> boo
     return False
 
 
+def _claim_evidence(
+    claim: DetectedClaim, sources: list[EvidenceSource], speech_date: dt.date
+) -> tuple[ClaimEvidence, dict[str, int], dict[str, int]]:
+    """One claim's evidence, with how many times each source ran and failed."""
+    runs = {source.name: 0 for source in sources}
+    failures = {source.name: 0 for source in sources}
+    items: list[EvidenceItem] = []
+    errors: list[str] = []
+    seen: set[str] = set()
+    for source in sources:
+        # Fallback sources (e.g. general web) only run if earlier ones found nothing.
+        skip_if_found = getattr(source, "skip_if_found", frozenset())
+        if any(i.source.kind in skip_if_found for i in items):
+            continue
+        if source.name in WEB_SEARCH_SOURCES and settled_by_factcheck(claim, items):
+            logger.info(
+                "%s: ya hay una verificación publicada; no se busca en %s",
+                claim.id,
+                source.name,
+            )
+            continue
+        runs[source.name] += 1
+        try:
+            found = source.search(claim, speech_date)
+        except EvidenceConfigError:
+            raise
+        except EvidenceError as exc:
+            found = SourceResult(errors=[str(exc)])
+        except Exception as exc:  # a bug in one source must not lose the other claims
+            logger.exception("Fallo inesperado en %s para %s", source.name, claim.id)
+            found = SourceResult(errors=[f"error inesperado {type(exc).__name__}: {exc}"])
+
+        errors.extend(f"{source.name}: {e}" for e in found.errors)
+        if found.errors and not found.items:
+            failures[source.name] += 1
+        for item in found.items:
+            if item.source.url in seen:
+                continue
+            seen.add(item.source.url)
+            items.append(item.model_copy(update={"id": f"E{len(items) + 1}"}))
+
+    if errors:
+        logger.warning("Evidencia incompleta para %s: %s", claim.id, "; ".join(errors))
+    return ClaimEvidence(claim_id=claim.id, items=items, errors=errors), runs, failures
+
+
 def collect_evidence(
-    claims: list[DetectedClaim], sources: list[EvidenceSource], speech_date: dt.date
+    claims: list[DetectedClaim],
+    sources: list[EvidenceSource],
+    speech_date: dt.date,
+    *,
+    max_workers: int = 1,
 ) -> list[ClaimEvidence]:
-    """Search every source for every claim, in priority order.
+    """Search every source for every claim, in priority order (claims in parallel with
+    `max_workers` > 1; the results keep the claims' order).
 
     Duplicated URLs keep the first (higher-priority) source; items are numbered
     E1, E2… per claim for the verdict prompt. A failure for one claim is recorded in
     its `errors`; a config error, or a source failing for every claim, stops the step
     so that "no evidence" never hides a broken source.
     """
-    results: list[ClaimEvidence] = []
-    runs = {source.name: 0 for source in sources}
-    failures = {source.name: 0 for source in sources}
-
-    for n, claim in enumerate(claims, start=1):
-        logger.info("Buscando evidencia de %s (%d/%d)", claim.id, n, len(claims))
-        items: list[EvidenceItem] = []
-        errors: list[str] = []
-        seen: set[str] = set()
-        for source in sources:
-            # Fallback sources (e.g. general web) only run if earlier ones found nothing.
-            skip_if_found = getattr(source, "skip_if_found", frozenset())
-            if any(i.source.kind in skip_if_found for i in items):
-                continue
-            if source.name in WEB_SEARCH_SOURCES and settled_by_factcheck(claim, items):
-                logger.info(
-                    "%s: ya hay una verificación publicada; no se busca en %s",
-                    claim.id,
-                    source.name,
-                )
-                continue
-            runs[source.name] += 1
-            try:
-                found = source.search(claim, speech_date)
-            except EvidenceConfigError:
-                raise
-            except EvidenceError as exc:
-                found = SourceResult(errors=[str(exc)])
-            except Exception as exc:  # a bug in one source must not lose the other claims
-                logger.exception("Fallo inesperado en %s para %s", source.name, claim.id)
-                found = SourceResult(errors=[f"error inesperado {type(exc).__name__}: {exc}"])
-
-            errors.extend(f"{source.name}: {e}" for e in found.errors)
-            if found.errors and not found.items:
-                failures[source.name] += 1
-            for item in found.items:
-                if item.source.url in seen:
-                    continue
-                seen.add(item.source.url)
-                items.append(item.model_copy(update={"id": f"E{len(items) + 1}"}))
-
-        if errors:
-            logger.warning("Evidencia incompleta para %s: %s", claim.id, "; ".join(errors))
-        results.append(ClaimEvidence(claim_id=claim.id, items=items, errors=errors))
+    logger.info("Buscando evidencia de %d afirmaciones", len(claims))
+    done = parallel_map(lambda c: _claim_evidence(c, sources, speech_date), claims, max_workers)
+    results = [r for r, _, _ in done]
+    runs = {source.name: sum(d[1][source.name] for d in done) for source in sources}
+    failures = {source.name: sum(d[2][source.name] for d in done) for source in sources}
 
     for name, count in failures.items():
         if runs[name] >= MIN_RUNS_TO_ABORT and count == runs[name]:
