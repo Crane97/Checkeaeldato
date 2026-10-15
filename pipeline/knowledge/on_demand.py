@@ -26,6 +26,7 @@ from pipeline.models import EvidenceItem
 logger = logging.getLogger(__name__)
 
 FIRST_YEAR = 1900  # everything the API has
+API_TITLE = "(consulta directa a la API oficial)"
 
 
 class OnDemandSeries:
@@ -99,7 +100,7 @@ class OnDemandSeries:
         source = item.source.model_copy(
             update={
                 "kind": "oficial",
-                "title": f"{ind.nombre} (consulta directa a la API oficial)",
+                "title": f"{ind.nombre} {API_TITLE}",
                 "date": self.today,
             }
         )

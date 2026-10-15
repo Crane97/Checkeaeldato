@@ -352,3 +352,40 @@ def ingerir(
             typer.echo("Aviso enviado.")
     if report.errors:
         raise typer.Exit(code=2)
+
+
+@app.command()
+def cobertura(
+    desde: Annotated[
+        str | None, typer.Option("--desde", help="Solo veredictos desde esta fecha (AAAA-MM-DD)")
+    ] = None,
+) -> None:
+    """Cobertura de la base por partido y tema: ¿ayuda por igual a todos?"""
+    import datetime as dt
+
+    from pipeline.knowledge.coverage import coverage
+
+    since = (
+        dt.datetime.combine(dt.date.fromisoformat(desde), dt.time(), tzinfo=dt.UTC)
+        if desde
+        else None
+    )
+    with _connect() as conn:
+        report = coverage(conn, since)
+        conn.rollback()
+    if not report.parties:
+        typer.echo("No hay veredictos guardados todavía.")
+        return
+    for title, groups in (("Por partido", report.parties), ("Por tema", report.topics)):
+        typer.secho(f"\n{title}", bold=True)
+        for g in groups:
+            typer.echo(
+                f"  {g.name:32} {g.total:4} veredictos · con datos de series {g.pct_data:3.0f} %"
+                f" · no verificable {g.pct_unverifiable:3.0f} %"
+            )
+    for line in report.alerts:
+        typer.secho(f"\nAlerta: {line}", fg=typer.colors.YELLOW)
+    for line in report.gaps:
+        typer.secho(f"Tema sin indicadores suficientes: {line}", fg=typer.colors.YELLOW)
+    for line in report.excluded:
+        typer.echo(f"Fuera de la comparación: {line}")

@@ -541,8 +541,17 @@ def build_steps(
             store.write("verdicts.json", verdicts, list[Verdict])
             recorder = getattr(deps, "record_verdicts", None)
             if recorder is not None:
+                from pipeline.knowledge.catalog import load_catalog
+                from pipeline.knowledge.coverage import load_topics
+
                 rows = verdict_rows(
-                    store.job_id, claims, verdicts, store.read("evidence.json", EvidenceRun).claims
+                    store.job_id,
+                    claims,
+                    verdicts,
+                    store.read("evidence.json", EvidenceRun).claims,
+                    speakers=store.read(SPEAKERS_FILE, SpeakerMap),
+                    indicator_topics={k: v.tema for k, v in load_catalog().items()},
+                    topics=load_topics(),
                 )
                 store.write(VERDICT_RECORD_FILE, recorder(rows), VerdictRecord)
             return not any(v.analysis_error for v in verdicts)

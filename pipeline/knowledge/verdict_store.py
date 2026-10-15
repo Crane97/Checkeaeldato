@@ -11,7 +11,9 @@ from collections.abc import Sequence
 
 import psycopg
 
-from pipeline.models import ClaimEvidence, DetectedClaim, Verdict
+from pipeline.knowledge.coverage import topic_of
+from pipeline.knowledge.on_demand import API_TITLE
+from pipeline.models import ClaimEvidence, DetectedClaim, SpeakerMap, Verdict
 
 
 def verdict_rows(
@@ -19,9 +21,15 @@ def verdict_rows(
     claims: Sequence[DetectedClaim],
     verdicts: Sequence[Verdict],
     evidence: Sequence[ClaimEvidence],
+    *,
+    speakers: SpeakerMap | None = None,
+    indicator_topics: dict[str, str] | None = None,
+    topics: dict[str, list[str]] | None = None,
 ) -> list[dict]:
-    """One row per verdict, with the evidence it cites (E# ids) and their observation ids."""
+    """One row per verdict, with the evidence it cites (E# ids) and their observation ids,
+    who said it (speaker and party as identified by the analysis) and its topic."""
     by_claim = {c.id: c for c in claims}
+    people = {s.label: s for s in (speakers.speakers if speakers else [])}
     items = {e.claim_id: {i.id: i for i in e.items} for e in evidence}
     rows = []
     for v in verdicts:
@@ -47,6 +55,18 @@ def verdict_rows(
                     for i in used
                 ],
                 "observation_ids": sorted({o for i in used for o in i.observation_ids}),
+                # Rests on a series: the local base (observation ids) or the official API.
+                "con_datos": any(
+                    i.observation_ids or i.source.title.endswith(API_TITLE) for i in used
+                ),  # fmt: skip
+                "orador": (people[claim.speaker].name if claim.speaker in people else None)
+                or claim.speaker,
+                "partido": people[claim.speaker].party if claim.speaker in people else None,
+                "tema": topic_of(
+                    claim.text_normalized,
+                    (indicator_topics or {}).get(claim.indicator or ""),
+                    topics or {},
+                ),
             }
         )
     return rows
@@ -65,8 +85,8 @@ def record_verdicts(
     for r in rows:
         conn.execute(
             "insert into verif.claims (job_id, claim_id, claim_normalizado, veredicto,"
-            " evidencia, observation_ids, modelo, version_prompts)"
-            " values (%s, %s, %s, %s, %s, %s, %s, %s)",
+            " evidencia, observation_ids, modelo, version_prompts, orador, partido, tema,"
+            " con_datos) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 r["job_id"],
                 r["claim_id"],
@@ -76,6 +96,10 @@ def record_verdicts(
                 r["observation_ids"],
                 model,
                 json.dumps(prompt_versions),
+                r.get("orador"),
+                r.get("partido"),
+                r.get("tema"),
+                r.get("con_datos", False),
             ),
         )
     return len(rows)
