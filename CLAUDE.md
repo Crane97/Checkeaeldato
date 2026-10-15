@@ -337,6 +337,8 @@ En la interfaz se puede etiquetar como **"bulo"** solo una afirmación `falso` c
 
 ## Base de conocimiento oficial en Supabase (en construcción, 2026-10-14)
 
+**Hoja de ruta, estado de cada fase y pendientes: `docs/base_de_conocimiento.md`.**
+
 Sustituirá a la base JSON. Esquemas `ref` (catálogo, observaciones, gobiernos, partidos,
 hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`) y `ops`
 (ingesta, migraciones), en `db/migrations/NNNN_*.sql` (cada migración pasa por
@@ -397,7 +399,18 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
 - **Trazabilidad**: cada veredicto se guarda en `verif.claims` con la evidencia citada y
   los `observation_ids` de las series locales (`conocimiento impacto` los encuentra). Un
   fallo al guardar no para el análisis; el informe avisa.
-- Pendiente (F2): hechos extraídos de la web reutilizables (`evid.web_facts`).
+- Pendiente (F2): hechos extraídos de la web reutilizables (`evid.web_facts`). Ver
+  `docs/base_de_conocimiento.md`.
+
+### Cobertura por partido y tema (fase G, 2026-10-14)
+
+- Cada veredicto guardado lleva orador, partido, tema y `con_datos` (si se apoyó en una
+  serie local o en la API). El tema sale del indicador o, si no hay, del tema con más
+  palabras clave de `pipeline/knowledge/temas.yaml` (términos jurídicos o técnicos, no de
+  encuadre; revisado por `neutrality-auditor`; cambiarlo exige nueva auditoría).
+- `uv run conocimiento cobertura [--desde]` compara partidos (con al menos 10 veredictos)
+  en los dos sentidos y señala temas frecuentes sin indicadores. Las alertas describen,
+  no valoran, y recuerdan que la diferencia puede deberse al tipo de afirmaciones.
 
 ### Políticos (decidido 2026-10-14)
 
@@ -552,6 +565,7 @@ uv run conocimiento revisar [--lista] [--indicador X] [--tipo gobierno]  # aprob
 uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
 uv run conocimiento retirar politico <id>        # rechaza algo ya aprobado (deja de usarse)
 uv run conocimiento ingerir [--simular] [--avisar] # ingesta INE/Eurostat/Seg. Social
+uv run conocimiento cobertura [--desde AAAA-MM-DD] # cobertura por partido y tema
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .
