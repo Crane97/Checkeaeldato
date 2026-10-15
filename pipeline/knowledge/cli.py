@@ -317,6 +317,13 @@ def ingerir(
         bool,
         typer.Option("--avisar", help="Envía un correo si hay errores, cuarentena o datos viejos"),
     ] = False,
+    territorial: Annotated[
+        bool,
+        typer.Option(
+            "--territorial",
+            help="También las series por comunidad y provincia (antes: conocimiento espacio)",
+        ),
+    ] = False,
 ) -> None:
     """Descarga las series automáticas (INE, Eurostat, Seguridad Social) y carga lo nuevo."""
     import datetime as dt
@@ -335,6 +342,21 @@ def ingerir(
                 force=forzar,
                 simulate=simular,
             )
+            if territorial:
+                from pipeline.knowledge.ingest import ingest_territorial
+                from pipeline.knowledge.territories import load_territories
+
+                extra = ingest_territorial(
+                    conn,
+                    load_catalog(),
+                    client,
+                    today=today,
+                    territories=load_territories(),
+                    only=set(indicador) if indicador else None,
+                    force=forzar,
+                    simulate=simular,
+                )
+                report.results += extra.results
             if simular:
                 conn.rollback()
             else:
@@ -403,3 +425,55 @@ def aprobar_oficiales() -> None:
         typer.echo("No había datos oficiales pendientes.")
     for indicator_id, n in sorted(counts.items()):
         typer.echo(f"{indicator_id:24} aprobados {n}")
+
+
+@app.command("cargar-territorios")
+def cargar_territorios() -> None:
+    """Carga data/knowledge/territorios.json (comunidades y provincias del INE)."""
+    from pipeline.knowledge.territories import load_territories, sync_territories
+
+    with _connect() as conn:
+        n = sync_territories(conn, load_territories())
+        conn.commit()
+    typer.echo(f"{n} territorios cargados o actualizados.")
+
+
+FREE_PLAN_MB = 500
+
+
+@app.command()
+def espacio() -> None:
+    """Tamaño actual de la base y estimación si se cargan las series territoriales."""
+    from pipeline.knowledge.territories import load_territories
+
+    catalog = load_catalog()
+    levels: dict[str, int] = {}
+    for t in load_territories():
+        levels[t.nivel] = levels.get(t.nivel, 0) + 1
+    with _connect() as conn:
+        size_mb = conn.execute("select pg_database_size(current_database())").fetchone()[0] / 1e6
+        rows, rel_bytes = conn.execute(
+            "select count(*), pg_total_relation_size('ref.observations') from ref.observations"
+        ).fetchone()
+        per_row = rel_bytes / rows if rows else 400
+        national = dict(
+            conn.execute(
+                "select indicator_id, count(*) from ref.observations"
+                " where territorio_code = 'ES' and vigente group by 1"
+            ).fetchall()
+        )
+        conn.rollback()
+    typer.echo(f"Base de datos: {size_mb:.1f} MB de {FREE_PLAN_MB} MB del plan Free")
+    typer.echo(f"Observaciones: {rows} filas, ~{per_row:.0f} bytes por fila con índices")
+    extra_rows = 0
+    for spec in catalog.values():
+        for src in spec.territorial:
+            n = national.get(spec.id) or 30  # no national series: ~30 periods
+            est = n * levels.get(src.nivel, 0)
+            extra_rows += est
+            typer.echo(f"  {spec.id}@{src.nivel}: ~{est} filas")
+    extra_mb = extra_rows * per_row / 1e6
+    typer.echo(
+        f"Territorial: ~{extra_rows} filas, ~{extra_mb:.1f} MB → total ~{size_mb + extra_mb:.1f} MB"
+        f" ({(size_mb + extra_mb) / FREE_PLAN_MB:.0%} del plan Free)"
+    )

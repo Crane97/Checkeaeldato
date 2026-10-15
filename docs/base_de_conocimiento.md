@@ -1,6 +1,6 @@
 # Base de conocimiento oficial: hoja de ruta y estado
 
-Última actualización: 2026-10-14. Las reglas detalladas de cada parte están en
+Última actualización: 2026-10-15. Las reglas detalladas de cada parte están en
 `CLAUDE.md` (secciones «Base de conocimiento oficial en Supabase», «Ingesta automática»,
 «El análisis con la base de conocimiento», «Políticos» y «Cobertura»). Este documento
 dice **qué está hecho, qué falta y cómo seguir**.
@@ -27,7 +27,7 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
 | **F2** | Datos extraídos de la web reutilizables por claves exactas (`evid.web_facts`), con cita literal comprobada; los del Gobierno no evitan la búsqueda | Hecha (0008) |
 | **G** | Cobertura por partido y tema (`conocimiento cobertura`), temas en `temas.yaml` revisados por neutralidad | Hecha (0007) |
 | **I** | Concurrencia en evidencia/veredicto (`PIPELINE_CONCURRENCY`), inserciones por lotes (carga inicial de 105 s a 10,6 s), tiempo por paso en el manifest y el resumen | Hecha |
-| **H** | Datos por comunidad autónoma y provincia (interruptor), municipios en Parquet; antes, estimar espacio frente al plan Free (500 MB; hoy ~20 MB) | **Pendiente** |
+| **H** | Territorios del INE (19 comunidades, 52 provincias), paro EPA y población por comunidad, Padrón por provincia (interruptor `--territorial`), Padrón de ~8.100 municipios en Parquet, detección del territorio en el análisis | Hecha (0009); base en ~25 MB |
 
 ## Pendiente, por orden
 
@@ -45,7 +45,9 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
    (`SUPABASE_DB_URL` con el pooler y usuario `ingesta.<ref>`, `SMTP_*`, `EMAIL_FROM`,
    `ALERT_EMAIL_TO`) y, cuando se decida, quitar `--simular` de
    `.github/workflows/ingesta.yml`.
-3. **Fase H** (en curso).
+3. Todas las fases del plan están hechas. Posibles ampliaciones: más indicadores
+   territoriales (paro registrado por comunidad, IPC por comunidad), municipios en más
+   indicadores.
 4. La afirmación de impuestos de `real-005` salió `no_verificable` (se esperaba `falso`)
    en la última evaluación: la búsqueda no trajo las rebajas fiscales oficiales.
 5. Mejoras anotadas: pensión media sin conector (la serie del INSS se carga a mano);
@@ -77,6 +79,11 @@ uv run conocimiento revisar [--lista] [--tipo T] [--indicador X]
 uv run conocimiento retirar <tipo> <id>      # rechaza algo ya aprobado
 uv run conocimiento impacto <observation_id> # veredictos que usaron un dato
 uv run conocimiento cobertura [--desde AAAA-MM-DD]
+uv run conocimiento espacio
+uv run conocimiento cargar-territorios
+uv run conocimiento aprobar-oficiales
+uv run python scripts/recopilar_territorios.py
+uv run python scripts/recopilar_padron_municipal.py
 uv run conocimiento cargar-politicos [--actualizar]
 uv run python scripts/recopilar_politicos.py # regenera politicians.json
 ```

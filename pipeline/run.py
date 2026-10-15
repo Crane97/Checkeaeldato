@@ -28,6 +28,8 @@ if TYPE_CHECKING:
     from pipeline.knowledge.on_demand import OnDemandSeries
     from pipeline.knowledge.web_facts import WebFactStore
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, prompt_hash, run_steps
+from pipeline.knowledge.municipal import INDICATOR as MUNICIPAL_INDICATOR
+from pipeline.knowledge.municipal import default_municipal
 from pipeline.knowledge.verdict_store import verdict_rows
 from pipeline.knowledge.web_facts import facts_evidence
 from pipeline.llm import ThinkingConfig
@@ -493,6 +495,14 @@ def build_steps(
         # (free) fact-check API is still asked, to recognise published debunks.
         base = deps.indicators.at(date)  # what was published on the speech date
         local = {c.id: item for c in searchable if (item := local_evidence(c, base, date))}
+        # Municipalities: the padrón's population from the local Parquet.
+        for c in searchable:
+            code = c.territory_code or ""
+            if c.id in local or not code.startswith("ES-M") or c.indicator != MUNICIPAL_INDICATOR:
+                continue
+            municipal = default_municipal()
+            if municipal is not None and (item := municipal.evidence(code, c.years, date)):
+                local[c.id] = item
         # Not in the local base: the official API, fetched now, before any web search.
         on_demand = getattr(deps, "on_demand", None)
         if on_demand is not None:

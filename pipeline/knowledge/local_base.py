@@ -13,12 +13,15 @@ Las observaciones se leen una vez (unos pocos miles de filas) y se resuelven en 
 import datetime as dt
 import hashlib
 import logging
+import re
 from dataclasses import dataclass, field
 
 import psycopg
 from pydantic import ValidationError
 
 from pipeline.indicators import Indicator, IndicatorBase, IndicatorSource, Observation
+from pipeline.knowledge.municipal import INDICATOR as MUNICIPAL_INDICATOR
+from pipeline.knowledge.municipal import MUNICIPAL_PATH
 from pipeline.knowledge.repository import ObservationRow, SourceRow, resolve_as_of
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,8 @@ _ORIGIN = {
     "sepe": "sepe",
     "bde": "bde",
 }
+# Province codes are ES-P + two digits; ES-PV is the Basque Country (a region).
+_PROVINCE = re.compile(r"ES-P\d{2}")
 _PERIODICITY = {"puntual": "puntual", "irregular": "irregular"}
 
 
@@ -50,6 +55,8 @@ class CatalogEntry:
 class KnowledgeIndicatorBase:
     catalog_entries: dict[str, CatalogEntry]
     rows: dict[str, list[ObservationRow]]
+    # Territory code → name, for the scope of regional series.
+    territory_names: dict[str, str] = field(default_factory=dict)
     # Problems building an indicator (kept out, reported, never silent).
     problems: list[str] = field(default_factory=list)
     _cache: dict[dt.date, IndicatorBase] = field(default_factory=dict, repr=False)
@@ -70,15 +77,22 @@ class KnowledgeIndicatorBase:
             " o.fecha_publicacion_estimada, o.version, o.vigente, o.estado,"
             " s.organismo, s.titulo, s.url, s.tipo, s.fecha"
             " from ref.observations o join ref.sources s on s.id = o.source_id"
-            " where o.estado = 'aprobado' and o.territorio_code = 'ES'"
-            " order by o.indicator_id, o.periodo_inicio, o.version"
+            " where o.estado = 'aprobado'"
+            " order by o.indicator_id, o.territorio_code, o.periodo_inicio, o.version"
         ).fetchall():
             source = SourceRow(organismo=r[13], titulo=r[14], url=r[15], tipo=r[16], fecha=r[17])
-            rows.setdefault(r[1], []).append(ObservationRow(*r[:13], source=source))
-        return cls(catalog, rows)
+            key = r[1] if r[5] == "ES" else f"{r[1]}@{r[5]}"
+            rows.setdefault(key, []).append(ObservationRow(*r[:13], source=source))
+        names = dict(conn.execute("select code, nombre from ref.territories").fetchall())
+        return cls(catalog, rows, territory_names=names)
 
-    def _indicator(self, entry: CatalogEntry, as_of: dt.date) -> Indicator | None:
-        resolved = resolve_as_of(self.rows.get(entry.id, []), as_of)
+    def _indicator(
+        self, entry: CatalogEntry, as_of: dt.date, key: str | None = None
+    ) -> Indicator | None:
+        """The series of `key` ("paro_epa" for Spain, "paro_epa@ES-AN" for a region)."""
+        key = key or entry.id
+        code = key.partition("@")[2]
+        resolved = resolve_as_of(self.rows.get(key, []), as_of)
         if not resolved:
             return None
         serie = [
@@ -118,6 +132,7 @@ class KnowledgeIndicatorBase:
                 periodicidad=_PERIODICITY.get(entry.frecuencia, entry.frecuencia),
                 origen=_ORIGIN.get(entry.conector, "manual"),  # type: ignore[arg-type]
                 estado="revisado",
+                ambito=self.territory_names.get(code, code) if code else "España",
                 actualizado=as_of,  # what was known on the speech date
                 notas=notes,
                 serie=serie,
@@ -134,10 +149,13 @@ class KnowledgeIndicatorBase:
         if as_of in self._cache:
             return self._cache[as_of]
         indicators = {}
-        for entry in self.catalog_entries.values():
-            ind = self._indicator(entry, as_of)
+        for key in self.rows:
+            entry = self.catalog_entries.get(key.partition("@")[0])
+            if entry is None:
+                continue
+            ind = self._indicator(entry, as_of, key)
             if ind is not None:
-                indicators[entry.id] = ind
+                indicators[key] = ind
         self._cache[as_of] = IndicatorBase(indicators)
         return self._cache[as_of]
 
@@ -152,14 +170,28 @@ class KnowledgeIndicatorBase:
         return self._today().usable()
 
     def catalog(self) -> str:
-        """One line per indicator with approved data, with its synonyms (detection)."""
+        """One line per indicator with approved data: its synonyms and the scopes it has
+        (Spain, regions, provinces), for the detection."""
+        today = self._today().indicators
         lines = []
-        for ind in self._today().usable():
-            entry = self.catalog_entries[ind.id]
+        for entry in self.catalog_entries.values():
+            keys = [k for k in today if k.partition("@")[0] == entry.id]
+            if not keys:
+                continue
+            scopes = []
+            if entry.id in today:
+                ind = today[entry.id]
+                scopes.append(f"España {ind.cubre_desde.year}–{ind.cubre_hasta.year}")
+            codes = [k.partition("@")[2] for k in keys if "@" in k]
+            if any(_PROVINCE.fullmatch(c) for c in codes):
+                scopes.append("por provincia")
+            if any(not _PROVINCE.fullmatch(c) for c in codes):
+                scopes.append("por comunidad autónoma")
+            if entry.id == MUNICIPAL_INDICATOR and MUNICIPAL_PATH.is_file():
+                scopes.append("por municipio")
             synonyms = f" Se nombra como: {', '.join(entry.sinonimos)}." if entry.sinonimos else ""
             lines.append(
-                f"- {ind.id}: {ind.nombre} ({ind.unidad}; {ind.ambito}; {ind.cubre_desde.year}–"
-                f"{ind.cubre_hasta.year}).{synonyms}"
+                f"- {entry.id}: {entry.nombre} ({entry.unidad}; {'; '.join(scopes)}).{synonyms}"
             )
         return "\n".join(lines)
 

@@ -213,6 +213,9 @@ class DetectedClaim(ClaimBase):
     # the years it refers to: when covered, the evidence comes from there, not the web.
     indicator: str | None = None
     years: list[int] = Field(default_factory=list)
+    # Region or province the datum is about (as named, and its code); None: Spain.
+    territory: str | None = None
+    territory_code: str | None = None
 
 
 class RejectedClaim(BaseModel):

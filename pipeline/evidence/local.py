@@ -15,6 +15,12 @@ def claim_period(claim: DetectedClaim) -> tuple[dt.date, dt.date] | None:
     return None
 
 
+def _series_key(claim: DetectedClaim) -> str:
+    """The local series of the claim's scope: national, or `indicator@territory`."""
+    code = claim.territory_code
+    return f"{claim.indicator}@{code}" if code and code != "ES" else claim.indicator  # type: ignore[return-value]
+
+
 def local_evidence(
     claim: DetectedClaim, base: IndicatorBase, speech_date: dt.date | None = None
 ) -> EvidenceItem | None:
@@ -32,13 +38,13 @@ def local_evidence(
     start, end = period
     if speech_date is not None:
         end = min(end, speech_date)
-        ind = base.indicators.get(claim.indicator)
+        ind = base.indicators.get(_series_key(claim))
         if ind is not None and end > ind.cubre_hasta and ind.actualizado >= speech_date:
             # "Now": the latest value published, even if it belongs to an earlier period.
             start, end = min(start, ind.serie[-1].desde), ind.cubre_hasta
     if end < start:
         return None
-    return base.evidence(claim.indicator, start, end)
+    return base.evidence(_series_key(claim), start, end)
 
 
 def partial_local_evidence(claim: DetectedClaim, base: IndicatorBase) -> EvidenceItem | None:
@@ -46,14 +52,14 @@ def partial_local_evidence(claim: DetectedClaim, base: IndicatorBase) -> Evidenc
     if claim.kind == "promesa" or not claim.indicator:
         return None
     period = claim_period(claim)
-    return base.partial_evidence(claim.indicator, *period) if period else None
+    return base.partial_evidence(_series_key(claim), *period) if period else None
 
 
 def on_demand_evidence(claim: DetectedClaim, source, speech_date: dt.date) -> EvidenceItem | None:
     """The official API's series when the local base does not cover the claim's period
     (`source` is an OnDemandSeries). Promises and claims without indicator: None."""
-    if claim.kind == "promesa" or not claim.indicator:
-        return None
+    if claim.kind == "promesa" or not claim.indicator or claim.territory_code:
+        return None  # the API fetch is national; territories come from the base
     period = claim_period(claim)
     if period is None:
         return None

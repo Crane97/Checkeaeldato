@@ -174,8 +174,8 @@ def test_a_revision_is_a_new_version_and_only_one_is_current(db):
 def test_web_facts_need_exact_keys(db):
     _fails(
         db,
-        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente)"
-        " values ('x', '{\"indicador\": \"smi\"}', 'https://a.es', 'medio')",
+        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente, valor, cita)"
+        " values ('x', '{\"indicador\": \"smi\"}', 'https://a.es', 'medio', 1, 'cita')",
         match="check",
     )
 
@@ -242,8 +242,8 @@ def test_source_identity_and_nan_values_are_protected(db):
 def test_web_fact_keys_are_exactly_three_strings(db, claves):
     _fails(
         db,
-        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente)"
-        " values ('x', %s::jsonb, 'https://a.es', 'medio')",
+        "insert into evid.web_facts (enunciado, claves, source_url, tipo_fuente, valor, cita)"
+        " values ('x', %s::jsonb, 'https://a.es', 'medio', 1, 'cita')",
         (claves,),
         "check",
     )

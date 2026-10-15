@@ -414,6 +414,26 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   Caducan a 30 días salvo periodos cerrados. Los veredictos guardan los `web_fact_ids`.
 - Concurrencia: `PIPELINE_CONCURRENCY` afirmaciones a la vez en evidencia y veredicto.
 
+### Datos territoriales (fase H, 2026-10-14)
+
+- **Territorios** (`data/knowledge/territorios.json`, de la API del INE con
+  `scripts/recopilar_territorios.py`; `conocimiento cargar-territorios`): 19 comunidades y
+  ciudades autónomas (código ISO `ES-AN`) y 52 provincias (`ES-P28`). Alias: nombre oficial
+  en cada lengua cooficial y forma castellana habitual, igual para todos (revisado por
+  `neutrality-auditor`); nada de denominaciones políticas. Un nombre ambiguo ("Madrid",
+  "Valencia": comunidad, provincia y municipio) no se resuelve.
+- **Series por comunidad y provincia** (catálogo, campo `territorial`, con rango y salto
+  propios del nivel): paro EPA y población (ECP) por comunidad; población del Padrón por
+  provincia. Solo se cargan con `conocimiento ingerir --territorial` (interruptor); antes,
+  `conocimiento espacio` estima el tamaño (hoy ~25 MB de 500). La ingesta avisa si falta
+  algún territorio.
+- **Municipios** en Parquet local (`data/knowledge/municipios/padron_municipal.parquet`,
+  `scripts/recopilar_padron_municipal.py`, CSV oficiales del INE): población del Padrón de
+  ~8.100 municipios; un municipio solo se reconoce si su nombre es único o se da la
+  provincia, y nunca si coincide con una comunidad o provincia.
+- **En el análisis**: la detección marca `territory`; la evidencia sale de la serie de ese
+  territorio (nunca de la nacional) o del Parquet municipal.
+
 ### Cobertura por partido y tema (fase G, 2026-10-14)
 
 - Cada veredicto guardado lleva orador, partido, tema y `con_datos` (si se apoyó en una
@@ -579,6 +599,9 @@ uv run conocimiento impacto <observation_id>     # veredictos que usaron un dato
 uv run conocimiento retirar politico <id>        # rechaza algo ya aprobado (deja de usarse)
 uv run conocimiento ingerir [--simular] [--avisar] # ingesta INE/Eurostat/Seg. Social
 uv run conocimiento cobertura [--desde AAAA-MM-DD] # cobertura por partido y tema
+uv run conocimiento espacio                      # tamaño de la base y estimación territorial
+uv run conocimiento ingerir --territorial        # también series por comunidad y provincia
+uv run conocimiento aprobar-oficiales            # aprueba lo pendiente de fuente oficial primaria
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
 uv run ruff check . && uv run ruff format .

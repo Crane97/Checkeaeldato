@@ -30,7 +30,7 @@ from pipeline.indicator_update import (
     build_ine,
 )
 from pipeline.indicators import Indicator
-from pipeline.knowledge.catalog import IndicatorSpec
+from pipeline.knowledge.catalog import IndicatorSpec, TerritorialSource
 from pipeline.knowledge.observations_load import LoadSummary, candidates_from_json, load_series
 
 logger = logging.getLogger(__name__)
@@ -265,4 +265,173 @@ def ingest(
         )
         report.results += results
     report.stale = stale_indicators(conn, specs, today)
+    return report
+
+
+# --- Territorial series (fase H) ----------------------------------------------
+
+INE_TABLE_DATA = "https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/{tabla}"
+INE_OPERATION_TABLES = "https://servicios.ine.es/wstempus/js/ES/TABLAS_OPERACION/{op}"
+PADRON_PROVINCE_TABLE = ": Población por municipios y sexo."
+
+
+def _json(client: httpx.Client, url: str, **params) -> list | dict:
+    response = client.get(url, params=params, timeout=120)
+    response.raise_for_status()
+    data = response.json()
+    if isinstance(data, dict) and "status" in data:
+        raise IngestError(f"INE: {data['status']}")
+    return data
+
+
+def _parts(name: str) -> list[str]:
+    return [p.strip() for p in name.split(".") if p.strip()]
+
+
+def territorial_series(
+    src: TerritorialSource, client: httpx.Client, territories
+) -> tuple[list[tuple[str, str, int]], list[str]]:
+    """[(INE series code, territory code, table)] for one territorial source, and the
+    names that could not be matched to exactly one territory (reported, not guessed)."""
+    from pipeline.knowledge.territories import resolve
+
+    found: list[tuple[str, str, int]] = []
+    unmatched: list[str] = []
+    if src.padron_provincial:
+        tables = [
+            t["Id"]
+            for t in _json(client, INE_OPERATION_TABLES.format(op="DPOP"))
+            if t["Nombre"].strip().endswith(PADRON_PROVINCE_TABLE)
+        ]
+        for table in tables:
+            rows = _json(client, INE_TABLE_DATA.format(tabla=table), nult=1)
+            first = rows[0]  # the province total comes first
+            parts = _parts(first["Nombre"])
+            code = resolve(parts[0], territories, "provincia") if len(parts) > 1 else None
+            if code is None or parts[1] != "Total":
+                unmatched.append(first["Nombre"])
+            else:
+                found.append((first["COD"], code, table))
+        return found, unmatched
+    wanted = set(src.filtro)
+    for row in _json(client, INE_TABLE_DATA.format(tabla=src.tabla), nult=1):
+        parts = _parts(row["Nombre"])
+        if not wanted <= set(parts):
+            continue
+        rest = [p for p in parts if p not in wanted]
+        if len(rest) != 1 or rest[0].lower().startswith("total"):
+            continue
+        code = resolve(rest[0], territories, src.nivel)
+        if code is None:
+            unmatched.append(row["Nombre"])
+        else:
+            found.append((row["COD"], code, src.tabla))  # type: ignore[arg-type]
+    return found, unmatched
+
+
+def territorial_candidates(
+    spec: IndicatorSpec,
+    src: TerritorialSource,
+    client: httpx.Client,
+    today: dt.date,
+    territories,
+) -> tuple[list, list[str]]:
+    """Validated-ready candidates of every territory of one source, and problems."""
+    from dataclasses import replace
+
+    series, problems = territorial_series(src, client, territories)
+    problems = [f"sin territorio único: {n}" for n in problems]
+    periodicity = (
+        spec.frecuencia if spec.frecuencia in ("mensual", "trimestral", "anual") else "puntual"
+    )
+    rows = []
+    for cod, code, table in series:
+        ine = IneSpec(
+            id=spec.id, nombre=spec.nombre, unidad=spec.unidad, cod=cod, tabla=table,
+            documento=spec.nombre, periodicidad=periodicity,  # type: ignore[arg-type]
+        )  # fmt: skip
+        try:
+            ind = build_ine(ine, client, today=today)
+        except (IndicatorUpdateError, httpx.HTTPError, ValueError) as exc:
+            problems.append(f"{code} ({cod}): {exc}")
+            continue
+        rows += [
+            (replace(c, territorio_code=code), source)
+            for c, source in candidates_from_json(ind, spec)
+        ]
+    return rows, problems
+
+
+def ingest_territorial(
+    conn: psycopg.Connection,
+    catalog: dict[str, IndicatorSpec],
+    client: httpx.Client,
+    *,
+    today: dt.date,
+    territories,
+    only: set[str] | None = None,
+    force: bool = False,
+    simulate: bool = False,
+) -> IngestReport:
+    """Series by region and province (the switch `ingerir --territorial`): one ingest run;
+    each source is validated with its own plausible range and skipped if unchanged."""
+    report = IngestReport(simulated=simulate)
+    run_id = conn.execute(
+        "insert into ops.ingest_runs (conector) values ('ine_territorial') returning id"
+    ).fetchone()[0]
+    loaded: list[LoadSummary] = []
+    for spec in catalog.values():
+        if not spec.territorial or (only is not None and spec.id not in only):
+            continue
+        for src in spec.territorial:
+            label = f"{spec.id}@{src.nivel}"
+            try:
+                rows, problems = territorial_candidates(spec, src, client, today, territories)
+            except (IngestError, httpx.HTTPError, ValueError) as exc:
+                report.results.append(IndicatorResult(label, "error", error=str(exc)))
+                continue
+            expected = sum(1 for t in territories if t.nivel == src.nivel)
+            got = {c.territorio_code for c, _ in rows}
+            if rows and len(got) < expected:
+                missing = sorted(
+                    t.nombre for t in territories if t.nivel == src.nivel and t.code not in got
+                )
+                problems.append(f"faltan {expected - len(got)} territorios: {', '.join(missing)}")
+            digest = hashlib.sha256(
+                json.dumps(
+                    sorted((c.territorio_code, c.periodo, c.valor) for c, _ in rows)
+                ).encode()
+            ).hexdigest()
+            if not rows:
+                report.results.append(
+                    IndicatorResult(label, "error", error="; ".join(problems) or "sin series")
+                )
+                continue
+            if not force and _state(conn, "ine_territorial", label) == digest:
+                report.results.append(IndicatorResult(label, "sin_cambios"))
+                continue
+            limits: dict = {"rango_min": src.rango_min, "rango_max": src.rango_max}
+            if src.salto_max_puntos or src.salto_max_pct:
+                limits |= {
+                    "salto_max_puntos": src.salto_max_puntos,
+                    "salto_max_pct": src.salto_max_pct,
+                }
+            ranged = spec.model_copy(update=limits)
+            summary = load_series(conn, ranged, rows, run_id=run_id, today=today, curated=False)
+            summary.errors += problems
+            loaded.append(summary)
+            _save_state(conn, "ine_territorial", label, digest)
+            report.results.append(IndicatorResult(label, "cargado", summary=summary))
+    conn.execute(
+        "update ops.ingest_runs set fin = now(), estado = %s, filas_nuevas = %s,"
+        " revisiones = %s, cuarentena = %s, errores = %s where id = %s",
+        (
+            "simulacion" if simulate else "ok",
+            sum(s.new for s in loaded),
+            sum(s.revisions for s in loaded),
+            sum(s.quarantine for s in loaded),
+            json.dumps(report.errors, ensure_ascii=False),
+            run_id,
+        ),
+    )
     return report

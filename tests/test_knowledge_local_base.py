@@ -81,3 +81,50 @@ def test_the_development_base_answers_a_golden_value(supabase_url):
     item = base.at(D(2026, 10, 14)).evidence("paro_epa", D(2013, 1, 1), D(2013, 3, 31))
     assert "2013T1 26,94" in item.excerpt and item.observation_ids
     assert item.source.kind == "indicador_local"
+
+
+def _territorial_base() -> KnowledgeIndicatorBase:
+    andalucia = [
+        ObservationRow(10 + i, "paro_epa", p, s, e, "ES-AN", v, ENTRY.unidad, pub, False, 1,
+                       True, "aprobado", INE)  # fmt: skip
+        for i, (p, s, e, v, pub) in enumerate([
+            ("2012T4", D(2012, 10, 1), D(2012, 12, 31), 35.71, D(2013, 1, 28)),
+            ("2013T1", D(2013, 1, 1), D(2013, 3, 31), 36.77, D(2013, 4, 28)),
+        ])
+    ]  # fmt: skip
+    return KnowledgeIndicatorBase(
+        {"paro_epa": ENTRY},
+        {"paro_epa": ROWS, "paro_epa@ES-AN": andalucia},
+        territory_names={"ES-AN": "Andalucía"},
+    )
+
+
+def test_regional_claims_use_the_regional_series_and_never_the_national_one():
+    base = _territorial_base()
+    regional = DetectedClaim(
+        id="c1", speaker="A", text_original="en Andalucía el paro superó el 36 %",
+        text_normalized="La tasa de paro EPA de Andalucía superó el 36 % en 2013",
+        claim_type="estadistica", indicator="paro_epa", years=[2013],
+        territory="Andalucía", territory_code="ES-AN",
+    )  # fmt: skip
+    item = local_evidence(regional, base.at(D(2014, 1, 1)), D(2014, 1, 1))
+    assert "Andalucía" in item.excerpt and "36,77" in item.excerpt and "27,16" not in item.excerpt
+    elsewhere = regional.model_copy(update={"territory": "Murcia", "territory_code": "ES-MC"})
+    assert local_evidence(elsewhere, base.at(D(2014, 1, 1)), D(2014, 1, 1)) is None
+    assert "por comunidad autónoma" in base.catalog()
+
+
+def test_detection_drops_the_indicator_when_the_territory_is_ambiguous():
+    from pipeline.claims import ExtractedClaim, _indicator_for, _territory_code
+
+    def item(territory):
+        return ExtractedClaim(
+            segment=0, quote="x", text_normalized="x", claim_type="estadistica",
+            search_queries=[], speaker="", needs_context=False, indicator="paro_epa",
+            territory=territory,
+        )  # fmt: skip
+
+    clear = item("Andalucía")
+    assert (_indicator_for(clear, {"paro_epa"}), _territory_code(clear)) == ("paro_epa", "ES-AN")
+    assert _indicator_for(item("Madrid"), {"paro_epa"}) is None  # region or province?
+    assert (_indicator_for(item(""), {"paro_epa"}), _territory_code(item(""))) == ("paro_epa", None)

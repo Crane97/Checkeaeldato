@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.143.0",
     "httpx",
     "psycopg[binary]>=3.2",
+    "pyarrow>=17",
     "pydantic>=2",
     "pydantic-settings>=2",
     "pyyaml>=6",

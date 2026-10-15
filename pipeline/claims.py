@@ -70,6 +70,32 @@ class ExtractedClaim(BaseModel):
     # Id from <indicadores> the claim is about ("" if none) and the years it refers to.
     indicator: str = ""
     years: list[int] = Field(default_factory=list)
+    # Region or province the datum is about, as named ("" for Spain as a whole).
+    territory: str = ""
+
+
+def _territory_code(item: "ExtractedClaim") -> str | None:
+    """The territory's code, or None if the claim is national or the name is ambiguous."""
+    if not item.territory.strip():
+        return None
+    from pipeline.knowledge.municipal import default_municipal
+    from pipeline.knowledge.territories import candidates, load_territories
+
+    regions = candidates(item.territory, load_territories())
+    if regions:  # a region or province ("Madrid" may be both, and a city: ambiguous)
+        return regions.pop() if len(regions) == 1 else None
+    municipal = default_municipal()
+    return municipal.resolve(item.territory) if municipal else None
+
+
+def _indicator_for(item: "ExtractedClaim", known: set[str]) -> str | None:
+    """The indicator only if its scope is known: national, or a territory resolved without
+    doubt. A national series must never answer a claim about a region."""
+    if item.indicator not in known:
+        return None
+    if item.territory.strip() and _territory_code(item) is None:
+        return None
+    return item.indicator
 
 
 class DetectionResult(BaseModel):
@@ -283,7 +309,9 @@ def detect_claims(
                     id="pending",
                     speaker=_attributed_speaker(segments[first], item, input_kind),
                     kind=item.kind,
-                    indicator=item.indicator if item.indicator in known_indicators else None,
+                    indicator=_indicator_for(item, known_indicators),
+                    territory=item.territory.strip() or None,
+                    territory_code=_territory_code(item),
                     years=sorted({y for y in item.years if 1900 <= y <= 2100}),
                     text_original=item.quote.strip(),
                     text_normalized=item.text_normalized.strip(),

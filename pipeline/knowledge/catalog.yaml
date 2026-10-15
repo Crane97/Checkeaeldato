@@ -58,6 +58,9 @@ indicadores:
     retraso_publicacion_dias: 28
     conector: ine
     codigo_fuente: EPA452434
+    territorial:
+      - {nivel: ccaa, tabla: 65334, filtro: [Tasa de paro de la población, Ambos sexos, Total],
+         rango_min: 0, rango_max: 60, salto_max_puntos: 15}
 
   - id: paro_juvenil_epa
     nombre: Tasa de paro de los menores de 25 años (EPA)
@@ -288,6 +291,9 @@ indicadores:
     retraso_publicacion_dias: 60
     conector: ine
     codigo_fuente: ECP320
+    territorial:
+      - {nivel: ccaa, tabla: 56940, filtro: [Total, Todas las edades, Población, Número],
+         rango_min: 50000, rango_max: 10000000}
 
   - id: pib
     nombre: Producto interior bruto (PIB) a precios corrientes
@@ -402,3 +408,28 @@ indicadores:
     retraso_publicacion_dias: 150
     conector: eurostat
     codigo_fuente: yth_demo_030?unit=AVG&sex=T
+
+  - id: poblacion_padron
+    nombre: Población según el Padrón municipal (cifras oficiales)
+    definicion: >-
+      Población empadronada a 1 de enero según las cifras oficiales de la revisión del
+      Padrón municipal (INE). No es la Estadística Continua de Población (indicador
+      poblacion), que da otra cifra para la misma fecha.
+    unidad: personas
+    frecuencia: puntual
+    organismo: INE
+    notas_metodologicas: >-
+      Solo por provincia y municipio (las tablas nacionales y autonómicas del Padrón se
+      dejaron de actualizar en 2021; para España y comunidades, usar poblacion). Los
+      municipios están en data/knowledge/municipios/ (Parquet).
+    sinonimos: [padrón, empadronados, habitantes empadronados, población del municipio]
+    rango_min: 1
+    rango_max: 8000000
+    salto_max_pct: 15
+    max_antiguedad_dias: 800
+    tema: otros
+    retraso_publicacion_dias: 340
+    conector: manual    # sin serie nacional: solo territorial (ingerir --territorial)
+    codigo_fuente: null
+    territorial:
+      - {nivel: provincia, padron_provincial: true, rango_min: 5000, rango_max: 8000000}

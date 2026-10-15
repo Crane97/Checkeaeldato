@@ -1,5 +1,6 @@
 """Catálogo de indicadores (catalog.yaml) y su sincronización con ref.indicators."""
 
+import json
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
@@ -30,6 +31,29 @@ Frecuencia = Literal["mensual", "trimestral", "anual", "puntual", "irregular"]
 Conector = Literal["ine", "eurostat", "seguridad_social", "sepe", "bde", "boe", "manual"]
 
 
+class TerritorialSource(BaseModel):
+    """Where an indicator's series by region or province come from (fase H)."""
+
+    nivel: Literal["ccaa", "provincia"]
+    # An INE table with one series per territory, picked by the parts of its name…
+    tabla: int | None = None
+    filtro: list[str] = Field(default_factory=list)
+    # …or the province totals of the padrón's municipal tables (one table per province).
+    padron_provincial: bool = False
+    # Plausible range and jump at this level (the national ones do not fit a region: small
+    # samples, like the EPA in Ceuta and Melilla, swing more between quarters).
+    rango_min: float | None = None
+    rango_max: float | None = None
+    salto_max_pct: float | None = Field(default=None, gt=0)
+    salto_max_puntos: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _one_source(self) -> Self:
+        if (self.tabla is None) == (not self.padron_provincial):
+            raise ValueError("hace falta una tabla del INE o padron_provincial, no ambas")
+        return self
+
+
 class IndicatorSpec(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     nombre: str
@@ -48,6 +72,7 @@ class IndicatorSpec(BaseModel):
     retraso_publicacion_dias: int = Field(ge=0)
     conector: Conector
     codigo_fuente: str | None = None
+    territorial: list[TerritorialSource] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -98,6 +123,7 @@ _COLUMNS = (
     "retraso_publicacion_dias",
     "conector",
     "codigo_fuente",
+    "territorial",
 )
 
 
@@ -107,7 +133,7 @@ def sync_catalog(conn: psycopg.Connection, catalog: dict[str, IndicatorSpec]) ->
     report = SyncReport()
     cols = ", ".join(_COLUMNS)
     for spec in catalog.values():
-        values = [getattr(spec, c) for c in _COLUMNS]
+        values = [_db_value(spec, c) for c in _COLUMNS]
         row = conn.execute(
             f"select {cols} from ref.indicators where id = %s", (spec.id,)
         ).fetchone()
@@ -117,7 +143,9 @@ def sync_catalog(conn: psycopg.Connection, catalog: dict[str, IndicatorSpec]) ->
                 f"insert into ref.indicators (id, {cols}) values ({marks})", [spec.id, *values]
             )
             report.new.append(spec.id)
-        elif [_plain(v) for v in row] == [_plain(v) for v in values]:
+        elif [_cmp(c, v) for c, v in zip(_COLUMNS, row, strict=True)] == [
+            _cmp(c, v) for c, v in zip(_COLUMNS, values, strict=True)
+        ]:
             report.unchanged.append(spec.id)
         else:
             sets = ", ".join(f"{c} = %s" for c in _COLUMNS)
@@ -129,7 +157,23 @@ def sync_catalog(conn: psycopg.Connection, catalog: dict[str, IndicatorSpec]) ->
     return report
 
 
+def _db_value(spec: IndicatorSpec, column: str) -> object:
+    if column == "territorial":
+        return json.dumps([t.model_dump() for t in spec.territorial])
+    return getattr(spec, column)
+
+
+def _cmp(column: str, value: object) -> object:
+    """Value for comparing the YAML with the database (jsonb reorders keys)."""
+    if column == "territorial":
+        data = json.loads(value) if isinstance(value, str) else value
+        return json.dumps(data, sort_keys=True)
+    return _plain(value)
+
+
 def _plain(value: object) -> object:
     """Compare Decimal from the database with floats from the YAML (only Decimals: a text
     such as "nan" must not become a float)."""
-    return float(value) if isinstance(value, Decimal) else value
+    if isinstance(value, Decimal):
+        return float(value)
+    return value
