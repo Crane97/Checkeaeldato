@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     smtp_user: str | None = None
     smtp_password: SecretStr | None = None
     email_from: str | None = None  # defaults to SMTP_USER
+    # Claims processed at once in the evidence and verdict steps (1 = one by one).
+    pipeline_concurrency: int = Field(default=4, ge=1, le=16)
     # Who receives the daily ingestion alerts (`conocimiento ingerir --avisar`).
     alert_email_to: str | None = None
 

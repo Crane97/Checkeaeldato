@@ -4,6 +4,7 @@ import datetime as dt
 import hashlib
 import logging
 import os
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -225,6 +226,7 @@ def run_steps(
 
         hashes = _current_hashes(step, prompts_dir)
         logger.info("Paso %s: ejecutando", step.name)
+        started = time.monotonic()
         try:
             outcome = step.run(store)
         except Exception as exc:
@@ -235,6 +237,7 @@ def run_steps(
                 # Steps attach what they already spent before failing.
                 cost=list(getattr(exc, "step_costs", [])),
                 error=f"{type(exc).__name__}: {exc}",
+                seconds=round(time.monotonic() - started, 1),
             )
             store.save_manifest()
             raise
@@ -245,6 +248,7 @@ def run_steps(
             finished_at=_now(),
             prompt_hashes=hashes,
             cost=outcome.cost,
+            seconds=round(time.monotonic() - started, 1),
         )
         store.save_manifest()
     return to_run

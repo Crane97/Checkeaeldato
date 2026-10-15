@@ -540,6 +540,7 @@ TAVILY_API_KEY=
 TAVILY_SEARCH_DEPTH=basic       # basic (1 crédito) | advanced (2)
 TAVILY_MAX_RESULTS=5            # 1–20
 TAVILY_CACHE_DAYS=30            # días que se reutiliza una búsqueda guardada
+PIPELINE_CONCURRENCY=4          # afirmaciones a la vez en evidencia y veredicto (1 = en serie)
 VERDICT_THINKING=               # opcional: true/false; sin definir = defecto del modelo
 VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5

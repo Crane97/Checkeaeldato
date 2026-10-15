@@ -136,6 +136,7 @@ def load_series(
         previous_values=previous,
     )
     summary = LoadSummary(spec.id)
+    to_store = []
     for d in decisions:
         if d.action == "error":
             summary.errors.append(f"{d.candidate.periodo}: {'; '.join(d.motivos)}")
@@ -143,46 +144,71 @@ def load_series(
         if d.action == "sin_cambios":
             summary.unchanged += 1
             continue
-        _store(conn, spec, d, sources[(d.candidate.periodo, d.candidate.territorio_code)], run_id)
+        to_store.append(d)
         summary.new += d.action == "nueva"
         summary.revisions += d.action == "revision"
         summary.quarantine += d.estado == "cuarentena"
         summary.pending += d.estado == "pendiente"
+    _store_all(conn, spec, to_store, sources, run_id)
     return summary
 
 
-def _store(
-    conn: psycopg.Connection, spec: IndicatorSpec, d: Decision, source: dict, run_id: int
+def _store_all(
+    conn: psycopg.Connection,
+    spec: IndicatorSpec,
+    decisions: list[Decision],
+    sources: dict[tuple[str, str], dict],
+    run_id: int,
 ) -> None:
-    c = d.candidate
-    if d.action == "revision":
-        conn.execute(
+    """Store in batches (one round trip per batch through psycopg's pipeline mode, instead
+    of one per row): first retire the current versions being revised, then insert."""
+    if not decisions:
+        return
+    source_ids: dict[tuple, int] = {}
+    for d in decisions:
+        src = sources[(d.candidate.periodo, d.candidate.territorio_code)]
+        key = (src["organismo"], src["documento"], src["url"])
+        if key not in source_ids:
+            source_ids[key] = _source_id(conn, src)
+    with conn.cursor() as cur:
+        cur.executemany(
             "update ref.observations set vigente = false where indicator_id = %s"
             " and periodo = %s and territorio_code = %s and vigente",
-            (c.indicator_id, c.periodo, c.territorio_code),
+            [
+                (d.candidate.indicator_id, d.candidate.periodo, d.candidate.territorio_code)
+                for d in decisions
+                if d.action == "revision"
+            ],
         )
-    conn.execute(
-        "insert into ref.observations (indicator_id, periodo, periodo_inicio, periodo_fin,"
-        " territorio_code, valor, unidad, fecha_publicacion, fecha_publicacion_estimada,"
-        " version, vigente, estado, source_id, ingest_run_id, raw)"
-        " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s, %s, %s, %s)",
-        (
-            c.indicator_id,
-            c.periodo,
-            c.periodo_inicio,
-            c.periodo_fin,
-            c.territorio_code,
-            c.valor,
-            spec.unidad,
-            d.fecha_publicacion,
-            d.fecha_publicacion_estimada,
-            d.version,
-            d.estado,
-            _source_id(conn, source),
-            run_id,
-            json.dumps({"motivos": d.motivos}, ensure_ascii=False) if d.motivos else None,
-        ),
-    )
+        rows = []
+        for d in decisions:
+            c = d.candidate
+            src = sources[(c.periodo, c.territorio_code)]
+            rows.append(
+                (
+                    c.indicator_id,
+                    c.periodo,
+                    c.periodo_inicio,
+                    c.periodo_fin,
+                    c.territorio_code,
+                    c.valor,
+                    spec.unidad,
+                    d.fecha_publicacion,
+                    d.fecha_publicacion_estimada,
+                    d.version,
+                    d.estado,
+                    source_ids[(src["organismo"], src["documento"], src["url"])],
+                    run_id,
+                    json.dumps({"motivos": d.motivos}, ensure_ascii=False) if d.motivos else None,
+                )
+            )
+        cur.executemany(
+            "insert into ref.observations (indicator_id, periodo, periodo_inicio, periodo_fin,"
+            " territorio_code, valor, unidad, fecha_publicacion, fecha_publicacion_estimada,"
+            " version, vigente, estado, source_id, ingest_run_id, raw)"
+            " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, true, %s, %s, %s, %s)",
+            rows,
+        )
 
 
 def load_json_base(

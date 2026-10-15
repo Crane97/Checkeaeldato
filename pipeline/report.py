@@ -110,6 +110,7 @@ def build_report(
     promises: list[PromiseVerdict] | None = None,
     cost: RunCost,
     generated_at: dt.datetime,
+    step_seconds: dict[str, float] | None = None,
     extra_warnings: list[str] | None = None,
 ) -> Report:
     by_claim = {v.claim_id: v for v in verdicts}
@@ -152,6 +153,7 @@ def build_report(
         claims=claims,
         promises=assessed,
         cost=cost,
+        step_seconds=step_seconds or {},
         warnings=[*(extra_warnings or []), *_warnings(detection, verdicts, cost, promises or [])],
     )
 
@@ -225,6 +227,11 @@ def format_summary(report: Report, report_path: str) -> str:
         f"(Claude: {llm:.4f} $ en {_plural(calls, 'llamada', 'llamadas')}; "
         f"transcripción: {audio:.4f} $)",
     ]
+    if report.step_seconds:
+        times = ", ".join(f"{k} {v:.0f} s" for k, v in report.step_seconds.items())
+        lines.append(
+            f"  Tiempo por paso: {times} (total {sum(report.step_seconds.values()):.0f} s)"
+        )
     searches = [e for e in report.cost.entries if e.provider in ("tavily", "indicadores")]
     if searches:
         lines += [f"  {line}" for line in format_searches(searches).splitlines()]

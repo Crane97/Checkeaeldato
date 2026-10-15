@@ -115,6 +115,10 @@ class LiveDeps:
         return self.settings.model_for(step)
 
     @property
+    def concurrency(self) -> int:
+        return self.settings.pipeline_concurrency
+
+    @property
     def record_verdicts(self) -> "Callable[[list[dict]], VerdictRecord] | None":
         """Store verdicts in verif.claims when the knowledge base is configured."""
         if self.settings.supabase_db_url is None:
@@ -482,7 +486,11 @@ def build_steps(
                 if c.id not in local and (item := on_demand_evidence(c, on_demand, date)):
                     local[c.id] = item
         web = [c for c in searchable if c.id not in local]
-        found = {e.claim_id: e for e in collect_evidence(web, deps.evidence_sources, date)}
+        workers = getattr(deps, "concurrency", 1)
+        found = {
+            e.claim_id: e
+            for e in collect_evidence(web, deps.evidence_sources, date, max_workers=workers)
+        }
         # Partly covered: the web search ran, and the covered part of the series goes first.
         for c in web:
             part = partial_local_evidence(c, base)
@@ -496,7 +504,9 @@ def build_steps(
                     }
                 )
         factcheck_only = [s for s in deps.evidence_sources if s.name == "factcheck"]
-        checked = collect_evidence([c for c in searchable if c.id in local], factcheck_only, date)
+        checked = collect_evidence(
+            [c for c in searchable if c.id in local], factcheck_only, date, max_workers=workers
+        )
         for e in checked:
             items = [local[e.claim_id], *e.items]
             found[e.claim_id] = e.model_copy(
@@ -531,6 +541,7 @@ def build_steps(
                 model=deps.model_for("verdict"),
                 follow_up=follow_up_search(deps, store.manifest.speech_date),
                 thinking=deps.verdict_thinking,
+                max_workers=getattr(deps, "concurrency", 1),
                 own_source=own_source_checker(
                     store.read(SPEAKERS_FILE, SpeakerMap),
                     default_governments(),
@@ -595,6 +606,11 @@ def build_steps(
             verdicts=store.read("verdicts.json", list[Verdict]),
             promises=store.read("promises.json", list[PromiseVerdict]),
             cost=store.manifest.run_cost(),
+            step_seconds={
+                name: rec.seconds
+                for name, rec in store.manifest.steps.items()
+                if rec.seconds is not None
+            },
             generated_at=dt.datetime.now(dt.UTC),
             extra_warnings=[
                 f"Fuente «{name}» desactivada: falta su clave en .env"

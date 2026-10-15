@@ -486,6 +486,8 @@ class Report(BaseModel):
     # Shown in their own section; not counted in the claim totals.
     promises: list[Promise] = Field(default_factory=list)
     cost: RunCost
+    # Seconds per step of the run that produced each step's output (manifest).
+    step_seconds: dict[str, float] = Field(default_factory=dict)
     # Problems that make the report less complete (failed blocks, rejected quotes…).
     warnings: list[str] = Field(default_factory=list)
 
@@ -578,6 +580,8 @@ class StepRecord(BaseModel):
     prompt_hashes: dict[str, str] = Field(default_factory=dict)
     cost: list[CostEntry] = Field(default_factory=list)
     error: str | None = None
+    # How long the step took (fase I metrics); None in manifests written before.
+    seconds: float | None = None
 
 
 class JobManifest(BaseModel):

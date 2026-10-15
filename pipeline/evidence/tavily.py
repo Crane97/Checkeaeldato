@@ -2,6 +2,7 @@
 
 import datetime as dt
 import email.utils
+import threading
 from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -72,10 +73,12 @@ class TavilyClient:
         self._max_results = max_results
         self._cache = cache
         self.stats = SearchStats()
+        self._stats_lock = threading.Lock()  # searches run in parallel (fase I)
 
     def take_stats(self) -> SearchStats:
         """Counts since the last call (one pipeline step), then reset."""
-        stats, self.stats = self.stats, SearchStats()
+        with self._stats_lock:
+            stats, self.stats = self.stats, SearchStats()
         return stats
 
     def search(
@@ -105,11 +108,13 @@ class TavilyClient:
 
         cached = self._cache.get(body) if self._cache else None
         if cached is not None:
-            self.stats.cached += 1
+            with self._stats_lock:
+                self.stats.cached += 1
             return _parse(cached)
         data = self._fetch(body)
-        self.stats.real += 1
-        self.stats.credits += CREDITS[self._search_depth]
+        with self._stats_lock:
+            self.stats.real += 1
+            self.stats.credits += CREDITS[self._search_depth]
         if self._cache:
             self._cache.put(body, data)
         return _parse(data)
