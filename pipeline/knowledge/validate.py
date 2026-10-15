@@ -132,7 +132,7 @@ def validate_batch(
             d.fecha_publicacion = min(estimate, today)  # we hold it today: published by now
             d.fecha_publicacion_estimada = True
 
-        if curated:
+        if curated:  # data that does not come from an official primary source
             d.estado = "pendiente"
         elif d.motivos:
             d.estado = "cuarentena"

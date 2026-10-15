@@ -349,7 +349,11 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   un umbral de salto (% en niveles, puntos en tasas), antigüedad máxima, tema, retraso de
   publicación y fuente. Unidad, definición y frecuencia no cambian: otro id.
 - **Validación** (`validate.py`) antes de entrar: unidad, rango y salto → cuarentena;
-  igual al vigente → nada; distinto → versión nueva. Lo curado a mano entra `pendiente`.
+  igual al vigente → nada; distinto → versión nueva. **Los datos de fuentes oficiales
+  primarias (BOE, INE, Eurostat, INSS…) entran aprobados si pasan la validación**, también
+  los copiados a mano (decisión del responsable, 2026-10-14); solo lo que no venga de una
+  fuente oficial primaria entraría `pendiente`. La cuarentena (anomalías) sigue igual.
+  `conocimiento aprobar-oficiales` aprueba lo pendiente con fuente primaria.
 - **Fecha de publicación:** la real si la fuente la da (BOE); si no, **fin del periodo +
   retraso habitual del calendario** del organismo, marcada como estimada (decisión del
   responsable, 2026-10-14). El resolvedor usa la versión publicada a la fecha del discurso.

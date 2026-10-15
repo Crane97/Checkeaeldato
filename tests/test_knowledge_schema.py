@@ -388,7 +388,8 @@ def test_json_base_loads_validated_and_reloading_changes_nothing(db):
     today = dt.date(2026, 10, 14)
     first = {s.indicator_id: s for s in load_json_base(db, catalog, today=today)}
     assert all(not s.errors for s in first.values()), [s.errors for s in first.values()]
-    assert first["smi_mensual"].pending == first["smi_mensual"].new == 25  # curated
+    # Official primary sources (BOE) enter approved after validation (2026-10-14).
+    assert (first["smi_mensual"].new, first["smi_mensual"].pending) == (25, 0)
     assert first["paro_epa"].pending == 0 and first["paro_epa"].new > 90
 
     smi_2018 = db.execute(
@@ -399,7 +400,7 @@ def test_json_base_loads_validated_and_reloading_changes_nothing(db):
         735.9,
         dt.date(2017, 12, 30),  # the BOE publication date of RD 1077/2017
         False,
-        "pendiente",
+        "aprobado",
     )
     paro = db.execute(
         "select fecha_publicacion, fecha_publicacion_estimada, estado from ref.observations"

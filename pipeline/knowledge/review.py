@@ -269,3 +269,23 @@ def withdraw(
         (reviewer, id_value),
     )
     return row[0], row[1]
+
+
+OFFICIAL_REVIEWER = "automático: fuente oficial primaria"
+
+
+def approve_official(conn: psycopg.Connection) -> dict[str, int]:
+    """Approve pending observations whose source is an official primary one (decision of
+    the project owner, 2026-10-14: data taken from official databases needs no human
+    verdict). Quarantined values are not touched: that is the anomaly check, not a review.
+    The approval is recorded in ref.observation_events with this reviewer."""
+    conn.execute("select set_config('app.revisor', %s, true)", (OFFICIAL_REVIEWER,))
+    rows = conn.execute(
+        "update ref.observations o set estado = 'aprobado' from ref.sources s"
+        " where s.id = o.source_id and s.tipo = 'primaria' and o.estado = 'pendiente'"
+        " returning o.indicator_id"
+    ).fetchall()
+    counts: dict[str, int] = {}
+    for (indicator_id,) in rows:
+        counts[indicator_id] = counts.get(indicator_id, 0) + 1
+    return counts

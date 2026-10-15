@@ -78,3 +78,20 @@ def test_unknown_items_are_an_error(db):  # noqa: F811
         decide(db, "gobierno", "no-existe", "aprobado", reviewer="Jorge")
     with pytest.raises((ReviewError, psycopg.Error)):
         decide(db, "observacion", "abc", "aprobado", reviewer="Jorge")
+
+
+def test_pending_official_data_is_approved_automatically_but_quarantine_is_not(db):  # noqa: F811
+    from pipeline.knowledge.review import OFFICIAL_REVIEWER, approve_official
+
+    pending = _observation(db)
+    quarantined = _observation(
+        db, periodo="2019", periodo_inicio="2019-01-01", periodo_fin="2019-12-31",
+        estado="cuarentena",
+    )  # fmt: skip
+    assert approve_official(db) == {"smi": 1}
+    states = dict(db.execute("select id, estado from ref.observations").fetchall())
+    assert (states[pending], states[quarantined]) == ("aprobado", "cuarentena")
+    revisor = db.execute(
+        "select revisor from ref.observation_events where observation_id = %s", (pending,)
+    ).fetchone()
+    assert revisor == (OFFICIAL_REVIEWER,)

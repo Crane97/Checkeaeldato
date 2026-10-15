@@ -212,8 +212,10 @@ def load_json_base(
                 candidates_from_json(ind, spec),
                 run_id=run_id,
                 today=today,
-                curated=ind.origen in ("boe", "seguridad_social")
-                and spec.conector in ("boe", "manual"),
+                # Every source of the JSON base is an official primary one (BOE, INE,
+                # Eurostat, INSS): it enters approved if it passes validation (decision of
+                # the project owner, 2026-10-14). Quarantine still applies.
+                curated=False,
             )
         )
     conn.execute(

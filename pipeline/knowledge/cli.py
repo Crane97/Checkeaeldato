@@ -17,6 +17,7 @@ from pipeline.knowledge.review import (
     KINDS,
     ReviewError,
     ReviewItem,
+    approve_official,
     decide,
     pending_items,
     withdraw,
@@ -389,3 +390,16 @@ def cobertura(
         typer.secho(f"Tema sin indicadores suficientes: {line}", fg=typer.colors.YELLOW)
     for line in report.excluded:
         typer.echo(f"Fuera de la comparación: {line}")
+
+
+@app.command("aprobar-oficiales")
+def aprobar_oficiales() -> None:
+    """Aprueba los datos pendientes cuya fuente es oficial primaria (BOE, INE, INSS…).
+    La cuarentena no se toca: es el control de anomalías."""
+    with _connect() as conn:
+        counts = approve_official(conn)
+        conn.commit()
+    if not counts:
+        typer.echo("No había datos oficiales pendientes.")
+    for indicator_id, n in sorted(counts.items()):
+        typer.echo(f"{indicator_id:24} aprobados {n}")

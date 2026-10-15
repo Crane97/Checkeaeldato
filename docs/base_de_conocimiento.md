@@ -32,12 +32,11 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
 ## Pendiente, por orden
 
 1. **Revisión humana (responsable del proyecto):**
-   - `uv run conocimiento revisar --indicador smi_mensual` (25 cuantías del BOE, ya
-     contrastadas en los golden tests). Hasta aprobarlas, las afirmaciones sobre el SMI
-     no usan la serie local: la evaluación rápida baja de 14/14 a 13/14 por eso
-     (caso `real-008`).
-   - Pensiones y pensionistas (58 datos pendientes) y el dato en cuarentena de turistas
-     (julio de 2020, real).
+   - Ya no hace falta aprobar series: los datos de fuentes oficiales primarias entran
+     aprobados si pasan la validación (decisión del 2026-10-14; SMI, pensiones y
+     pensionistas aprobados así con `conocimiento aprobar-oficiales`).
+   - Quedan en cuarentena 3 valores reales con saltos anómalos (turistas de julio de
+     2020; deuda en millones de 2009 y 2012): aprobarlos o no con `revisar`.
    - 66 fichas de políticos pendientes (`--tipo politico`). Garriga, Abascal, Junqueras y
      Rollán no se han podido verificar (las webs bloquean descargas).
    - 7 gobiernos y 5 partidos pendientes (`--tipo gobierno`, `--tipo partido`).
