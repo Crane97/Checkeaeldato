@@ -24,9 +24,9 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
 | **D** | Ingesta automática INE / Eurostat / Seguridad Social (`conocimiento ingerir`), huella para no recargar, alertas por correo, rol `ingesta` con mínimos privilegios, GitHub Actions diario | Hecha (0006); la Action está en simulación |
 | **E** | El análisis lee la base de Supabase (aprobado, a la fecha del discurso), cálculo del sistema en cada extracto, veredictos guardados en `verif.claims` | Hecha |
 | **F1** | Consulta a la API oficial bajo demanda cuando la base no cubre el periodo | Hecha |
-| **F2** | Hechos extraídos de la web reutilizables por claves exactas (`evid.web_facts`, tabla ya creada) | **Pendiente** |
+| **F2** | Datos extraídos de la web reutilizables por claves exactas (`evid.web_facts`), con cita literal comprobada; los del Gobierno no evitan la búsqueda | Hecha (0008) |
 | **G** | Cobertura por partido y tema (`conocimiento cobertura`), temas en `temas.yaml` revisados por neutralidad | Hecha (0007) |
-| **I** | Concurrencia (async) en evidencia/veredicto, inserciones por lotes en la carga, métricas; evaluación antes y después (objetivo: 0 verdaderos marcados como falsos) | **Pendiente** |
+| **I** | Concurrencia en evidencia/veredicto (`PIPELINE_CONCURRENCY`), inserciones por lotes (carga inicial de 105 s a 10,6 s), tiempo por paso en el manifest y el resumen | Hecha |
 | **H** | Datos por comunidad autónoma y provincia (interruptor), municipios en Parquet; antes, estimar espacio frente al plan Free (500 MB; hoy ~20 MB) | **Pendiente** |
 
 ## Pendiente, por orden
@@ -45,9 +45,9 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
    (`SUPABASE_DB_URL` con el pooler y usuario `ingesta.<ref>`, `SMTP_*`, `EMAIL_FROM`,
    `ALERT_EMAIL_TO`) y, cuando se decida, quitar `--simular` de
    `.github/workflows/ingesta.yml`.
-3. **Fase I** (rendimiento): la carga inicial de la base JSON tarda ~2 min por insertar
-   fila a fila; la evidencia y el veredicto van en serie.
-4. **Fase F2** y **fase H**.
+3. **Fase H** (en curso).
+4. La afirmación de impuestos de `real-005` salió `no_verificable` (se esperaba `falso`)
+   en la última evaluación: la búsqueda no trajo las rebajas fiscales oficiales.
 5. Mejoras anotadas: pensión media sin conector (la serie del INSS se carga a mano);
    ampliar el SMI a 1996; la pista «siete años» no acota el periodo del contexto; la
    tabla de gobiernos no tiene tramos en funciones antes de 2015 (los políticos los

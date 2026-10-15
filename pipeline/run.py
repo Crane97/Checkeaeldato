@@ -26,8 +26,10 @@ from pipeline.indicators import IndicatorBase, load_indicators
 if TYPE_CHECKING:
     from pipeline.knowledge.local_base import KnowledgeIndicatorBase
     from pipeline.knowledge.on_demand import OnDemandSeries
+    from pipeline.knowledge.web_facts import WebFactStore
 from pipeline.jobs import JobStore, Step, StepOutcome, earliest_step, prompt_hash, run_steps
 from pipeline.knowledge.verdict_store import verdict_rows
+from pipeline.knowledge.web_facts import facts_evidence
 from pipeline.llm import ThinkingConfig
 from pipeline.models import (
     AudioInfo,
@@ -270,6 +272,18 @@ class LiveDeps:
         return CombinedDirectory(cache, database)
 
     @cached_property
+    def web_facts(self) -> "WebFactStore | None":
+        """Facts extracted from the web in earlier runs (Supabase); None without it."""
+        if self.settings.supabase_db_url is None:
+            return None
+        import psycopg
+
+        from pipeline.knowledge.web_facts import WebFactStore
+
+        url = self.settings.supabase_db_url.get_secret_value()
+        return WebFactStore(lambda: psycopg.connect(url, connect_timeout=10), dt.date.today())
+
+    @cached_property
     def on_demand(self) -> "OnDemandSeries":
         """Official APIs (INE, Eurostat) for periods the local base does not cover."""
         import httpx
@@ -485,17 +499,36 @@ def build_steps(
             for c in searchable:
                 if c.id not in local and (item := on_demand_evidence(c, on_demand, date)):
                     local[c.id] = item
+        # Facts extracted in earlier runs (same indicator, territory and period): an
+        # official or fact-checker one settles the claim without a web search.
+        stored_facts: dict[str, list[EvidenceItem]] = {}
+        fact_store = getattr(deps, "web_facts", None)
+        if fact_store is not None:
+            for c in searchable:
+                if c.id in local or not c.indicator or c.kind == "promesa":
+                    continue
+                try:
+                    items, settled = facts_evidence(fact_store, c.indicator, c.years)
+                except Exception as exc:  # noqa: BLE001 - reported; the web search goes on
+                    deps.knowledge_warning = f"Datos web guardados no disponibles ({exc})"
+                    break
+                if settled:
+                    local[c.id] = items[0]
+                elif items:
+                    stored_facts[c.id] = items
         web = [c for c in searchable if c.id not in local]
         workers = getattr(deps, "concurrency", 1)
         found = {
             e.claim_id: e
             for e in collect_evidence(web, deps.evidence_sources, date, max_workers=workers)
         }
-        # Partly covered: the web search ran, and the covered part of the series goes first.
+        # Partly covered: the web search ran, and the covered part of the series goes first;
+        # stored web facts too.
         for c in web:
             part = partial_local_evidence(c, base)
-            if part is not None and c.id in found:
-                items = [part, *found[c.id].items]
+            first = ([part] if part is not None else []) + stored_facts.get(c.id, [])
+            if first and c.id in found:
+                items = [*first, *found[c.id].items]
                 found[c.id] = found[c.id].model_copy(
                     update={
                         "items": [
@@ -565,9 +598,42 @@ def build_steps(
                     topics=load_topics(),
                 )
                 store.write(VERDICT_RECORD_FILE, recorder(rows), VerdictRecord)
+            _extract_facts(store, claims, verdicts)
             return not any(v.analysis_error for v in verdicts)
 
         return _with_costs(deps, "verdicts", work)
+
+    def _extract_facts(store: JobStore, claims, verdicts) -> None:
+        """F2: keep the datum behind a web-based verdict on a catalog indicator."""
+        fact_store = getattr(deps, "web_facts", None)
+        if fact_store is None:
+            return
+        from pipeline.knowledge.catalog import load_catalog
+        from pipeline.knowledge.web_facts import extract, period_label
+
+        catalog = load_catalog()
+        by_claim = {c.id: c for c in claims}
+        evidence = {e.claim_id: e for e in store.read("evidence.json", EvidenceRun).claims}
+        for v in verdicts:
+            c = by_claim.get(v.claim_id)
+            if c is None or v.verdict == "no_verificable" or c.indicator not in catalog:
+                continue
+            periodo = period_label(c.years)
+            items = [i for i in evidence[c.id].items if i.id in v.evidence_used]
+            if periodo is None or any(
+                i.source.kind == "indicador_local" or i.observation_ids or i.web_fact_id
+                for i in items
+            ):
+                continue
+            fact = extract(
+                catalog[c.indicator], periodo, items, llm=deps.llm,
+                model=deps.model_for("detection"),
+            )  # fmt: skip
+            if fact is not None:
+                try:
+                    fact_store.save(fact, model=deps.model_for("detection"))
+                except Exception as exc:  # noqa: BLE001 - losing a cache entry is not fatal
+                    logger.warning("No se guardó el dato extraído de %s: %s", c.id, exc)
 
     def promises_step(store: JobStore) -> StepOutcome:
         def work() -> bool:

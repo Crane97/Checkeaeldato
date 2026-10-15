@@ -271,6 +271,8 @@ class EvidenceItem(BaseModel):
     rating: str | None = None
     # Rows of ref.observations behind a local series excerpt (traceability, `impacto`).
     observation_ids: list[int] = Field(default_factory=list)
+    # Row of evid.web_facts this item comes from (a fact extracted in an earlier run).
+    web_fact_id: int | None = None
 
 
 class ClaimEvidence(BaseModel):

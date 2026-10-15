@@ -55,6 +55,7 @@ def verdict_rows(
                     for i in used
                 ],
                 "observation_ids": sorted({o for i in used for o in i.observation_ids}),
+                "web_fact_ids": sorted({i.web_fact_id for i in used if i.web_fact_id}),
                 # Rests on a series: the local base (observation ids) or the official API.
                 "con_datos": any(
                     i.observation_ids or i.source.title.endswith(API_TITLE) for i in used
@@ -86,7 +87,8 @@ def record_verdicts(
         conn.execute(
             "insert into verif.claims (job_id, claim_id, claim_normalizado, veredicto,"
             " evidencia, observation_ids, modelo, version_prompts, orador, partido, tema,"
-            " con_datos) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            " con_datos, web_fact_ids)"
+            " values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
             (
                 r["job_id"],
                 r["claim_id"],
@@ -100,6 +102,7 @@ def record_verdicts(
                 r.get("partido"),
                 r.get("tema"),
                 r.get("con_datos", False),
+                r.get("web_fact_ids", []),
             ),
         )
     return len(rows)

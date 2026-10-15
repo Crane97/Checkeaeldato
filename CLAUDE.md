@@ -403,8 +403,16 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
 - **Trazabilidad**: cada veredicto se guarda en `verif.claims` con la evidencia citada y
   los `observation_ids` de las series locales (`conocimiento impacto` los encuentra). Un
   fallo al guardar no para el análisis; el informe avisa.
-- Pendiente (F2): hechos extraídos de la web reutilizables (`evid.web_facts`). Ver
-  `docs/base_de_conocimiento.md`.
+- **Datos web reutilizables** (F2, `pipeline/knowledge/web_facts.py`, prompt
+  `extraccion_dato.md`): tras un veredicto apoyado en la web sobre un indicador del
+  catálogo y un único año, el modelo de detección extrae el dato con su cita literal (el
+  código exige que la cita esté en la fuente y contenga el número; el enunciado no admite
+  palabras valorativas) y se guarda en `evid.web_facts` por claves exactas. Después se usa
+  como evidencia; si viene de un organismo oficial o un verificador, sin buscar en la web.
+  Los comunicados del Gobierno o de ministerios (`oficial_gobierno`) se reutilizan pero
+  **nunca evitan la búsqueda** (para un orador del partido del Gobierno son neutrales).
+  Caducan a 30 días salvo periodos cerrados. Los veredictos guardan los `web_fact_ids`.
+- Concurrencia: `PIPELINE_CONCURRENCY` afirmaciones a la vez en evidencia y veredicto.
 
 ### Cobertura por partido y tema (fase G, 2026-10-14)
 
