@@ -382,7 +382,8 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   veredictos. Se crea sin login: el responsable le pone contraseña en el SQL Editor
   (`alter role ingesta with login password '…'`), nunca en archivos.
 - **GitHub Actions** (`.github/workflows/ingesta.yml`): diario a las 07:30 UTC, **en
-  simulación** hasta que el responsable decida quitar `--simular`. Secretos:
+  simulación** hasta que el responsable decida quitar `--simular`. Secretos (del entorno
+  `Production` de GitHub, no del repositorio):
   `SUPABASE_DB_URL` (pooler, usuario `ingesta.<ref>`), `SMTP_*`, `EMAIL_FROM`,
   `ALERT_EMAIL_TO`.
 

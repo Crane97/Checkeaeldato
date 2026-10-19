@@ -4,7 +4,7 @@
 # cuarentena o datos desactualizados, y no guarda nada. Cuando el responsable lo decida,
 # se quita --simular para que cargue.
 #
-# Secretos del repositorio (Settings → Secrets and variables → Actions):
+# Secretos del entorno `Production` (Settings → Environments → Production → Environment secrets):
 #   SUPABASE_DB_URL  cadena del pooler de sesión con el rol `ingesta` (no el propietario)
 #   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM, ALERT_EMAIL_TO
 name: Ingesta diaria
@@ -24,6 +24,7 @@ concurrency:
 jobs:
   ingerir:
     runs-on: ubuntu-latest
+    environment: Production  # los secretos están en este entorno, no en los del repositorio
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
