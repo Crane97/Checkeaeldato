@@ -21,7 +21,7 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
 | **A+B** | Esquema en Supabase (`ref`, `evid`, `verif`, `ops`), observaciones inmutables y versionadas, gobiernos y partidos revisables, migrador (`conocimiento migrar`), repositorio con resolución a fecha (`resolve_as_of`) | Hecha (migraciones 0001–0003) |
 | **C** | Catálogo de indicadores (`pipeline/knowledge/catalog.yaml`), validación antes de cargar (rango, saltos, unidad → cuarentena), carga de las series JSON, revisión humana (`conocimiento revisar` / `retirar`), golden tests, trazabilidad (`conocimiento impacto`) | Hecha (0004) |
 | **Políticos** | Base de 78 políticos elegidos por cargo (`data/knowledge/politicians_seed.yaml`), recopilador BOE + Wikidata + Junta de Portavoces (`scripts/recopilar_politicos.py`), uso en `speaker_research`, oradores nuevos guardados como `automatico` | Hecha (0005); revisión de fichas en curso, ver «Pendiente» |
-| **D** | Ingesta automática INE / Eurostat / Seguridad Social (`conocimiento ingerir`), huella para no recargar, alertas por correo, rol `ingesta` con mínimos privilegios, GitHub Actions diario | Hecha (0006); la Action está en simulación |
+| **D** | Ingesta automática INE / Eurostat / Seguridad Social (`conocimiento ingerir`), huella para no recargar, alertas por correo, rol `ingesta` con mínimos privilegios, GitHub Actions diario | Hecha (0006); la Action carga desde el 2026-10-19 |
 | **E** | El análisis lee la base de Supabase (aprobado, a la fecha del discurso), cálculo del sistema en cada extracto, veredictos guardados en `verif.claims` | Hecha |
 | **F1** | Consulta a la API oficial bajo demanda cuando la base no cubre el periodo | Hecha |
 | **F2** | Datos extraídos de la web reutilizables por claves exactas (`evid.web_facts`), con cita literal comprobada; los del Gobierno no evitan la búsqueda | Hecha (0008) |
@@ -40,11 +40,8 @@ Orden acordado: A+B → C → D → E+F → G → I → H.
    - 66 fichas de políticos pendientes (`--tipo politico`). Garriga, Abascal, Junqueras y
      Rollán no se han podido verificar (las webs bloquean descargas).
    - 7 gobiernos y 5 partidos pendientes (`--tipo gobierno`, `--tipo partido`).
-2. **Activar la ingesta en GitHub:** contraseña del rol `ingesta` en el SQL Editor
-   (`alter role ingesta with login password '…'`), secretos del repositorio
-   (`SUPABASE_DB_URL` con el pooler y usuario `ingesta.<ref>`, `SMTP_*`, `EMAIL_FROM`,
-   `ALERT_EMAIL_TO`) y, cuando se decida, quitar `--simular` de
-   `.github/workflows/ingesta.yml`.
+2. ~~Activar la ingesta en GitHub~~: hecho el 2026-10-19 (secretos en el entorno
+   `Production`, rol `ingesta` con contraseña, sin `--simular`).
 3. Todas las fases del plan están hechas. Posibles ampliaciones: más indicadores
    territoriales (paro registrado por comunidad, IPC por comunidad), municipios en más
    indicadores.

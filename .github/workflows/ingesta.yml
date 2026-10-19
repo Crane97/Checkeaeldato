@@ -1,8 +1,8 @@
 # Ingesta diaria de series oficiales (INE, Eurostat, Seguridad Social) en Supabase.
 #
-# Empieza en SIMULACIÓN (--simular): descarga y valida, avisa por correo si hay errores,
-# cuarentena o datos desactualizados, y no guarda nada. Cuando el responsable lo decida,
-# se quita --simular para que cargue.
+# Descarga y valida cada serie, carga lo que ha cambiado (nuevo → aprobado, dudoso →
+# cuarentena, revisión → versión nueva) y avisa por correo si hay errores, cuarentena o
+# datos desactualizados. Para probar sin guardar, en local: `conocimiento ingerir --simular`.
 #
 # Secretos del entorno `Production` (Settings → Environments → Production → Environment secrets):
 #   SUPABASE_DB_URL  cadena del pooler de sesión con el rol `ingesta` (no el propietario)
@@ -36,7 +36,7 @@ jobs:
       - name: Dependencias
         run: uv sync --frozen
 
-      - name: Ingesta (simulación)
+      - name: Ingesta
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
@@ -45,4 +45,4 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
-        run: uv run conocimiento ingerir --simular --avisar
+        run: uv run conocimiento ingerir --avisar
