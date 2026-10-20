@@ -1,0 +1,115 @@
+# Programas electorales de las elecciones generales (ref.programs, migración 0010).
+#
+# QUIÉN ENTRA (decisión del responsable, 2026-10-20), la misma regla en todas las
+# elecciones: las candidaturas cuyos diputados formaron GRUPO PARLAMENTARIO PROPIO en el
+# Congreso en la legislatura siguiente. No cuentan el Grupo Mixto ni los grupos de varias
+# formaciones creados para dividirlo (Plural, XIV legislatura). Un grupo formado con
+# diputados prestados por otros grupos cuenta igual (Junts y ERC, XV): el criterio es
+# institucional, no se valora cómo se formó.
+#
+# Los grupos de cada legislatura salen de fuentes secundarias (prensa y Wikipedia) y están
+# PENDIENTES de contrastar con el BOCG (serie D) de cada legislatura: agente data-verifier
+# antes de aprobar ningún programa.
+#
+# URL: solo del dominio oficial del partido (`dominios`), en vivo o en su copia de
+# archive.org. Nunca copias de medios o agregadores. Para proponer candidatos:
+#     uv run python scripts/recopilar_programas.py --buscar
+# y se fija aquí la elegida (`url`). `url: null` = aún sin localizar; no se carga.
+#
+# Pendiente de decidir (anotado, no incluido): programas propios de las candidaturas
+# confederadas dentro de un grupo (En Comú Podem, En Marea…, en el grupo de Unidas
+# Podemos) y de las federaciones territoriales (PSC dentro del PSOE).
+
+elecciones:
+  - fecha: 2016-06-26
+    legislatura: XII
+  - fecha: 2019-04-28
+    legislatura: XIII
+  - fecha: 2019-11-10
+    legislatura: XIV
+  - fecha: 2023-07-23
+    legislatura: XV
+
+partidos:
+  pp: {nombre: Partido Popular, dominios: [pp.es]}
+  psoe: {nombre: Partido Socialista Obrero Español, dominios: [psoe.es]}
+  cs: {nombre: Ciudadanos-Partido de la Ciudadanía, dominios: [ciudadanos-cs.org]}
+  podemos: {nombre: Podemos, dominios: [podemos.info, lasonrisadeunpais.es]}
+  vox: {nombre: Vox, dominios: [voxespana.es]}
+  erc: {nombre: Esquerra Republicana de Catalunya, dominios: [esquerra.cat]}
+  pnv: {nombre: Euzko Alderdi Jeltzalea-Partido Nacionalista Vasco, dominios: [eaj-pnv.eus]}
+  bildu: {nombre: Euskal Herria Bildu, dominios: [ehbildu.eus]}
+  junts: {nombre: Junts per Catalunya, dominios: [junts.cat, juntsxcat.cat]}
+  sumar: {nombre: Sumar, dominios: [movimientosumar.es, sumar.es]}
+
+programas:
+  # ── 2016-06-26 · XII legislatura ─────────────────────────────────────────────
+  - {id: pp-2016-06, eleccion: 2016-06-26, partido: pp, candidatura: Partido Popular,
+     grupo: Popular, idioma: es, url: null}
+  - {id: psoe-2016-06, eleccion: 2016-06-26, partido: psoe,
+     candidatura: Partido Socialista Obrero Español, grupo: Socialista, idioma: es, url: null}
+  - {id: podemos-2016-06, eleccion: 2016-06-26, partido: podemos, candidatura: Unidos Podemos,
+     grupo: Confederal de Unidos Podemos-En Comú Podem-En Marea, idioma: es, url: null}
+  - {id: cs-2016-06, eleccion: 2016-06-26, partido: cs, candidatura: Ciudadanos,
+     grupo: Ciudadanos, idioma: es, url: null}
+  - {id: erc-2016-06, eleccion: 2016-06-26, partido: erc, candidatura: ERC-Catalunya Sí,
+     grupo: Esquerra Republicana, idioma: ca, url: null,
+     notas: buscar también una versión en castellano}
+  - {id: pnv-2016-06, eleccion: 2016-06-26, partido: pnv, candidatura: EAJ-PNV,
+     grupo: Vasco (EAJ-PNV), idioma: es, url: null}
+
+  # ── 2019-04-28 · XIII legislatura ────────────────────────────────────────────
+  - {id: psoe-2019-04, eleccion: 2019-04-28, partido: psoe,
+     candidatura: Partido Socialista Obrero Español, grupo: Socialista, idioma: es, url: null}
+  - {id: pp-2019-04, eleccion: 2019-04-28, partido: pp, candidatura: Partido Popular,
+     grupo: Popular, idioma: es, url: null}
+  - {id: cs-2019-04, eleccion: 2019-04-28, partido: cs, candidatura: Ciudadanos,
+     grupo: Ciudadanos, idioma: es, url: null}
+  - {id: podemos-2019-04, eleccion: 2019-04-28, partido: podemos, candidatura: Unidas Podemos,
+     grupo: Confederal de Unidas Podemos-En Comú Podem-Galicia en Común, idioma: es, url: null}
+  - {id: vox-2019-04, eleccion: 2019-04-28, partido: vox, candidatura: Vox, grupo: Vox,
+     idioma: es, url: null}
+  - {id: erc-2019-04, eleccion: 2019-04-28, partido: erc, candidatura: ERC-Sobiranistes,
+     grupo: Republicano, idioma: ca, url: null, notas: buscar también una versión en castellano}
+  - {id: pnv-2019-04, eleccion: 2019-04-28, partido: pnv, candidatura: EAJ-PNV,
+     grupo: Vasco (EAJ-PNV), idioma: es, url: null}
+
+  # ── 2019-11-10 · XIV legislatura ─────────────────────────────────────────────
+  - {id: psoe-2019-11, eleccion: 2019-11-10, partido: psoe,
+     candidatura: Partido Socialista Obrero Español, grupo: Socialista, idioma: es, url: null}
+  - {id: pp-2019-11, eleccion: 2019-11-10, partido: pp, candidatura: Partido Popular,
+     grupo: Popular, idioma: es, url: null}
+  - {id: vox-2019-11, eleccion: 2019-11-10, partido: vox, candidatura: Vox, grupo: Vox,
+     idioma: es, url: null}
+  - {id: podemos-2019-11, eleccion: 2019-11-10, partido: podemos, candidatura: Unidas Podemos,
+     grupo: Confederal de Unidas Podemos-En Comú Podem-Galicia en Común, idioma: es, url: null}
+  - {id: erc-2019-11, eleccion: 2019-11-10, partido: erc, candidatura: ERC-Sobiranistes,
+     grupo: Republicano, idioma: ca, url: null, notas: buscar también una versión en castellano}
+  - {id: cs-2019-11, eleccion: 2019-11-10, partido: cs, candidatura: Ciudadanos,
+     grupo: Ciudadanos, idioma: es, url: null}
+  - {id: pnv-2019-11, eleccion: 2019-11-10, partido: pnv, candidatura: EAJ-PNV,
+     grupo: Vasco (EAJ-PNV), idioma: es, url: null}
+  - {id: bildu-2019-11, eleccion: 2019-11-10, partido: bildu, candidatura: EH Bildu,
+     grupo: Euskal Herria Bildu, idioma: es, url: null,
+     notas: puede haber solo versión bilingüe o en euskera}
+
+  # ── 2023-07-23 · XV legislatura ──────────────────────────────────────────────
+  - {id: pp-2023-07, eleccion: 2023-07-23, partido: pp, candidatura: Partido Popular,
+     grupo: Popular, idioma: es, url: null}
+  - {id: psoe-2023-07, eleccion: 2023-07-23, partido: psoe,
+     candidatura: Partido Socialista Obrero Español, grupo: Socialista, idioma: es, url: null}
+  - {id: vox-2023-07, eleccion: 2023-07-23, partido: vox, candidatura: Vox, grupo: Vox,
+     idioma: es, url: null}
+  - {id: sumar-2023-07, eleccion: 2023-07-23, partido: sumar, candidatura: Sumar,
+     grupo: Plurinacional SUMAR, idioma: es, url: null}
+  - {id: erc-2023-07, eleccion: 2023-07-23, partido: erc,
+     candidatura: Esquerra Republicana de Catalunya, grupo: Republicano, idioma: ca, url: null,
+     notas: buscar también una versión en castellano}
+  - {id: junts-2023-07, eleccion: 2023-07-23, partido: junts, candidatura: Junts per Catalunya,
+     grupo: Junts per Catalunya, idioma: ca, url: null,
+     notas: buscar también una versión en castellano}
+  - {id: bildu-2023-07, eleccion: 2023-07-23, partido: bildu, candidatura: EH Bildu,
+     grupo: Euskal Herria Bildu, idioma: es, url: null,
+     notas: puede haber solo versión bilingüe o en euskera}
+  - {id: pnv-2023-07, eleccion: 2023-07-23, partido: pnv, candidatura: EAJ-PNV,
+     grupo: Vasco (EAJ-PNV), idioma: es, url: null}
