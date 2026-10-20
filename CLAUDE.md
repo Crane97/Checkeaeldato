@@ -20,7 +20,8 @@ Fase futura: análisis en tiempo real (streaming) de debates en directo.
 2. **Calidad** — conjunto de prueba (gold set) con verificaciones publicadas por Maldita,
    Newtral, EFE Verifica; ajuste de prompts; métricas.
 3. **Backend** — worker + cola de trabajos + Postgres/pgvector + caché de afirmaciones.
-4. **Web** — subida, progreso, panel de resultados, reproductor sincronizado.
+4. **Web** — web pública tipo periódico, panel `/admin` (nuevo análisis, informes,
+   re-evaluación de veredictos) y publicación en Instagram (ver «Fase 4: arquitectura»).
 5. **Beta** — metodología pública, avisos legales, auditoría de neutralidad, límites de uso.
 6. **Casi en vivo** — procesar bloques de 3–5 min durante un debate.
 7. **Tiempo real** — transcripción en streaming y veredictos provisionales.
@@ -31,20 +32,37 @@ que no haya que reescribir al pasar de fase.
 ## Arquitectura objetivo
 
 ```
-[Next.js en Vercel] --subida directa--> [Almacenamiento: Supabase Storage / R2]
-        |                                         |
-        | crea job                                v
-        +----------> [Cola] ----------> [Worker Python (FastAPI)]
-                                                |
-                     ffmpeg → ASR con diarización → detección de afirmaciones
-                     → normalización → caché (pgvector) → búsqueda de evidencia
-                     → veredicto (Claude) → agregación
-                                                |
-                                                v
-                                    [Supabase Postgres + pgvector]
+[App FastAPI: web pública (Jinja2) + /admin + API]      [Tu Mac: `verificar ... --subir`]
+        |  crea trabajo                                          |
+        v                                                        |
+[Cola en Postgres] --> [Worker en la app: hilo, 1 a la vez]       |
+        ffmpeg → ASR con diarización → detección de afirmaciones   |
+        → contexto → evidencia → veredicto (Claude) → agregación  |
+                         |                                       |
+                         v                                       v
+   [Supabase: Postgres (informes, versiones de veredicto, cola, caché) + Storage]
+                         |
+                         v
+        [Instagram: carrusel aprobado en el panel → API de publicación]
 ```
 
-- El procesamiento pesado **nunca** va en funciones serverless de Vercel.
+- **Fase 4: arquitectura** (decidido por el responsable del proyecto, 2026-10-20): una
+  sola aplicación **FastAPI con plantillas Jinja2** renderizadas en servidor sirve la web
+  pública, el panel `/admin` y la API interna; **sustituye a Next.js**. Reutiliza
+  `static/report.css` y `report.js`. Por ahora **solo en local**; proveedor por decidir
+  (Railway es el candidato). La web local de pruebas (`verificar-web`) se queda para
+  desarrollo.
+- **Análisis**: en el worker de la app (`LLM_BACKEND=api`) o en el Mac del responsable con
+  la suscripción (`LLM_BACKEND=claude-code`) y `--subir`. Los dos guardan en Supabase.
+- **Dónde vive cada cosa**: informes, versiones de veredicto, cola y caché de búsquedas en
+  Postgres (esquema `app` y `ops`); archivos (informe HTML, intermedios para auditoría,
+  slides) en Supabase Storage; `data/<job_id>/` es solo la carpeta de trabajo del análisis
+  (en un servidor, el disco es efímero). El vídeo nunca se sube a Storage salvo para
+  transcribirlo, y se borra después.
+- **Instagram**: la API no crea borradores dentro de Instagram. Los borradores viven en el
+  panel; al aprobarlos y pulsar Publicar, la API publica en la cuenta (las imágenes, en un
+  bucket público de Storage). Nada se publica sin aprobación.
+- El procesamiento pesado **nunca** va en funciones serverless.
 - Nada de modelos locales pesados: la máquina de desarrollo es un MacBook Air Intel.
   Transcripción y LLM siempre vía API.
 
@@ -67,7 +85,8 @@ que no haya que reescribir al pasar de fase.
 - **Búsqueda web:** **Tavily** (plan gratuito, 1.000 créditos/mes) detrás de una interfaz,
   para fuentes oficiales y web general.
 - **Audio:** `ffmpeg` (instalado con Homebrew).
-- **Web (fase 4):** Next.js + TypeScript, Tailwind, desplegado en Vercel.
+- **Web (fase 4):** FastAPI + Jinja2 (HTML en servidor), CSS y JavaScript propios
+  (`report.css`, `report.js`); sin framework de frontend.
 - **Datos (fase 3):** Supabase (Postgres, pgvector, Storage, Auth).
 
 ## Estructura de carpetas (fase 1)
@@ -601,7 +620,10 @@ VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
 ALERT_EMAIL_TO=                 # avisos de la ingesta diaria
-SUPABASE_DB_URL=                # base de conocimiento (pooler de sesión, IPv4)
+SUPABASE_DB_URL=                # base de conocimiento e informes (pooler de sesión, IPv4)
+SUPABASE_URL=                   # https://<ref>.supabase.co (Storage)
+SUPABASE_SERVICE_ROLE_KEY=      # solo en el servidor o el Mac; nunca en el navegador ni en logs
+ANALYSIS_CONCURRENCY=1          # análisis a la vez en el worker de la app
 ```
 
 ## Comandos
