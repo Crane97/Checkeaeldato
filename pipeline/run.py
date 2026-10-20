@@ -174,10 +174,19 @@ class LiveDeps:
         if not self.settings.tavily_api_key:
             return None
 
+        db = None
+        if self.settings.supabase_db_url is not None:
+            import psycopg
+
+            from pipeline.evidence.search_cache import DbSearchStore
+
+            url = self.settings.supabase_db_url.get_secret_value()
+            db = DbSearchStore(lambda: psycopg.connect(url, connect_timeout=10))
         cache = SearchCache(
             self.settings.data_dir / "cache" / "search",
             max_age_days=self.settings.tavily_cache_days,
             read=self.use_cache,
+            db=db,
         )
         return TavilyClient(
             self.settings.secret("tavily_api_key"),
