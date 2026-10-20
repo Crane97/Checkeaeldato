@@ -445,6 +445,32 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   en los dos sentidos y señala temas frecuentes sin indicadores. Las alertas describen,
   no valoran, y recuerdan que la diferencia puede deberse al tipo de afirmaciones.
 
+### Programas electorales (decidido 2026-10-20)
+
+Para responder a afirmaciones sobre lo que un partido llevaba en su programa sin buscar en
+la web (`pipeline/knowledge/programs.py`; `ref.programs` y `ref.program_chunks`, migración
+0010).
+- **Qué entra** (`data/knowledge/programas.yaml`): elecciones generales de 2016, abril y
+  noviembre de 2019 y 2023; las candidaturas cuyos diputados formaron **grupo
+  parlamentario propio** en la legislatura siguiente (no el Mixto ni el Plural). Misma
+  regla para todas las elecciones. La lista de grupos sale de fuentes secundarias:
+  contrastarla con el BOCG (`data-verifier`) antes de aprobar.
+- **De dónde:** solo del **dominio oficial del partido** o de su copia en archive.org
+  (el código rechaza cualquier otra URL); `scripts/recopilar_programas.py --buscar`
+  propone PDFs archivados de ese dominio en los 75 días anteriores a la votación. Nunca
+  copias de medios o agregadores.
+- **Qué se guarda:** URL, SHA-256 y páginas del PDF, y el texto en fragmentos que no
+  cruzan páginas, con búsqueda de texto completo en español (`tsvector`). **No se guarda
+  el PDF** (decisión del responsable). El texto es inmutable; otro PDF es otro programa.
+- **Revisión:** entran `pendiente` (un partido no es fuente oficial primaria) y solo se
+  usan los `aprobado`: `conocimiento revisar --tipo programa` (que sea el programa
+  completo de esa elección, no un resumen).
+- **Uso (fase J2, por hacer):** un programa es una **postura, no evidencia de hechos**.
+  Solo sirve para afirmaciones sobre lo que dice un programa y para indicar si una
+  promesa figura en el del partido del orador.
+- Pendiente de decidir: programas propios de candidaturas confederadas dentro de un
+  grupo (En Comú Podem, En Marea…) y de federaciones (PSC).
+
 ### Políticos (decidido 2026-10-14)
 
 Base de quién es quién para identificar oradores sin gastar búsquedas
@@ -605,6 +631,10 @@ uv run conocimiento ingerir --territorial        # también series por comunidad
 uv run conocimiento aprobar-oficiales            # aprueba lo pendiente de fuente oficial primaria
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
+uv run python scripts/recopilar_programas.py --buscar  # propone URLs de programas (archive.org)
+uv run python scripts/recopilar_programas.py    # descarga y extrae los programas con URL
+uv run conocimiento cargar-programas             # carga lo recopilado (pendiente)
+uv run conocimiento buscar-programa "texto" [--partido pp] [--eleccion 2023-07-23]
 uv run ruff check . && uv run ruff format .
 ```
 
