@@ -174,10 +174,19 @@ class LiveDeps:
         if not self.settings.tavily_api_key:
             return None
 
+        db = None
+        if self.settings.supabase_db_url is not None:
+            import psycopg
+
+            from pipeline.evidence.search_cache import DbSearchStore
+
+            url = self.settings.supabase_db_url.get_secret_value()
+            db = DbSearchStore(lambda: psycopg.connect(url, connect_timeout=10))
         cache = SearchCache(
             self.settings.data_dir / "cache" / "search",
             max_age_days=self.settings.tavily_cache_days,
             read=self.use_cache,
+            db=db,
         )
         return TavilyClient(
             self.settings.secret("tavily_api_key"),
@@ -754,6 +763,7 @@ def run_job(
     author: str | None = None,
     from_step: StepName | None = None,
     purge_audio: bool = False,
+    on_step: Callable[[StepName], None] | None = None,
 ) -> JobResult:
     if not input_path.is_file():
         raise FileNotFoundError(f"No existe el archivo {input_path}")
@@ -770,7 +780,7 @@ def run_job(
     if invalidated:
         logger.info("Parámetros cambiados: se recalcula desde %s", invalidated)
     steps = build_steps(store, input_path, deps, purge_audio_after=purge_audio)
-    steps_run = run_steps(store, steps, prompts_dir, start)
+    steps_run = run_steps(store, steps, prompts_dir, start, on_step=on_step)
 
     report = store.read("report.json", Report)
     report_path = store.path("report.json")

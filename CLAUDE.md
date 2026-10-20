@@ -20,7 +20,8 @@ Fase futura: análisis en tiempo real (streaming) de debates en directo.
 2. **Calidad** — conjunto de prueba (gold set) con verificaciones publicadas por Maldita,
    Newtral, EFE Verifica; ajuste de prompts; métricas.
 3. **Backend** — worker + cola de trabajos + Postgres/pgvector + caché de afirmaciones.
-4. **Web** — subida, progreso, panel de resultados, reproductor sincronizado.
+4. **Web** — web pública tipo periódico, panel `/admin` (nuevo análisis, informes,
+   re-evaluación de veredictos) y publicación en Instagram (ver «Fase 4: arquitectura»).
 5. **Beta** — metodología pública, avisos legales, auditoría de neutralidad, límites de uso.
 6. **Casi en vivo** — procesar bloques de 3–5 min durante un debate.
 7. **Tiempo real** — transcripción en streaming y veredictos provisionales.
@@ -31,20 +32,50 @@ que no haya que reescribir al pasar de fase.
 ## Arquitectura objetivo
 
 ```
-[Next.js en Vercel] --subida directa--> [Almacenamiento: Supabase Storage / R2]
-        |                                         |
-        | crea job                                v
-        +----------> [Cola] ----------> [Worker Python (FastAPI)]
-                                                |
-                     ffmpeg → ASR con diarización → detección de afirmaciones
-                     → normalización → caché (pgvector) → búsqueda de evidencia
-                     → veredicto (Claude) → agregación
-                                                |
-                                                v
-                                    [Supabase Postgres + pgvector]
+[App FastAPI: web pública (Jinja2) + /admin + API]      [Tu Mac: `verificar ... --subir`]
+        |  crea trabajo                                          |
+        v                                                        |
+[Cola en Postgres] --> [Worker en la app: hilo, 1 a la vez]       |
+        ffmpeg → ASR con diarización → detección de afirmaciones   |
+        → contexto → evidencia → veredicto (Claude) → agregación  |
+                         |                                       |
+                         v                                       v
+   [Supabase: Postgres (informes, versiones de veredicto, cola, caché) + Storage]
+                         |
+                         v
+        [Instagram: carrusel aprobado en el panel → API de publicación]
 ```
 
-- El procesamiento pesado **nunca** va en funciones serverless de Vercel.
+- **Fase 4: arquitectura** (decidido por el responsable del proyecto, 2026-10-20): una
+  sola aplicación **FastAPI con plantillas Jinja2** renderizadas en servidor sirve la web
+  pública, el panel `/admin` y la API interna; **sustituye a Next.js**. Reutiliza
+  `static/report.css` y `report.js`. Por ahora **solo en local**; proveedor por decidir
+  (Railway es el candidato). La web local de pruebas (`verificar-web`) se queda para
+  desarrollo.
+- **Análisis**: en el worker de la app (`LLM_BACKEND=api`) o en el Mac del responsable con
+  la suscripción (`LLM_BACKEND=claude-code`) y `--subir`. Los dos guardan en Supabase.
+- **Dónde vive cada cosa**: informes, versiones de veredicto, cola y caché de búsquedas en
+  Postgres (esquema `app` y `ops`); archivos (informe HTML, intermedios para auditoría,
+  slides) en Supabase Storage; `data/<job_id>/` es solo la carpeta de trabajo del análisis
+  (en un servidor, el disco es efímero). El vídeo nunca se sube a Storage salvo para
+  transcribirlo, y se borra después.
+- **Informes en Supabase** (`pipeline/reports/`, migraciones 0011 y 0012): un informe es
+  una fila de `app.reports` (estado, título, tipo, slug `2026-10-18-debate-a-tres`) y una
+  **versión por afirmación o promesa** en `app.claim_versions`, con un único vigente por
+  afirmación; la 1 es la del análisis y las demás, re-evaluaciones o correcciones
+  manuales (con motivo obligatorio). Las versiones no se modifican ni se borran; solo se
+  eliminan borradores y análisis con error. Volver a analizar un borrador añade versión
+  solo donde cambió el resultado; un informe publicado o retirado no se reanaliza. Los
+  archivos de auditoría (transcripción, afirmaciones, evidencia, veredictos, manifest) y
+  el informe HTML van a Storage; nunca el vídeo ni el audio.
+- **Cola** (`app.analysis_queue`): sobrevive a reinicios; al arrancar, lo que estaba en
+  curso pasa a `interrumpido` y el informe a `error` («se puede reintentar»).
+- **Caché de búsquedas** también en Postgres (`ops.search_cache`), leída antes que el
+  disco: se comparte entre el Mac y el servidor y sobrevive a un disco efímero.
+- **Instagram**: la API no crea borradores dentro de Instagram. Los borradores viven en el
+  panel; al aprobarlos y pulsar Publicar, la API publica en la cuenta (las imágenes, en un
+  bucket público de Storage). Nada se publica sin aprobación.
+- El procesamiento pesado **nunca** va en funciones serverless.
 - Nada de modelos locales pesados: la máquina de desarrollo es un MacBook Air Intel.
   Transcripción y LLM siempre vía API.
 
@@ -67,7 +98,8 @@ que no haya que reescribir al pasar de fase.
 - **Búsqueda web:** **Tavily** (plan gratuito, 1.000 créditos/mes) detrás de una interfaz,
   para fuentes oficiales y web general.
 - **Audio:** `ffmpeg` (instalado con Homebrew).
-- **Web (fase 4):** Next.js + TypeScript, Tailwind, desplegado en Vercel.
+- **Web (fase 4):** FastAPI + Jinja2 (HTML en servidor), CSS y JavaScript propios
+  (`report.css`, `report.js`); sin framework de frontend.
 - **Datos (fase 3):** Supabase (Postgres, pgvector, Storage, Auth).
 
 ## Estructura de carpetas (fase 1)
@@ -109,6 +141,12 @@ pipeline/
   report_html.py      # informe HTML autocontenido e interactivo (filtros orador/categoría)
   email_report.py     # envío por SMTP: resumen estático en el cuerpo + informe adjunto
                       # (los clientes de correo bloquean JavaScript)
+  reports/            # fase 4: informes en Supabase (migración 0011, esquema app)
+    repository.py     # crear, guardar como borrador (versiones por afirmación) y reconstruir
+    files.py          # Supabase Storage (bucket privado `informes/<job_id>/`)
+    sync.py           # subir un análisis terminado (`verificar --subir` y el worker)
+    worker.py         # cola en Postgres (FOR UPDATE SKIP LOCKED) e hilos del worker
+    migrate_local.py  # migración única de data/ (scripts/migrar_informes.py)
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
   gold/               # casos de prueba (JSON) con veredicto esperado
@@ -445,6 +483,32 @@ hechos), `evid` (hechos de la web), `verif` (veredictos y sus `observation_ids`)
   en los dos sentidos y señala temas frecuentes sin indicadores. Las alertas describen,
   no valoran, y recuerdan que la diferencia puede deberse al tipo de afirmaciones.
 
+### Programas electorales (decidido 2026-10-20)
+
+Para responder a afirmaciones sobre lo que un partido llevaba en su programa sin buscar en
+la web (`pipeline/knowledge/programs.py`; `ref.programs` y `ref.program_chunks`, migración
+0010).
+- **Qué entra** (`data/knowledge/programas.yaml`): elecciones generales de 2016, abril y
+  noviembre de 2019 y 2023; las candidaturas cuyos diputados formaron **grupo
+  parlamentario propio** en la legislatura siguiente (no el Mixto ni el Plural). Misma
+  regla para todas las elecciones. La lista de grupos sale de fuentes secundarias:
+  contrastarla con el BOCG (`data-verifier`) antes de aprobar.
+- **De dónde:** solo del **dominio oficial del partido** o de su copia en archive.org
+  (el código rechaza cualquier otra URL); `scripts/recopilar_programas.py --buscar`
+  propone PDFs archivados de ese dominio en los 75 días anteriores a la votación. Nunca
+  copias de medios o agregadores.
+- **Qué se guarda:** URL, SHA-256 y páginas del PDF, y el texto en fragmentos que no
+  cruzan páginas, con búsqueda de texto completo en español (`tsvector`). **No se guarda
+  el PDF** (decisión del responsable). El texto es inmutable; otro PDF es otro programa.
+- **Revisión:** entran `pendiente` (un partido no es fuente oficial primaria) y solo se
+  usan los `aprobado`: `conocimiento revisar --tipo programa` (que sea el programa
+  completo de esa elección, no un resumen).
+- **Uso (fase J2, por hacer):** un programa es una **postura, no evidencia de hechos**.
+  Solo sirve para afirmaciones sobre lo que dice un programa y para indicar si una
+  promesa figura en el del partido del orador.
+- Pendiente de decidir: programas propios de candidaturas confederadas dentro de un
+  grupo (En Comú Podem, En Marea…) y de federaciones (PSC).
+
 ### Políticos (decidido 2026-10-14)
 
 Base de quién es quién para identificar oradores sin gastar búsquedas
@@ -575,7 +639,10 @@ VERDICT_EFFORT=                 # low | medium | high | xhigh | max
 VERDICT_THINKING_BUDGET=        # tokens; solo modelos hasta Claude 4.5
 SMTP_HOST= / SMTP_PORT=587 / SMTP_USER= / SMTP_PASSWORD= / EMAIL_FROM=   # informes por correo
 ALERT_EMAIL_TO=                 # avisos de la ingesta diaria
-SUPABASE_DB_URL=                # base de conocimiento (pooler de sesión, IPv4)
+SUPABASE_DB_URL=                # base de conocimiento e informes (pooler de sesión, IPv4)
+SUPABASE_URL=                   # https://<ref>.supabase.co (Storage)
+SUPABASE_SERVICE_ROLE_KEY=      # solo en el servidor o el Mac; nunca en el navegador ni en logs
+ANALYSIS_CONCURRENCY=1          # análisis a la vez en el worker de la app
 ```
 
 ## Comandos
@@ -586,6 +653,9 @@ uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
 uv run verificar data/x.mp4 --fecha 2026-11-20 --no-cache  # sin reutilizar búsquedas
+uv run verificar data/x.txt --fecha 2026-11-20 --subir --titulo "Debate a tres" --tipo debate
+                                # guarda el informe en Supabase como borrador (panel)
+uv run python scripts/migrar_informes.py [--simular]  # sube data/ y la caché a Supabase (una vez)
 uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
@@ -605,6 +675,10 @@ uv run conocimiento ingerir --territorial        # también series por comunidad
 uv run conocimiento aprobar-oficiales            # aprueba lo pendiente de fuente oficial primaria
 uv run conocimiento cargar-politicos [--actualizar]  # carga politicians.json (pendiente)
 uv run python scripts/recopilar_politicos.py    # regenera politicians.json (BOE + Wikidata)
+uv run python scripts/recopilar_programas.py --buscar  # propone URLs de programas (archive.org)
+uv run python scripts/recopilar_programas.py    # descarga y extrae los programas con URL
+uv run conocimiento cargar-programas             # carga lo recopilado (pendiente)
+uv run conocimiento buscar-programa "texto" [--partido pp] [--eleccion 2023-07-23]
 uv run ruff check . && uv run ruff format .
 ```
 

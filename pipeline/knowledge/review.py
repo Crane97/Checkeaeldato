@@ -14,9 +14,9 @@ from typing import Literal
 
 import psycopg
 
-Kind = Literal["observacion", "gobierno", "partido", "hecho", "politico"]
+Kind = Literal["observacion", "gobierno", "partido", "hecho", "politico", "programa"]
 Outcome = Literal["aprobado", "rechazado"]
-KINDS: tuple[Kind, ...] = ("observacion", "gobierno", "partido", "hecho", "politico")
+KINDS: tuple[Kind, ...] = ("observacion", "gobierno", "partido", "hecho", "politico", "programa")
 
 
 class ReviewError(Exception):
@@ -185,6 +185,34 @@ def _politicians(conn: psycopg.Connection) -> list[ReviewItem]:
     return items
 
 
+def _programs(conn: psycopg.Connection) -> list[ReviewItem]:
+    items = []
+    for pid, eleccion, candidatura, grupo, idioma, url, url_original, sha, paginas in conn.execute(
+        "select id, eleccion, candidatura, grupo, idioma, url, url_original, sha256, paginas"
+        " from ref.programs where estado = 'pendiente' order by eleccion, id"
+    ).fetchall():
+        chunks, empty, first = conn.execute(
+            "select count(*), %s - count(distinct pagina),"
+            " (select texto from ref.program_chunks where program_id = %s order by ordinal"
+            "  limit 1)"
+            " from ref.program_chunks where program_id = %s",
+            (paginas, pid, pid),
+        ).fetchone()
+        lines = [
+            f"Elección: {eleccion:%Y-%m-%d} · grupo parlamentario: {grupo} · idioma: {idioma}",
+            f"Páginas: {paginas} ({empty} sin texto) · fragmentos: {chunks}",
+            f"URL: {url}",
+        ]
+        if url_original and url_original != url:
+            lines.append(f"Original: {url_original}")
+        lines.append(f"SHA-256 del PDF: {sha}")
+        if first:
+            lines.append(f"Empieza: {' '.join(first.split())[:300]}")
+        lines.append("Comprueba que es el programa completo de esa elección, no un resumen.")
+        items.append(ReviewItem("programa", pid, f"Programa de {candidatura}", "programa", lines))
+    return items
+
+
 def pending_items(
     conn: psycopg.Connection,
     kinds: Collection[Kind] = KINDS,
@@ -203,6 +231,8 @@ def pending_items(
             items += _facts(conn)
         if "politico" in kinds:
             items += _politicians(conn)
+        if "programa" in kinds:
+            items += _programs(conn)
     return items
 
 
@@ -211,6 +241,7 @@ _TABLES = {
     "partido": "ref.parties",
     "hecho": "ref.facts",
     "politico": "ref.politicians",
+    "programa": "ref.programs",
 }
 
 

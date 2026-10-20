@@ -207,11 +207,13 @@ def run_steps(
     steps: Sequence[Step],
     prompts_dir: Path,
     from_step: StepName | None = None,
+    on_step: Callable[[StepName], None] | None = None,
 ) -> list[StepName]:
     """Run the planned steps, recording status, prompt hashes and cost in the manifest.
 
     A failing step is recorded as failed and the exception is re-raised; failures of
-    individual claims must be handled inside the step.
+    individual claims must be handled inside the step. `on_step` is told each step that is
+    about to run (progress shown in the panel).
     """
     to_run = plan_steps(store.manifest, steps, prompts_dir, from_step)
     for step in _ordered(steps):
@@ -226,6 +228,8 @@ def run_steps(
 
         hashes = _current_hashes(step, prompts_dir)
         logger.info("Paso %s: ejecutando", step.name)
+        if on_step is not None:
+            on_step(step.name)
         started = time.monotonic()
         try:
             outcome = step.run(store)
