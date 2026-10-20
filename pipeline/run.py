@@ -754,6 +754,7 @@ def run_job(
     author: str | None = None,
     from_step: StepName | None = None,
     purge_audio: bool = False,
+    on_step: Callable[[StepName], None] | None = None,
 ) -> JobResult:
     if not input_path.is_file():
         raise FileNotFoundError(f"No existe el archivo {input_path}")
@@ -770,7 +771,7 @@ def run_job(
     if invalidated:
         logger.info("Parámetros cambiados: se recalcula desde %s", invalidated)
     steps = build_steps(store, input_path, deps, purge_audio_after=purge_audio)
-    steps_run = run_steps(store, steps, prompts_dir, start)
+    steps_run = run_steps(store, steps, prompts_dir, start, on_step=on_step)
 
     report = store.read("report.json", Report)
     report_path = store.path("report.json")
