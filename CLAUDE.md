@@ -59,6 +59,19 @@ que no haya que reescribir al pasar de fase.
   slides) en Supabase Storage; `data/<job_id>/` es solo la carpeta de trabajo del análisis
   (en un servidor, el disco es efímero). El vídeo nunca se sube a Storage salvo para
   transcribirlo, y se borra después.
+- **Informes en Supabase** (`pipeline/reports/`, migraciones 0011 y 0012): un informe es
+  una fila de `app.reports` (estado, título, tipo, slug `2026-10-18-debate-a-tres`) y una
+  **versión por afirmación o promesa** en `app.claim_versions`, con un único vigente por
+  afirmación; la 1 es la del análisis y las demás, re-evaluaciones o correcciones
+  manuales (con motivo obligatorio). Las versiones no se modifican ni se borran; solo se
+  eliminan borradores y análisis con error. Volver a analizar un borrador añade versión
+  solo donde cambió el resultado; un informe publicado o retirado no se reanaliza. Los
+  archivos de auditoría (transcripción, afirmaciones, evidencia, veredictos, manifest) y
+  el informe HTML van a Storage; nunca el vídeo ni el audio.
+- **Cola** (`app.analysis_queue`): sobrevive a reinicios; al arrancar, lo que estaba en
+  curso pasa a `interrumpido` y el informe a `error` («se puede reintentar»).
+- **Caché de búsquedas** también en Postgres (`ops.search_cache`), leída antes que el
+  disco: se comparte entre el Mac y el servidor y sobrevive a un disco efímero.
 - **Instagram**: la API no crea borradores dentro de Instagram. Los borradores viven en el
   panel; al aprobarlos y pulsar Publicar, la API publica en la cuenta (las imágenes, en un
   bucket público de Storage). Nada se publica sin aprobación.
@@ -128,6 +141,12 @@ pipeline/
   report_html.py      # informe HTML autocontenido e interactivo (filtros orador/categoría)
   email_report.py     # envío por SMTP: resumen estático en el cuerpo + informe adjunto
                       # (los clientes de correo bloquean JavaScript)
+  reports/            # fase 4: informes en Supabase (migración 0011, esquema app)
+    repository.py     # crear, guardar como borrador (versiones por afirmación) y reconstruir
+    files.py          # Supabase Storage (bucket privado `informes/<job_id>/`)
+    sync.py           # subir un análisis terminado (`verificar --subir` y el worker)
+    worker.py         # cola en Postgres (FOR UPDATE SKIP LOCKED) e hilos del worker
+    migrate_local.py  # migración única de data/ (scripts/migrar_informes.py)
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
   gold/               # casos de prueba (JSON) con veredicto esperado
@@ -634,6 +653,9 @@ uv run verificar data/x.mp4 --fecha 2026-11-20               # vídeo
 uv run verificar data/articulo.txt --fecha 2026-11-20         # texto
 uv run verificar data/x.mp4 --fecha 2026-11-20 --from-step evidence  # reanudar
 uv run verificar data/x.mp4 --fecha 2026-11-20 --no-cache  # sin reutilizar búsquedas
+uv run verificar data/x.txt --fecha 2026-11-20 --subir --titulo "Debate a tres" --tipo debate
+                                # guarda el informe en Supabase como borrador (panel)
+uv run python scripts/migrar_informes.py [--simular]  # sube data/ y la caché a Supabase (una vez)
 uv run verificar-web            # web local de pruebas en http://localhost:8000
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
