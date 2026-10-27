@@ -11,6 +11,7 @@ create table ops.search_cache (
     respuesta    jsonb       not null,
     guardado_en  timestamptz not null
 );
+create index search_cache_guardado_idx on ops.search_cache (guardado_en);  -- para purgar
 
 alter table ops.search_cache enable row level security;
 revoke all on ops.search_cache from public, anon, authenticated;

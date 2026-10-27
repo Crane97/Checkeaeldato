@@ -35,10 +35,12 @@ create table ref.programs (
     constraint programs_revision_chk check (case
         when estado = 'pendiente' then revisado_en is null and revisado_por is null
         else revisado_en is not null and nullif(btrim(revisado_por), '') is not null
-    end),
-    unique (eleccion, partido)
+    end)
 );
 create index programs_source_idx on ref.programs (source_id);
+-- Un programa vigente por partido y elección: el rechazado deja sitio a su versión corregida.
+create unique index programs_eleccion_partido_idx
+    on ref.programs (eleccion, partido) where estado <> 'rechazado';
 
 -- El texto en fragmentos de una o pocas páginas, para citar «programa X, pág. N».
 create table ref.program_chunks (
@@ -86,6 +88,13 @@ begin
         raise exception 'solo cambian la revisión y los datos descriptivos de un programa'
             using errcode = 'check_violation';
     end if;
+    -- Revisión: pendiente → aprobado o rechazado; aprobado → rechazado (retirar). Un
+    -- rechazado no vuelve: se carga la versión corregida con otro id.
+    if new.estado is distinct from old.estado
+       and not (old.estado = 'pendiente' or (old.estado = 'aprobado' and new.estado = 'rechazado')) then
+        raise exception 'un programa % no pasa a %', old.estado, new.estado
+            using errcode = 'check_violation';
+    end if;
     return new;
 end;
 $$;
@@ -93,7 +102,20 @@ create trigger programs_identidad
     before update or delete on ref.programs
     for each row execute function ref.guard_program_identity();
 
+create trigger programs_no_truncate before truncate on ref.programs
+    for each statement execute function ref.forbid_truncate();
+create trigger program_chunks_no_truncate before truncate on ref.program_chunks
+    for each statement execute function ref.forbid_truncate();
+
+-- Como en 0002: también con session_replication_role = replica (restauraciones).
+alter table ref.programs       enable always trigger programs_identidad;
+alter table ref.programs       enable always trigger programs_no_truncate;
+alter table ref.program_chunks enable always trigger program_chunks_inmutables;
+alter table ref.program_chunks enable always trigger program_chunks_no_truncate;
+
 -- Misma defensa que el resto de ref (0002): RLS sin políticas y sin privilegios para la API.
 alter table ref.programs       enable row level security;
 alter table ref.program_chunks enable row level security;
 revoke all on ref.programs, ref.program_chunks from public, anon, authenticated;
+revoke execute on function ref.guard_program_text(), ref.guard_program_identity()
+    from public, anon, authenticated;

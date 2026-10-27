@@ -99,3 +99,37 @@ def test_the_text_and_identity_of_a_programme_cannot_be_changed(db, tmp_path):  
         with pytest.raises(psycopg.errors.CheckViolation):
             db.execute(sql)
         db.execute("rollback to savepoint s")
+
+
+def test_a_rejected_programme_leaves_room_for_its_corrected_version(db, tmp_path):  # noqa: F811
+    load_programs(db, _seed(), _collected(tmp_path))
+    db.execute(
+        "update ref.programs set estado = 'rechazado', revisado_por = 'Ana',"
+        " revisado_en = now() where id = 'aa-2023-07'"
+    )
+    source = db.execute("select source_id from ref.programs where id = 'aa-2023-07'").fetchone()
+    db.execute(
+        "insert into ref.programs (id, eleccion, candidatura, partido, grupo, titulo, idioma,"
+        " url, sha256, paginas, source_id) select 'aa-2023-07-b', eleccion, candidatura,"
+        " partido, grupo, titulo, idioma, url, repeat('b', 64), paginas, %s"
+        " from ref.programs where id = 'aa-2023-07'",
+        source,
+    )
+    # A rejected programme does not come back: it would be the second one of that election.
+    for sql in (
+        "update ref.programs set estado = 'aprobado' where id = 'aa-2023-07'",
+        "update ref.programs set estado = 'pendiente', revisado_por = null, revisado_en = null"
+        " where id = 'aa-2023-07'",
+    ):
+        db.execute("savepoint s")
+        with pytest.raises(psycopg.errors.CheckViolation):
+            db.execute(sql)
+        db.execute("rollback to savepoint s")
+
+
+def test_programmes_cannot_be_truncated(db):  # noqa: F811
+    for table in ("ref.program_chunks", "ref.programs"):
+        db.execute("savepoint s")
+        with pytest.raises(psycopg.errors.RestrictViolation):
+            db.execute(f"truncate {table} cascade")
+        db.execute("rollback to savepoint s")

@@ -26,6 +26,8 @@ def _report(conn, rid="a1b2c3d4e5f6", estado="borrador", **extra) -> str:
         "estado": estado,
         **extra,
     }
+    if estado in ("borrador", "publicado", "retirado"):
+        fields.setdefault("analizado_en", "2026-10-18")
     cols = ", ".join(fields)
     marks = ", ".join(["%s"] * len(fields))
     conn.execute(f"insert into app.reports ({cols}) values ({marks})", list(fields.values()))
@@ -162,3 +164,72 @@ def test_the_api_roles_cannot_reach_reports(db):  # noqa: F811
         assert db.execute(
             "select has_table_privilege('anon', %s, 'select')", (f"app.{table}",)
         ).fetchone() == (False,)
+
+
+def test_the_category_must_exist_and_match_the_verdict(db):  # noqa: F811
+    rid = _report(db)
+    for etiqueta, categoria in [
+        ("verdadero", None),
+        ("verdadero", "falso_con_fuente_oficial"),
+        ("falso", "verdadero"),
+        ("confusion", "no_verificable"),
+    ]:
+        db.execute("savepoint s")
+        with pytest.raises(psycopg.errors.CheckViolation):
+            _version(db, rid, claim_id="c7", etiqueta=etiqueta, categoria=categoria)
+        db.execute("rollback to savepoint s")
+    _version(db, rid, claim_id="c7", etiqueta="verdadero", categoria="verdadero_sin_fuente_oficial")
+    _version(db, rid, claim_id="c8", etiqueta="confusion", categoria="confusion")
+
+
+def test_only_the_allowed_state_transitions_happen(db):  # noqa: F811
+    published = _report(db, estado="publicado", tipo="debate", publicado_en="2026-10-19")
+    _fails(db, "update app.reports set estado = 'borrador' where id = %s", (published,))
+    _fails(db, "update app.reports set publicado_en = now() where id = %s", (published,))
+    db.execute(
+        "update app.reports set estado = 'retirado', retirado_en = now(),"
+        " nota_retirada = 'error de transcripción' where id = %s",
+        (published,),
+    )
+    _fails(db, "update app.reports set estado = 'publicado' where id = %s", (published,))
+    analysing = _report(db, rid="0123456789ab", estado="en_analisis")
+    _fails(
+        db,
+        "update app.reports set estado = 'publicado', tipo = 'debate', publicado_en = now(),"
+        " analizado_en = now() where id = %s",
+        (analysing,),
+    )
+    _fails(db, "update app.reports set estado = 'borrador' where id = %s", (analysing,))
+    db.execute(
+        "update app.reports set estado = 'borrador', analizado_en = now() where id = %s",
+        (analysing,),
+    )
+
+
+def test_reports_and_versions_cannot_be_truncated(db):  # noqa: F811
+    for table in ("app.reports", "app.claim_versions"):
+        _fails(db, f"truncate {table} cascade", error=psycopg.errors.RestrictViolation)
+
+
+def test_only_one_active_analysis_per_report(db):  # noqa: F811
+    rid = _report(db, estado="en_analisis")
+    sql = "insert into app.analysis_queue (report_id, solicitud) values (%s, '{}')"
+    db.execute(sql, (rid,))
+    _fails(db, sql, (rid,), error=psycopg.errors.UniqueViolation)
+    db.execute("update app.analysis_queue set estado = 'error' where report_id = %s", (rid,))
+    db.execute(sql, (rid,))  # a new attempt once the previous one ended
+    _fails(
+        db,
+        "update app.analysis_queue set estado = 'en_curso' where report_id = %s"
+        " and estado = 'pendiente'",
+        (rid,),
+    )  # running without heartbeat
+
+
+def test_the_api_roles_cannot_use_sequences_or_functions(db):  # noqa: F811
+    assert db.execute(
+        "select has_sequence_privilege('anon', 'app.claim_versions_id_seq', 'usage')"
+    ).fetchone() == (False,)
+    assert db.execute(
+        "select has_function_privilege('anon', 'app.guard_report_state()', 'execute')"
+    ).fetchone() == (False,)
