@@ -224,6 +224,14 @@ class LiveDeps:
             return None
         return ThinkingConfig(s.verdict_thinking, s.verdict_effort, s.verdict_thinking_budget)
 
+    @property
+    def search_cache_warning(self) -> str | None:
+        """Set when the Supabase search cache failed during this run (only disk was used)."""
+        from pipeline.evidence.search_cache import DB_UNAVAILABLE
+
+        client = self.__dict__.get("tavily")
+        return DB_UNAVAILABLE if client is not None and client.cache_db_unavailable else None
+
     def take_search_cost(self, step: str) -> list[CostEntry]:
         """Tavily searches made since the last call, as a cost entry of `step`."""
         if "tavily" not in self.__dict__ or self.tavily is None:
@@ -568,7 +576,14 @@ def build_steps(
             )
         indicator_hits.append(len(local))
         sources = deps.evidence_sources
-        base_warnings = [w for w in [getattr(deps, "knowledge_warning", None)] if w]
+        base_warnings = [
+            w
+            for w in [
+                getattr(deps, "knowledge_warning", None),
+                getattr(deps, "search_cache_warning", None),
+            ]
+            if w
+        ]
         base_warnings += list(getattr(deps.indicators, "problems", []))
         base_warnings += list(getattr(on_demand, "errors", []))
         run = EvidenceRun(
@@ -702,6 +717,12 @@ def build_steps(
                 for name in evidence.sources_disabled
             ]
             + evidence.warnings
+            # The verdicts' follow-up searches may have found the database cache down too.
+            + [
+                w
+                for w in [getattr(deps, "search_cache_warning", None)]
+                if w and w not in evidence.warnings
+            ]
             + _record_warning(store),
         )
         store.write("report.json", report, Report)

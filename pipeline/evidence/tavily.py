@@ -75,6 +75,10 @@ class TavilyClient:
         self.stats = SearchStats()
         self._stats_lock = threading.Lock()  # searches run in parallel (fase I)
 
+    @property
+    def cache_db_unavailable(self) -> bool:
+        return self._cache is not None and self._cache.db_unavailable
+
     def take_stats(self) -> SearchStats:
         """Counts since the last call (one pipeline step), then reset."""
         with self._stats_lock:

@@ -84,3 +84,25 @@ def test_the_database_store_round_trips(db):  # noqa: F811
     newer = {"results": []}
     store.write(cache_key(REQUEST), REQUEST, newer, NOW + dt.timedelta(days=1))
     assert store.read(cache_key(REQUEST)) == (newer, NOW + dt.timedelta(days=1))
+
+
+def test_the_run_can_tell_the_database_cache_failed(tmp_path):
+    def broken():
+        raise psycopg.OperationalError("sin conexión")
+
+    store = DbSearchStore(broken)
+    cache = _cache(tmp_path, store)
+    assert cache.db_unavailable is False
+    cache.get(REQUEST)
+    assert store.unavailable and cache.db_unavailable
+
+
+def test_a_strict_store_raises_instead_of_falling_back():
+    def broken():
+        raise psycopg.OperationalError("sin conexión")
+
+    store = DbSearchStore(broken, strict=True)
+    with pytest.raises(psycopg.OperationalError):
+        store.read(cache_key(REQUEST))
+    with pytest.raises(psycopg.OperationalError):
+        store.write(cache_key(REQUEST), REQUEST, RESPONSE, NOW)

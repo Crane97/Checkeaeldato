@@ -78,15 +78,35 @@ class EntryStore(Protocol):
     ) -> None: ...
 
 
+DB_UNAVAILABLE = (
+    "La caché de búsquedas en Supabase no estuvo disponible: solo se usó la del disco"
+    " (puede gastar créditos de más)"
+)
+
+
 class DbSearchStore:
     """ops.search_cache. After the first database error it is left aside for the rest of
-    the run (one warning, no slow retries on every search): the disk cache keeps working."""
+    the run (one warning, no slow retries on every search): the disk cache keeps working,
+    and `unavailable` lets the run say so in its warnings. With `strict` (the one-off
+    migration) any error is raised instead: nothing may be counted as copied."""
 
-    def __init__(self, connect: Callable[[], AbstractContextManager[psycopg.Connection]]) -> None:
+    def __init__(
+        self,
+        connect: Callable[[], AbstractContextManager[psycopg.Connection]],
+        *,
+        strict: bool = False,
+    ) -> None:
         self._connect = connect
+        self._strict = strict
         self._broken = False
 
-    def _failed(self, exc: psycopg.Error) -> None:
+    @property
+    def unavailable(self) -> bool:
+        return self._broken
+
+    def _failed(self, exc: Exception) -> None:
+        if self._strict:
+            raise exc
         self._broken = True
         logger.warning("Caché de búsquedas en la base no disponible; solo disco: %s", exc)
 
@@ -98,8 +118,11 @@ class DbSearchStore:
                 row = conn.execute(
                     "select respuesta, guardado_en from ops.search_cache where clave = %s", (key,)
                 ).fetchone()
-        except psycopg.Error as exc:
+        except (psycopg.Error, OSError) as exc:
             self._failed(exc)
+            return None
+        if row is not None and not isinstance(row[0], dict):
+            logger.warning("Entrada de caché %s en la base no válida; se busca de nuevo", key)
             return None
         return (row[0], row[1]) if row else None
 
@@ -122,7 +145,7 @@ class DbSearchStore:
                         saved_at,
                     ),
                 )
-        except psycopg.Error as exc:
+        except (psycopg.Error, OSError) as exc:
             self._failed(exc)
 
 
@@ -142,6 +165,10 @@ class SearchCache:
         self.read = read
         self._now = now
         self._db = db
+
+    @property
+    def db_unavailable(self) -> bool:
+        return bool(getattr(self._db, "unavailable", False))
 
     def _path(self, key: str) -> Path:
         return self.root / key[:2] / f"{key}.json"
