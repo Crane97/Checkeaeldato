@@ -287,6 +287,8 @@ def cargar_programas() -> None:
         )
     for pid in report.not_collected:
         typer.secho(f"  Sin recopilar con la URL actual: {pid}", fg=typer.colors.YELLOW)
+    if report.changed:
+        raise typer.Exit(code=2)  # needs a person: not a silent success in a script
 
 
 @app.command("buscar-programa")
@@ -315,13 +317,33 @@ def buscar_programa(
     except ValueError as exc:
         typer.secho(f"Fecha no válida: {eleccion}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2) from exc
-    with _connect() as conn:
-        found = search_programs(
-            conn, texto, partido=partido, eleccion=date, include_pending=pendientes, limit=limite
-        )
-        conn.rollback()
+    try:
+        with _connect() as conn:
+            found = search_programs(
+                conn, texto, partido=partido, eleccion=date, include_pending=pendientes,
+                limit=limite,
+            )  # fmt: skip
+            counts: dict[str, int] = {}
+            if not found:  # tell "nothing matches" from "nothing approved yet"
+                counts = dict(
+                    conn.execute(
+                        "select estado, count(*) from ref.programs group by estado"
+                    ).fetchall()
+                )
+            conn.rollback()
+    except psycopg.Error as exc:
+        typer.secho(f"Error de la base de datos: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
     if not found:
-        typer.echo("Sin resultados.")
+        approved, pending = counts.get("aprobado", 0), counts.get("pendiente", 0)
+        if approved == 0 and not pendientes:
+            typer.secho(
+                f"No hay ningún programa aprobado ({pending} pendientes de revisión: usa"
+                " --pendientes o `conocimiento revisar --tipo programa`).",
+                fg=typer.colors.YELLOW,
+            )
+        else:
+            typer.echo(f"Sin resultados en {approved + (pending if pendientes else 0)} programas.")
         return
     for r in found:
         typer.secho(

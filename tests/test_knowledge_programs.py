@@ -245,3 +245,43 @@ def test_search_command_rejects_a_bad_date_before_connecting(monkeypatch):
     monkeypatch.setattr(cli, "_connect", lambda: pytest.fail("no debe conectar"))
     result = CliRunner().invoke(cli.app, ["buscar-programa", "x", "--eleccion", "23-07-2023"])
     assert result.exit_code == 2 and "Fecha no válida" in result.output
+
+
+def test_a_broken_or_hostile_pdf_is_a_value_error():
+    with pytest.raises(ValueError, match="No se pudo leer el PDF"):
+        extract_pages(b"%PDF-1.7\n" + b"\x00basura" * 50)
+
+
+def test_an_encrypted_pdf_is_rejected():
+    import io
+
+    from pypdf import PdfWriter
+
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    writer.encrypt("clave")
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    with pytest.raises(ValueError, match="cifrado"):
+        extract_pages(buffer.getvalue())
+
+
+def test_live_party_urls_must_be_https():
+    from pipeline.knowledge.programs import official_url
+
+    assert official_url("https://www.partido.es/programa.pdf", ["partido.es"])
+    assert not official_url("http://www.partido.es/programa.pdf", ["partido.es"])
+    assert official_url(
+        "https://web.archive.org/web/2016id_/http://www.partido.es/p.pdf", ["partido.es"]
+    )
+    assert not official_url(
+        "http://web.archive.org/web/2016id_/http://www.partido.es/p.pdf", ["partido.es"]
+    )
+
+
+def test_malformed_archive_answers_are_handled():
+    header = ["timestamp", "original", "mimetype", "statuscode", "digest"]
+    good = ["20160601", "https://partido.es/programa.pdf", "application/pdf", "200", "A"]
+    assert len(wayback_candidates([header, ["corta"], good])) == 1
+    with pytest.raises(ValueError, match="columnas"):
+        wayback_candidates([["timestamp", "original"], good])

@@ -27,7 +27,7 @@ SEED_PATH = REPO / "data" / "knowledge" / "programas.yaml"
 CACHE_DIR = REPO / "data" / "cache" / "programas"
 MAX_CHARS = 1500
 ARCHIVE = "https://web.archive.org/web/"
-_ARCHIVED = re.compile(r"^https?://web\.archive\.org/web/(\d+)(?:id_)?/(https?://.+)$")
+_ARCHIVED = re.compile(r"^https://web\.archive\.org/web/(\d+)(?:id_)?/(https?://.+)$")
 EXCLUDED_GROUPS = ("Mixto", "Plural")
 
 
@@ -61,10 +61,11 @@ def _host_allowed(url: str, domains: list[str]) -> bool:
 
 
 def official_url(url: str, domains: list[str]) -> bool:
-    """The party's own domain, live or as archived by archive.org."""
+    """The party's own domain over https, live or as archived by archive.org (the
+    archived original may be http: what is downloaded is archive.org's https copy)."""
     if archived := _ARCHIVED.match(url):
         return _host_allowed(archived.group(2), domains)
-    return _host_allowed(url, domains)
+    return urlsplit(url).scheme == "https" and _host_allowed(url, domains)
 
 
 class ProgramsSeed(BaseModel):
@@ -126,18 +127,27 @@ class ProgramText(BaseModel):
     chunks: list[Chunk]
 
 
+MAX_PAGES = 1500  # the longest programmes have a few hundred
+
+
 def extract_pages(pdf: bytes) -> list[str]:
-    """Text of each page (an empty string for pages without text, e.g. images)."""
+    """Text of each page (an empty string for pages without text, e.g. images). Any
+    problem reading the file (malformed, encrypted, too long) is a ValueError."""
     from pypdf import PdfReader
-    from pypdf.errors import PdfReadError
 
     if not pdf.lstrip().startswith(b"%PDF"):
         raise ValueError("El archivo descargado no es un PDF")
     try:
         reader = PdfReader(io.BytesIO(pdf))
+        if reader.is_encrypted:
+            raise ValueError("El PDF está cifrado")
+        if len(reader.pages) > MAX_PAGES:
+            raise ValueError(f"El PDF tiene {len(reader.pages)} páginas (máximo {MAX_PAGES})")
         return [page.extract_text() or "" for page in reader.pages]
-    except PdfReadError as exc:
-        raise ValueError(f"No se pudo leer el PDF: {exc}") from exc
+    except ValueError:
+        raise
+    except Exception as exc:  # pypdf raises many kinds on a broken or hostile file
+        raise ValueError(f"No se pudo leer el PDF ({type(exc).__name__}): {exc}") from exc
 
 
 def _clean(text: str) -> str:
@@ -200,9 +210,14 @@ def wayback_candidates(rows: list[list[str]]) -> list[Candidate]:
     """PDFs from a CDX answer (first row = header), one per document, likely ones first."""
     header, *data = rows
     col = {name: i for i, name in enumerate(header)}
+    needed = {"timestamp", "original", "mimetype", "statuscode", "digest"}
+    if not needed <= set(col):
+        raise ValueError(f"Respuesta de archive.org sin las columnas {sorted(needed - set(col))}")
     seen: set[str] = set()
     found: list[Candidate] = []
     for row in data:
+        if not isinstance(row, list) or len(row) < len(header):
+            continue  # malformed row
         if row[col["mimetype"]] != "application/pdf" or row[col["statuscode"]] != "200":
             continue
         digest = row[col["digest"]]
