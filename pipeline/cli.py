@@ -21,6 +21,7 @@ from pipeline.report import ReportError
 from pipeline.reports.files import StorageError
 from pipeline.reports.repository import EventType
 from pipeline.reports.repository import ReportError as StoredReportError
+from pipeline.reports.safe_errors import install_secret_filter, public_message, secret_values
 from pipeline.reports.sync import ReportUploader, job_id_for
 from pipeline.run import LiveDeps, input_kind_for, run_job
 from pipeline.text_input import InputError
@@ -95,7 +96,7 @@ def _setup_logging(verbose: bool) -> None:
 
 
 EVENT_TYPES: tuple[EventType, ...] = ("debate", "mitin", "entrevista", "sesion_parlamentaria")
-UPLOAD_ERRORS = (ConfigError, StorageError, StoredReportError, psycopg.Error)
+UPLOAD_ERRORS = (ConfigError, StorageError, StoredReportError, psycopg.Error, OSError)
 
 
 def open_uploader(settings) -> ReportUploader:
@@ -124,16 +125,18 @@ def _begin_upload(settings, entrada: Path, speech_date: dt.date, titulo, tipo) -
     return uploader
 
 
-def _record_failure(uploader: ReportUploader, entrada: Path, message: str) -> None:
+def _record_failure(uploader: ReportUploader, job_id: str, message: str) -> None:
     try:
-        uploader.fail(job_id_for(entrada), message)
+        uploader.fail(job_id, message)
     except UPLOAD_ERRORS as exc:
         typer.secho(f"No se pudo anotar el error en Supabase: {exc}", fg="red", err=True)
     finally:
         uploader.close()
 
 
-def _finish_upload(uploader: ReportUploader, job_dir: Path, report) -> None:
+def _finish_upload(
+    uploader: ReportUploader, job_dir: Path, report, secrets: list[str] | None = None
+) -> None:
     try:
         meta = uploader.finish(job_dir, report)
     except UPLOAD_ERRORS as exc:
@@ -143,9 +146,12 @@ def _finish_upload(uploader: ReportUploader, job_dir: Path, report) -> None:
             fg="red",
             err=True,
         )
+        # The panel must not keep showing it "en análisis".
+        _record_failure(
+            uploader, report.job_id, f"La subida falló: {public_message(exc, secrets or [])}"
+        )
         raise typer.Exit(code=1) from exc
-    finally:
-        uploader.close()
+    uploader.close()
     typer.echo(f"\nGuardado en Supabase como {meta.estado}: {meta.slug}")
 
 
@@ -210,6 +216,7 @@ def main(
     _setup_logging(verbose)
 
     settings = get_settings()
+    install_secret_filter(settings)
     uploader = _begin_upload(settings, entrada, speech_date, titulo, event_type) if subir else None
     deps = LiveDeps(settings, use_cache=not no_cache)
     try:
@@ -226,7 +233,9 @@ def main(
         )
     except USER_ERRORS as exc:
         if uploader is not None:
-            _record_failure(uploader, entrada, str(exc))
+            _record_failure(
+                uploader, job_id_for(entrada), public_message(exc, secret_values(settings))
+            )
         typer.secho(f"\nError: {exc}", fg=typer.colors.RED, err=True)
         typer.echo(
             "Cuando lo corrijas, repite el mismo comando: se reanudará desde el paso que "
@@ -236,7 +245,9 @@ def main(
         raise typer.Exit(code=1) from exc
     except BaseException as exc:  # unexpected failure or Ctrl+C: never left "en_analisis"
         if uploader is not None:
-            _record_failure(uploader, entrada, f"Análisis interrumpido: {type(exc).__name__}")
+            _record_failure(
+                uploader, job_id_for(entrada), f"Análisis interrumpido: {type(exc).__name__}"
+            )
         raise
 
     typer.echo("\n" + result.summary)
@@ -248,7 +259,12 @@ def main(
         + (" (caché sin leer: --no-cache)" if no_cache else "")
     )
     if uploader is not None:
-        _finish_upload(uploader, settings.data_dir / result.report.job_id, result.report)
+        _finish_upload(
+            uploader,
+            settings.data_dir / result.report.job_id,
+            result.report,
+            secret_values(settings),
+        )
     if email:
         try:
             email_report(result.report, email, settings)

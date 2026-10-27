@@ -104,3 +104,54 @@ def test_settings_without_supabase_storage_are_a_config_error():
         Storage.from_settings(Settings(supabase_service_role_key=KEY))
     with pytest.raises(ConfigError, match="SUPABASE_SERVICE_ROLE_KEY"):
         Storage.from_settings(Settings(supabase_url=URL))
+
+
+@pytest.mark.parametrize("url", ["http://proyecto.supabase.co", "ftp://x", "proyecto.supabase.co"])
+def test_the_key_is_only_sent_over_https(url):
+    with pytest.raises(ConfigError, match="https"):
+        Storage(url, KEY)
+
+
+def test_plain_http_is_accepted_only_for_this_machine():
+    Storage("http://127.0.0.1:54321", KEY)
+    Storage("http://localhost:54321", KEY)
+
+
+@pytest.mark.parametrize("bucket", ["../x", "Informes", "a", "informes/otro", ""])
+def test_bucket_names_are_validated(storage, bucket):
+    with pytest.raises(StorageError, match="bucket"):
+        storage.upload(bucket, "abc/x.json", b"{}", "application/json")
+    with pytest.raises(StorageError, match="bucket"):
+        storage.public_url(bucket, "abc/x.json")
+
+
+@pytest.mark.parametrize("path", ["abc/../x.json", "./x.json", "abc/./x.json", "/abc", "a b"])
+def test_paths_are_validated(storage, path):
+    with pytest.raises(StorageError, match="Ruta"):
+        storage.upload("informes", path, b"{}", "application/json")
+
+
+@respx.mock
+def test_a_missing_object_is_told_by_its_status_not_by_its_text(storage):
+    respx.get(f"{URL}/storage/v1/object/authenticated/informes/abc/x.json").mock(
+        return_value=httpx.Response(404, json={"error": "not_found"})
+    )
+    with pytest.raises(StorageError, match="no existe") as info:
+        storage.download("informes", "abc/x.json")
+    assert info.value.status_code == 404
+    respx.post(f"{URL}/storage/v1/object/informes/abc/404.json").mock(
+        return_value=httpx.Response(413, json={"message": "Payload too large: 4040 bytes"})
+    )
+    with pytest.raises(StorageError, match="HTTP 413") as info:
+        storage.upload("informes", "abc/404.json", b"{}", "application/json")
+    assert "no existe" not in str(info.value)
+
+
+@respx.mock
+def test_an_existing_bucket_is_fine_but_other_errors_are_not(storage):
+    route = respx.post(f"{URL}/storage/v1/bucket")
+    route.mock(return_value=httpx.Response(409, json={"error": "Duplicate", "message": "x"}))
+    storage.ensure_bucket("informes", public=False)
+    route.mock(return_value=httpx.Response(403, json={"message": "Duplicate? no: forbidden"}))
+    with pytest.raises(StorageError, match="403"):
+        storage.ensure_bucket("informes", public=False)

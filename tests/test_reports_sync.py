@@ -161,3 +161,43 @@ def test_subir_records_an_interrupted_analysis(cli_env, monkeypatch):
     assert ("fail", job_id_for(article), "Análisis interrumpido: KeyboardInterrupt") in (
         uploader.calls
     )
+
+
+def test_subir_marks_the_report_as_error_when_the_final_upload_fails(cli_env, monkeypatch):
+    from pipeline.reports.files import StorageError
+
+    uploader, article = cli_env
+
+    def broken_finish(job_dir, report):
+        raise StorageError("Storage respondió HTTP 503: no disponible", 503)
+
+    monkeypatch.setattr(uploader, "finish", broken_finish)
+    result = CliRunner().invoke(cli.app, [str(article), "--fecha", "2026-11-20", "--subir"])
+    assert result.exit_code == 1 and "no se vuelve a analizar" in result.output
+    fail = next(c for c in uploader.calls if c[0] == "fail")
+    assert fail[1] == job_id_for(article) and "503" in fail[2]
+    assert uploader.calls[-1] == ("close",)
+
+
+@pytest.mark.supabase
+def test_the_report_files_are_required_and_old_ones_stop_being_listed(db, tmp_path):  # noqa: F811
+    from pipeline.reports.repository import ReportError
+
+    job_dir = tmp_path / JOB
+    job_dir.mkdir()
+    uploader = ReportUploader(db, FakeStorage(), origen="local")
+    uploader.begin(job_id=JOB, titulo="Debate", fecha=dt.date(2026, 10, 18),
+                   input_kind="texto", fuente="debate.txt")  # fmt: skip
+    (job_dir / "manifest.json").write_text("{}")
+    with pytest.raises(ReportError, match="report.json"):
+        uploader.finish(job_dir, report(claim("c1", "A")))
+
+    for name in ("report.json", "transcript.json"):
+        (job_dir / name).write_text("{}")
+    uploader.finish(job_dir, report(claim("c1", "A")))
+    (job_dir / "transcript.json").unlink()
+    uploader.finish(job_dir, report(claim("c1", "A")))
+    rutas = {r for (r,) in db.execute("select ruta from app.report_files where report_id = %s",
+                                      (JOB,))}  # fmt: skip
+    assert f"informes/{JOB}/transcript.json" not in rutas
+    assert f"informes/{JOB}/manifest.json" in rutas

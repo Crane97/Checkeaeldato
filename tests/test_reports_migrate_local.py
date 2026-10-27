@@ -93,3 +93,48 @@ def test_simulated_cache_migration_writes_nothing(tmp_path):
     assert json.loads(next((tmp_path / "search").glob("*/*.json")).read_text())["response"] == {
         "results": []
     }
+
+
+def test_a_database_failure_stops_the_cache_copy_instead_of_counting_it(tmp_path):
+    import psycopg
+
+    from pipeline.evidence.search_cache import DbSearchStore
+
+    request = {"query": "IPC 2025", "search_depth": "basic", "max_results": 5}
+    SearchCache(tmp_path / "search", now=lambda: NOW).put(request, {"results": []})
+
+    def broken():
+        raise psycopg.OperationalError("sin conexión")
+
+    result = MigrationReport()
+    with pytest.raises(psycopg.OperationalError):
+        migrate_search_cache(DbSearchStore(broken, strict=True), tmp_path / "search", result)
+    assert result.cache_copied == 0
+
+
+@pytest.mark.supabase
+def test_a_half_failed_upload_is_retried_on_the_next_run(db, tmp_path):  # noqa: F811
+    data = tmp_path / "data"
+    _job(data, JOB)
+
+    class FailingStorage(FakeStorage):
+        def upload(self, *args, **kwargs):
+            raise RuntimeError("Storage caído")
+
+    result = migrate_reports(db, ReportUploader(db, FailingStorage(), origen="local"), data)
+    assert result.failed and not result.uploaded
+    assert load_meta(db, JOB).estado == "error"  # not left "en análisis"
+
+    again = migrate_reports(db, ReportUploader(db, FakeStorage(), origen="local"), data)
+    assert (again.uploaded, again.retried, again.already) == ([JOB], [JOB], [])
+    assert load_meta(db, JOB).estado == "borrador"
+
+
+def test_an_unreadable_folder_is_a_failure_not_an_unfinished_analysis(tmp_path):
+    from pipeline.reports.migrate_local import finished_jobs
+
+    job_dir = tmp_path / "data" / "abcdef012345"
+    job_dir.mkdir(parents=True)
+    (job_dir / "manifest.json").write_text("{roto")
+    [(found_dir, report_, error)] = finished_jobs(tmp_path / "data")
+    assert found_dir == job_dir and report_ is None and "ilegible" in error
