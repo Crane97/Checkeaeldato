@@ -78,6 +78,17 @@ class EntryStore(Protocol):
     ) -> None: ...
 
 
+def _without_nul(value: Any) -> Any:
+    """Postgres jsonb rejects the NUL character, which some pages contain (PDF text)."""
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    if isinstance(value, dict):
+        return {_without_nul(k): _without_nul(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_without_nul(v) for v in value]
+    return value
+
+
 DB_UNAVAILABLE = (
     "La caché de búsquedas en Supabase no estuvo disponible: solo se usó la del disco"
     " (puede gastar créditos de más)"
@@ -140,8 +151,8 @@ class DbSearchStore:
                     " guardado_en = excluded.guardado_en",
                     (
                         key,
-                        json.dumps(request, ensure_ascii=False),
-                        json.dumps(response, ensure_ascii=False),
+                        json.dumps(_without_nul(request), ensure_ascii=False),
+                        json.dumps(_without_nul(response), ensure_ascii=False),
                         saved_at,
                     ),
                 )

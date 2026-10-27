@@ -106,3 +106,12 @@ def test_a_strict_store_raises_instead_of_falling_back():
         store.read(cache_key(REQUEST))
     with pytest.raises(psycopg.OperationalError):
         store.write(cache_key(REQUEST), REQUEST, RESPONSE, NOW)
+
+
+@pytest.mark.supabase
+def test_nul_characters_from_a_page_do_not_break_the_database_cache(db):  # noqa: F811
+    store = DbSearchStore(lambda: nullcontext(db), strict=True)
+    dirty = {"results": [{"content": "se contabiliza\x00 para cada especie", "x": ["a\x00b"]}]}
+    store.write(cache_key(REQUEST), {**REQUEST, "query": "paro\x00"}, dirty, NOW)
+    response, _ = store.read(cache_key(REQUEST))
+    assert response == {"results": [{"content": "se contabiliza para cada especie", "x": ["ab"]}]}
