@@ -155,3 +155,13 @@ def test_an_existing_bucket_is_fine_but_other_errors_are_not(storage):
     route.mock(return_value=httpx.Response(403, json={"message": "Duplicate? no: forbidden"}))
     with pytest.raises(StorageError, match="403"):
         storage.ensure_bucket("informes", public=False)
+
+
+@pytest.mark.parametrize("url", [f"{URL}/rest/v1", f"{URL}/storage/v1/", f"{URL}/x"])
+def test_a_url_with_a_path_is_a_clear_configuration_error(url):
+    with pytest.raises(ConfigError, match=r"https://proyecto\.supabase\.co"):
+        Storage(url, KEY)
+
+
+def test_a_trailing_slash_is_fine():
+    Storage(URL + "/", KEY)

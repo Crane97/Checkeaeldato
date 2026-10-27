@@ -54,11 +54,20 @@ def _check_bucket(bucket: str) -> str:
 def _check_url(url: str) -> str:
     """The key goes in every request: only over https (http only to this machine)."""
     parts = urlsplit(url)
-    if parts.scheme == "https" and parts.hostname:
-        return url
-    if parts.scheme == "http" and parts.hostname in _LOCAL_HOSTS:
-        return url
-    raise ConfigError("SUPABASE_URL debe empezar por https:// (la clave no se envía sin cifrar)")
+    secure = (parts.scheme == "https" and parts.hostname) or (
+        parts.scheme == "http" and parts.hostname in _LOCAL_HOSTS
+    )
+    if not secure:
+        raise ConfigError(
+            "SUPABASE_URL debe empezar por https:// (la clave no se envía sin cifrar)"
+        )
+    if parts.path not in ("", "/"):
+        # Usually the Data API address (…/rest/v1) pasted instead of the project's.
+        raise ConfigError(
+            f"SUPABASE_URL debe ser solo la dirección del proyecto, sin ruta:"
+            f" {parts.scheme}://{parts.netloc} (sobra «{parts.path}»)"
+        )
+    return url
 
 
 class Storage:
