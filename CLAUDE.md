@@ -67,9 +67,20 @@ que no haya que reescribir al pasar de fase.
   eliminan borradores y análisis con error. Volver a analizar un borrador añade versión
   solo donde cambió el resultado; un informe publicado o retirado no se reanaliza. Los
   archivos de auditoría (transcripción, afirmaciones, evidencia, veredictos, manifest) y
-  el informe HTML van a Storage; nunca el vídeo ni el audio.
-- **Cola** (`app.analysis_queue`): sobrevive a reinicios; al arrancar, lo que estaba en
-  curso pasa a `interrumpido` y el informe a `error` («se puede reintentar»).
+  el informe HTML van a Storage; nunca el vídeo ni el audio. La base impone las
+  transiciones de estado (en_analisis → borrador/error, borrador → publicado/en_analisis/
+  error, error → en_analisis/borrador, publicado → retirado) y que la categoría case con
+  el veredicto. Si la subida falla, el informe queda `error` (nunca «en análisis»).
+- **Cola** (`app.analysis_queue`): sobrevive a reinicios; un análisis activo por informe.
+  Ninguna conexión queda abierta durante un análisis (cada actualización usa una corta) y
+  el worker renueva un **latido** cada minuto: lo que lleva 10 minutos sin latido pasa a
+  `interrumpido` y el informe a `error` («se puede reintentar»), al arrancar y cada dos
+  minutos, sin tocar los análisis de otro proceso vivo (tras un reinicio tarda ~12 min). Un
+  worker al que dieron por interrumpido no guarda nada al terminar; `--subir` no registra
+  un texto que está en la cola del servidor.
+- **Errores en el panel:** se guarda el mensaje de los errores de la pipeline (pensados
+  para el usuario); de cualquier otro, solo su tipo (`pipeline/reports/safe_errors.py`). El
+  registro tapa los secretos de `.env` y la contraseña de `SUPABASE_DB_URL`.
 - **Caché de búsquedas** también en Postgres (`ops.search_cache`), leída antes que el
   disco: se comparte entre el Mac y el servidor y sobrevive a un disco efímero.
 - **Instagram**: la API no crea borradores dentro de Instagram. Los borradores viven en el
@@ -145,7 +156,8 @@ pipeline/
     repository.py     # crear, guardar como borrador (versiones por afirmación) y reconstruir
     files.py          # Supabase Storage (bucket privado `informes/<job_id>/`)
     sync.py           # subir un análisis terminado (`verificar --subir` y el worker)
-    worker.py         # cola en Postgres (FOR UPDATE SKIP LOCKED) e hilos del worker
+    worker.py         # cola en Postgres (FOR UPDATE SKIP LOCKED), latido e hilos del worker
+    safe_errors.py    # mensajes de error sin secretos (panel y registro)
     migrate_local.py  # migración única de data/ (scripts/migrar_informes.py)
 prompts/              # prompts versionados (.md), NUNCA incrustados en el código
 eval/
@@ -493,13 +505,16 @@ la web (`pipeline/knowledge/programs.py`; `ref.programs` y `ref.program_chunks`,
   parlamentario propio** en la legislatura siguiente (no el Mixto ni el Plural). Misma
   regla para todas las elecciones. La lista de grupos sale de fuentes secundarias:
   contrastarla con el BOCG (`data-verifier`) antes de aprobar.
-- **De dónde:** solo del **dominio oficial del partido** o de su copia en archive.org
-  (el código rechaza cualquier otra URL); `scripts/recopilar_programas.py --buscar`
+- **De dónde:** solo del **dominio oficial del partido** (https) o de su copia en
+  archive.org (el código rechaza cualquier otra URL, también tras una redirección; máximo
+  80 MB y 1.500 páginas, PDF sin cifrar); `scripts/recopilar_programas.py --buscar`
   propone PDFs archivados de ese dominio en los 75 días anteriores a la votación. Nunca
   copias de medios o agregadores.
 - **Qué se guarda:** URL, SHA-256 y páginas del PDF, y el texto en fragmentos que no
   cruzan páginas, con búsqueda de texto completo en español (`tsvector`). **No se guarda
   el PDF** (decisión del responsable). El texto es inmutable; otro PDF es otro programa.
+  Uno por partido y elección; un programa rechazado no vuelve, pero deja sitio a su
+  versión corregida (otro id).
 - **Revisión:** entran `pendiente` (un partido no es fuente oficial primaria) y solo se
   usan los `aprobado`: `conocimiento revisar --tipo programa` (que sea el programa
   completo de esa elección, no un resumen).
