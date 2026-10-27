@@ -113,6 +113,13 @@ def create_report(
                 f"El informe {job_id} está {existing[0]}: no se vuelve a analizar"
                 " (publicado o retirado)"
             )
+        queued = conn.execute(
+            "select 1 from app.analysis_queue where report_id = %s"
+            " and estado in ('pendiente', 'en_curso')",
+            (job_id,),
+        ).fetchone()
+        if queued:
+            raise ReportError(f"El informe {job_id} está en la cola de análisis del servidor")
         conn.execute(
             "update app.reports set estado = 'en_analisis', error = null, progreso = '{}',"
             " titulo = %s, tipo = coalesce(%s, tipo), entradilla = coalesce(%s, entradilla),"
