@@ -145,6 +145,7 @@ pipeline/
                       # oficiales.py (+ fuentes_oficiales.toml), web.py
   verdict.py          # veredicto basado solo en evidencia
   report.py           # agregación y salida JSON
+  audit.py            # `uv run auditar`: herramientas usadas, búsquedas, coste, aviso de créditos
   evaluation.py       # formato gold, emparejamiento y métricas
   web/                # web LOCAL de pruebas (FastAPI + una página): `uv run verificar-web`.
                       # No es la web de la fase 4; solo escucha en 127.0.0.1.
@@ -648,6 +649,7 @@ TAVILY_API_KEY=
 TAVILY_SEARCH_DEPTH=basic       # basic (1 crédito) | advanced (2)
 TAVILY_MAX_RESULTS=5            # 1–20
 TAVILY_CACHE_DAYS=30            # días que se reutiliza una búsqueda guardada
+TAVILY_MONTHLY_CREDITS=1000     # créditos al mes del plan; `auditar` avisa desde el 5 % por análisis o el 80 % del mes
 PIPELINE_CONCURRENCY=4          # afirmaciones a la vez en evidencia y veredicto (1 = en serie)
 VERDICT_THINKING=               # opcional: true/false; sin definir = defecto del modelo
 VERDICT_EFFORT=                 # low | medium | high | xhigh | max
@@ -672,6 +674,7 @@ uv run verificar data/x.txt --fecha 2026-11-20 --subir --titulo "Debate a tres" 
                                 # guarda el informe en Supabase como borrador (panel)
 uv run python scripts/migrar_informes.py [--simular]  # sube data/ y la caché a Supabase (una vez)
 uv run verificar-web            # web local de pruebas en http://localhost:8000
+uv run auditar <job_id> [--json]  # herramientas usadas, búsquedas, coste y aviso de créditos
 uv run pytest                   # tests
 uv run python eval/run_eval.py                   # evaluación completa contra el gold set
 uv run python eval/run_eval.py --modo veredicto  # solo veredicto, desde las citas gold
