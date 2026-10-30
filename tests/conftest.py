@@ -24,6 +24,7 @@ SECRET_VARS = (
     "TRANSCRIPTION_API_KEY",
     "SMTP_PASSWORD",
     "SUPABASE_DB_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
 )
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "testserver"}
 

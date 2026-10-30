@@ -11,6 +11,7 @@ dependencies = [
     "pyarrow>=17",
     "pydantic>=2",
     "pydantic-settings>=2",
+    "pypdf>=6.1",
     "pyyaml>=6",
     "tenacity",
     "typer",
@@ -21,6 +22,7 @@ dependencies = [
 verificar = "pipeline.cli:app"
 verificar-web = "pipeline.web.app:main"
 conocimiento = "pipeline.knowledge.cli:app"
+auditar = "pipeline.audit:app"
 
 [dependency-groups]
 dev = [

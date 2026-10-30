@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     tavily_max_results: int = Field(default=5, ge=1, le=20)
     # Searches older than this are repeated (statistics get updated).
     tavily_cache_days: int = Field(default=30, ge=0)
+    # Credits a month in the Tavily plan (free: 1,000), for the audit's warnings.
+    tavily_monthly_credits: int = Field(default=1000, ge=1)
 
     # Sending reports by email (any SMTP provider; Gmail needs an app password).
     smtp_host: str | None = None
@@ -63,6 +65,12 @@ class Settings(BaseSettings):
 
     # Supabase Postgres of the DEVELOPMENT project (knowledge base, migrations, ingestion).
     supabase_db_url: SecretStr | None = None
+    # Supabase Storage (reports' files). The service_role key bypasses every access rule:
+    # only on the owner's Mac or the server, never in a browser or a log.
+    supabase_url: str | None = None
+    supabase_service_role_key: SecretStr | None = None
+    # Analyses run at once by the app's worker.
+    analysis_concurrency: int = Field(default=1, ge=1, le=4)
 
     data_dir: Path = Path("data")
 

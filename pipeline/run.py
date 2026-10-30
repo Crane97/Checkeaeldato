@@ -174,10 +174,19 @@ class LiveDeps:
         if not self.settings.tavily_api_key:
             return None
 
+        db = None
+        if self.settings.supabase_db_url is not None:
+            import psycopg
+
+            from pipeline.evidence.search_cache import DbSearchStore
+
+            url = self.settings.supabase_db_url.get_secret_value()
+            db = DbSearchStore(lambda: psycopg.connect(url, connect_timeout=10))
         cache = SearchCache(
             self.settings.data_dir / "cache" / "search",
             max_age_days=self.settings.tavily_cache_days,
             read=self.use_cache,
+            db=db,
         )
         return TavilyClient(
             self.settings.secret("tavily_api_key"),
@@ -214,6 +223,14 @@ class LiveDeps:
         if s.verdict_thinking is None:
             return None
         return ThinkingConfig(s.verdict_thinking, s.verdict_effort, s.verdict_thinking_budget)
+
+    @property
+    def search_cache_warning(self) -> str | None:
+        """Set when the Supabase search cache failed during this run (only disk was used)."""
+        from pipeline.evidence.search_cache import DB_UNAVAILABLE
+
+        client = self.__dict__.get("tavily")
+        return DB_UNAVAILABLE if client is not None and client.cache_db_unavailable else None
 
     def take_search_cost(self, step: str) -> list[CostEntry]:
         """Tavily searches made since the last call, as a cost entry of `step`."""
@@ -559,7 +576,14 @@ def build_steps(
             )
         indicator_hits.append(len(local))
         sources = deps.evidence_sources
-        base_warnings = [w for w in [getattr(deps, "knowledge_warning", None)] if w]
+        base_warnings = [
+            w
+            for w in [
+                getattr(deps, "knowledge_warning", None),
+                getattr(deps, "search_cache_warning", None),
+            ]
+            if w
+        ]
         base_warnings += list(getattr(deps.indicators, "problems", []))
         base_warnings += list(getattr(on_demand, "errors", []))
         run = EvidenceRun(
@@ -693,6 +717,12 @@ def build_steps(
                 for name in evidence.sources_disabled
             ]
             + evidence.warnings
+            # The verdicts' follow-up searches may have found the database cache down too.
+            + [
+                w
+                for w in [getattr(deps, "search_cache_warning", None)]
+                if w and w not in evidence.warnings
+            ]
             + _record_warning(store),
         )
         store.write("report.json", report, Report)
@@ -754,6 +784,7 @@ def run_job(
     author: str | None = None,
     from_step: StepName | None = None,
     purge_audio: bool = False,
+    on_step: Callable[[StepName], None] | None = None,
 ) -> JobResult:
     if not input_path.is_file():
         raise FileNotFoundError(f"No existe el archivo {input_path}")
@@ -770,7 +801,7 @@ def run_job(
     if invalidated:
         logger.info("Parámetros cambiados: se recalcula desde %s", invalidated)
     steps = build_steps(store, input_path, deps, purge_audio_after=purge_audio)
-    steps_run = run_steps(store, steps, prompts_dir, start)
+    steps_run = run_steps(store, steps, prompts_dir, start, on_step=on_step)
 
     report = store.read("report.json", Report)
     report_path = store.path("report.json")

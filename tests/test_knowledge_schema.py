@@ -17,7 +17,7 @@ from pipeline.knowledge.migrate import (
     load_migrations,
 )
 
-SCHEMAS = ("ref", "evid", "verif", "ops")
+SCHEMAS = ("ref", "evid", "verif", "ops", "app")
 
 
 def test_migrations_are_numbered_and_unique():

@@ -142,7 +142,9 @@ def _show(item: ReviewItem, n: int, total: int) -> None:
 def revisar(
     tipo: Annotated[
         list[str] | None,
-        typer.Option("--tipo", help="observacion, gobierno, partido o hecho (repetible)"),
+        typer.Option(
+            "--tipo", help="observacion, gobierno, partido, hecho, politico o programa (repetible)"
+        ),
     ] = None,
     indicador: Annotated[
         str | None, typer.Option("--indicador", help="Solo las observaciones de un indicador")
@@ -258,9 +260,108 @@ def cargar_politicos(
         typer.echo(f"  Revisión anterior (vuelve a pendiente): {line}")
 
 
+@app.command("cargar-programas")
+def cargar_programas() -> None:
+    """Carga los programas electorales recopilados (entran pendientes de revisión), todo o nada.
+
+    Antes: `uv run python scripts/recopilar_programas.py` (descarga y extrae el texto).
+    """
+    from pipeline.knowledge.programs import load_programs, load_seed
+
+    try:
+        with _connect() as conn:
+            report = load_programs(conn, load_seed())
+            conn.commit()
+    except (ValueError, psycopg.Error) as exc:
+        typer.secho(f"Error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"Nuevos: {len(report.new)} · sin cambios: {len(report.unchanged)} · "
+        f"sin URL en programas.yaml: {len(report.without_url)} · "
+        f"sin recopilar: {len(report.not_collected)}"
+    )
+    for pid in report.changed:
+        typer.secho(
+            f"  Otro PDF que el ya cargado (decide a mano; no se sobrescribe): {pid}",
+            fg=typer.colors.YELLOW,
+        )
+    for pid in report.not_collected:
+        typer.secho(f"  Sin recopilar con la URL actual: {pid}", fg=typer.colors.YELLOW)
+    if report.changed:
+        raise typer.Exit(code=2)  # needs a person: not a silent success in a script
+
+
+@app.command("buscar-programa")
+def buscar_programa(
+    texto: Annotated[
+        str, typer.Argument(help='Palabras a buscar (admite "frase exacta" y -excluir)')
+    ],
+    partido: Annotated[
+        str | None, typer.Option("--partido", help="Id del partido en programas.yaml (pp, psoe…)")
+    ] = None,
+    eleccion: Annotated[
+        str | None, typer.Option("--eleccion", help="Fecha de la elección, AAAA-MM-DD")
+    ] = None,
+    pendientes: Annotated[
+        bool, typer.Option("--pendientes", help="Incluye los programas aún sin revisar")
+    ] = False,
+    limite: Annotated[int, typer.Option("--limite", help="Número de resultados")] = 10,
+) -> None:
+    """Busca en el texto de los programas electorales (solo los aprobados, salvo --pendientes)."""
+    import datetime as dt
+
+    from pipeline.knowledge.programs import search_programs
+
+    try:
+        date = dt.date.fromisoformat(eleccion) if eleccion else None
+    except ValueError as exc:
+        typer.secho(f"Fecha no válida: {eleccion}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2) from exc
+    try:
+        with _connect() as conn:
+            found = search_programs(
+                conn, texto, partido=partido, eleccion=date, include_pending=pendientes,
+                limit=limite,
+            )  # fmt: skip
+            counts: dict[str, int] = {}
+            if not found:  # tell "nothing matches" from "nothing approved yet"
+                counts = dict(
+                    conn.execute(
+                        "select estado, count(*) from ref.programs group by estado"
+                    ).fetchall()
+                )
+            conn.rollback()
+    except psycopg.Error as exc:
+        typer.secho(f"Error de la base de datos: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from exc
+    if not found:
+        approved, pending = counts.get("aprobado", 0), counts.get("pendiente", 0)
+        if approved == 0 and not pendientes:
+            typer.secho(
+                f"No hay ningún programa aprobado ({pending} pendientes de revisión: usa"
+                " --pendientes o `conocimiento revisar --tipo programa`).",
+                fg=typer.colors.YELLOW,
+            )
+        else:
+            typer.echo(f"Sin resultados en {approved + (pending if pendientes else 0)} programas.")
+        return
+    for r in found:
+        typer.secho(
+            f"\n{r.candidatura} · {r.eleccion:%Y-%m-%d} · pág. {r.pagina} ({r.program_id})",
+            bold=True,
+        )
+        typer.echo(f"   {r.fragmento}")
+        typer.echo(f"   {r.url}")
+    if any(r.idioma != "es" for r in found):
+        typer.echo(
+            "\nLa búsqueda usa el diccionario español: en los programas en catalán, euskera o"
+            " gallego puede no encontrar todo."
+        )
+
+
 @app.command()
 def retirar(
-    tipo: Annotated[str, typer.Argument(help="gobierno, partido, hecho o politico")],
+    tipo: Annotated[str, typer.Argument(help="gobierno, partido, hecho, politico o programa")],
     item_id: Annotated[str, typer.Argument(help="Id del elemento aprobado")],
     revisor: Annotated[
         str | None, typer.Option("--revisor", help="Tu nombre: queda registrado")
