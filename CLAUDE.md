@@ -616,6 +616,9 @@ cuenta, pero pueden llegar fuentes posteriores al discurso. Por ahora **no hay l
 - Si un paso falla en todos sus elementos (o una fuente en ≥3 búsquedas seguidas de todas
   las afirmaciones), se para: un informe vacío por un error sería un fallo silencioso.
 - Una fuente sin clave en `.env` se desactiva y el informe lo avisa.
+- **Ninguna espera es infinita:** las conexiones de la pipeline a Supabase (`pipeline/db.py`)
+  cortan cualquier operación sin respuesta en 60 s (una sesión que el pooler deja a medias
+  colgaba el análisis); el error es el de «base no disponible» y se aplica su alternativa.
 - El coste gastado por un paso que falla queda en el `manifest.json`.
 - Un paso con fallos puntuales de IA (límite de uso, red) termina como **incompleto**
   (`partial`): se conserva y se informa, pero se repite en la siguiente ejecución en vez de

@@ -15,6 +15,7 @@ from pathlib import Path
 import psycopg
 
 from pipeline.config import ConfigError, Settings
+from pipeline.db import connect as db_connect
 from pipeline.jobs import JOB_ID_LENGTH, file_sha256
 from pipeline.models import InputKind, Report
 from pipeline.report_html import render_report_html
@@ -55,7 +56,7 @@ logger = logging.getLogger(__name__)
 def connect_db(url: str) -> psycopg.Connection:
     """A connection whose statements cannot wait forever (a lock held by another analysis
     of the same text, a stuck query): SET works on the session pooler."""
-    conn = psycopg.connect(url, connect_timeout=20)
+    conn = db_connect(url, connect_timeout=20)
     conn.execute(f"set statement_timeout = '{STATEMENT_TIMEOUT}'")
     conn.execute(f"set lock_timeout = '{LOCK_TIMEOUT}'")
     conn.commit()
