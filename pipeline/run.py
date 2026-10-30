@@ -15,6 +15,7 @@ from pipeline.config import ConfigError, LlmStep, Settings
 from pipeline.context import PROMPT as CONTEXT_PROMPT
 from pipeline.context import resolve_context
 from pipeline.costs import search_cost, transcription_cost
+from pipeline.db import connect as db_connect
 from pipeline.duplicates import mark_duplicates, with_repetitions
 from pipeline.evidence.base import EvidenceSource, collect_evidence
 from pipeline.evidence.local import local_evidence, on_demand_evidence, partial_local_evidence
@@ -140,7 +141,7 @@ class LiveDeps:
             from pipeline.knowledge.verdict_store import record_verdicts
 
             try:
-                with psycopg.connect(url, connect_timeout=10) as conn:
+                with db_connect(url) as conn:
                     n = record_verdicts(
                         conn, rows[0]["job_id"] if rows else "", rows,
                         model=model, prompt_versions=versions,
@@ -176,12 +177,10 @@ class LiveDeps:
 
         db = None
         if self.settings.supabase_db_url is not None:
-            import psycopg
-
             from pipeline.evidence.search_cache import DbSearchStore
 
             url = self.settings.supabase_db_url.get_secret_value()
-            db = DbSearchStore(lambda: psycopg.connect(url, connect_timeout=10))
+            db = DbSearchStore(lambda: db_connect(url))
         cache = SearchCache(
             self.settings.data_dir / "cache" / "search",
             max_age_days=self.settings.tavily_cache_days,
@@ -208,7 +207,7 @@ class LiveDeps:
 
         try:
             url = self.settings.supabase_db_url.get_secret_value()
-            with psycopg.connect(url, connect_timeout=10) as conn:
+            with db_connect(url) as conn:
                 return KnowledgeIndicatorBase.from_db(conn)
         except psycopg.Error as exc:
             logger.warning("Base de conocimiento no disponible, se usa la base JSON: %s", exc)
@@ -282,12 +281,10 @@ class LiveDeps:
         cache = LocalPoliticianCache(self.settings.data_dir / "cache" / "politicians.json")
         database = None
         if self.settings.supabase_db_url is not None:
-            import psycopg
-
             from pipeline.knowledge.politicians_repo import PostgresPoliticianDirectory
 
             url = self.settings.supabase_db_url.get_secret_value()
-            database = PostgresPoliticianDirectory(lambda: psycopg.connect(url, connect_timeout=10))
+            database = PostgresPoliticianDirectory(lambda: db_connect(url))
         return CombinedDirectory(cache, database)
 
     @cached_property
@@ -295,12 +292,11 @@ class LiveDeps:
         """Facts extracted from the web in earlier runs (Supabase); None without it."""
         if self.settings.supabase_db_url is None:
             return None
-        import psycopg
 
         from pipeline.knowledge.web_facts import WebFactStore
 
         url = self.settings.supabase_db_url.get_secret_value()
-        return WebFactStore(lambda: psycopg.connect(url, connect_timeout=10), dt.date.today())
+        return WebFactStore(lambda: db_connect(url), dt.date.today())
 
     @cached_property
     def on_demand(self) -> "OnDemandSeries":
